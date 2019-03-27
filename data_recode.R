@@ -4,8 +4,32 @@ library('memisc')
 library('dplyr')
 setwd('/well/nichols/projects/UKB/SMS')
 
-# set location of full data file
+
+# set params for testing
 full_data_file = 'ukb25120.csv'
+instance = 'baseline'
+new_data_file = paste0('ukb25120-weighting-', instance, '.csv')
+
+## set params from commandline args
+# args = commandArgs(trailingOnly=TRUE)
+# if(is.na(args[1])){
+# 	full_data_file = 'ukb25120.csv'
+# } else{
+# 	full_data_file = args[1]
+# }
+
+# if(is.na(args[2])){
+# 	instance = 'baseline'
+# } else {
+# 	instance = args[2]
+# }
+
+# if(is.na(args[3])){
+# 	new_data_file = paste0('ukb25120-weighting-', instance, '.csv')
+# } else {
+# 	new_data_file = args[3]
+# }
+
 
 # read in data header to get all names
 data_head = names(fread(full_data_file, nrows = 0))
@@ -15,10 +39,10 @@ variables = fread('/well/nichols/users/bwj567/mini-project-1/variable_codings.cs
 variables = unique(variables[, .(cat, var, `biobank code`)])
 setnames(variables, old = 'biobank code', new = 'biobank_code')
 
-all_parent_codes = variables[, biobank_code]
+all_codes = variables[, biobank_code]
 
 # grab list of actual variable names in the data (at baseline)
-vars_baseline = lapply(all_parent_codes, function(c){
+vars_baseline = lapply(all_codes, function(c){
     data_head[grepl(paste0('^',c,'-0'), data_head)]
     })
 names(vars_baseline) = variables[, var]
@@ -27,7 +51,7 @@ vars_baseline = data.table(var = names(vars_baseline), code = vars_baseline)
 
 
 # grab list of actual variable names in the data (at imaging)
-vars_imaging = lapply(all_parent_codes, function(c){
+vars_imaging = lapply(all_codes, function(c){
     data_head[grepl(paste0('^',c,'-2'), data_head)]
     })
 names(vars_imaging) = variables[, var]
@@ -66,6 +90,8 @@ data_baseline
 data_baseline[, .N, .(year(assessment_date))][order(year)]
 
 
+
+
 ###########
 # RECODES #
 ###########
@@ -75,15 +101,28 @@ data_baseline[, gender_male := as.numeric(sex)]
 data_baseline[, demo_sex := ifelse(sex == 0, 'M', 'F')]
 
 # AGE
-data_baseline[, age]
+data_baseline[, max(age_baseline)]
+#data_baseline[, age := age_baseline]
+data_baseline[, demo_age_bucket := cases(
+	age < 45 -> '40 to 44'
+	, age < 50 -> '44 to 49'
+	, age < 55 -> '50 to 54'
+	, age < 60 -> '55 to 59'
+	, age < 65 -> '60 to 64'
+	, age <= 70 -> '65 to 70'		# note this is different from the census - grouping 70 in with 65-69
+	#, age == 70 -> '70plus'
+	)]
+# check age dist
+data_baseline[, .(min_age = min(age), max_age = max(age), .N, dist = .N/nrow(data_baseline)), demo_age_bucket][order(demo_age_bucket)]
 
-# ethnicity
+
+# ETHNICITY
 data_baseline[, demo_ethnicity := substr(ethnicity, 1,1)]
 data_baseline[, .N, demo_ethnicity]
 data_baseline[, demo_white := 'Non-white']
 data_baseline[demo_ethnicity == 1, demo_white := 'White'
 
-# employment status
+# EMPLOYMENT STATUS
 doEmplRecode = function(r){
 	employed = as.numeric(any(r == 1))
 	retired = as.numeric(any(r == 2))
@@ -109,6 +148,7 @@ data_baseline = cbind(data_baseline
 
 # check overlap
 data_baseline[, .N, .(employed, retired, homemaker, disabled, unemployed, volunteer, student)]
+
 
 # OCCUPATION
 table(unlist(lapply(data_baseline[, job_code], length))) # all the same lemgth
@@ -169,7 +209,7 @@ data_baseline[, demo_educ_highest := cases(
 data_baseline[, .N, .(demo_educ_highest, educ1)][order(demo_educ_highest)]
 
         
-# income
+# INCOME
 data_baseline[, .N, hh_income_cat]
 data_baseline[, demo_income_bucket := cases(
 	'01-Under 18k' = (hh_income_cat == 1)
@@ -182,24 +222,27 @@ data_baseline[, demo_income_bucket := cases(
 	)]
 data_baseline[, .N, .(hh_income_cat, demo_income_bucket)][order(demo_income_bucket)]
 
-# location
+
+# RECENT LOCATION
 addr_dates = data_baseline[,vars_baseline[grepl('addr_firstdate', var), var][15:1], with = F]
 
-# the most recent date is in the last populated field
-sum(apply(addr_dates,1, function(r) {
-	r[!is.na(r)][1]
-	})==
-apply(addr_dates,1, function(r) {
-	max(r, na.rm = T)
-	})
-, na.rm = T)
+# CHECK: the most recent date is in the last populated field
+# sum(apply(addr_dates,1, function(r) {
+# 	r[!is.na(r)][1]
+# 	})==
+# apply(addr_dates,1, function(r) {
+# 	max(r, na.rm = T)
+# 	})
+# , na.rm = T)
 
 #which means that we can apply the same logic to find most recent location
+# EASTING of most recent address
 addr_east_all = data_baseline[, vars_baseline[grepl('addr_east', var), var][15:1], with = F]
 data_baseline[, 'addr_east_recent' := apply(addr_east_all, 1, function(r){
 	r[!is.na(r)][1]
 	})]
 
+# NORTHING of most recent address
 addr_north_all = data_baseline[, vars_baseline[grepl('addr_north', var), var][15:1], with = F]
 data_baseline[, 'addr_north_recent' := apply(addr_north_all, 1, function(r){
 	r[!is.na(r)][1]
@@ -211,27 +254,15 @@ data_baseline[is.na(addr_east6) & !is.na(addr_east5), .(sum(addr_east5 == addr_e
 data_baseline[is.na(addr_north6) & !is.na(addr_north5), .(sum(addr_north5 == addr_north_recent, na.rm = T), .N)]
 
 
-# imaging data
+## NOTE: other location recodes will be more complex, should happen elsewhere
+
+
+# AGE
+data_baseline
 
 
 
 
-## VAR-INSTANCE.MEASUREMENT
-data[, .(.N,.N/nrow(data)), by = `6138-0.0`][order(`6138-0.0`)]
-data[, .(.N,.N/nrow(data)), by = `6138-0.1`][order(`6138-0.1`)]
-data[, .(.N,.N/nrow(data)), by = `6138-0.2`][order(`6138-0.2`)]
-data[, .(.N,.N/nrow(data)), by = `6138-0.3`][order(`6138-0.3`)]
-
-data[, .(.N,.N/nrow(data)), by = .(`6138-0.0`, `6138-0.1`, `6138-0.2`)][order(`6138-0.0`)]
 
 
 
-data = fread('ukb25120.csv'
-	, nrows = 10000 	#for testing
-	, select = c("132-0.0", "132-0.1","132-0.2","132-0.3","132-0.4","132-0.5")
-	, col.names = c('job1', 'job2', 'job3', 'job4', 'job5', 'job6')
-	)
-
-data[, job1 := `132-0.0`]
-data[, substr(job1, 1,1)]
-data[job1 != '' & job1 != 0, .(.N), by = .(jobtop = substr(job1, 1,1))][order(jobtop)][, .(jobtop, N, N/sum(N))]
