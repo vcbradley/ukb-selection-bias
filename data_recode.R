@@ -61,14 +61,72 @@ data_baseline = fread(full_data_file
     )
 data_baseline
 
-data_baseline[, ]
+data_baseline[, .N, .(year(assessment_date))][order(year)]
 
 
 ###########
 # RECODES #
 ###########
 
-#
+# GENDER
+data_baseline[, gender_male := as.numeric(sex)]
+data_baseline[, demo_sex := ifelse(sex == 0, 'M', 'F')]
+
+# AGE
+data_baseline[, age]
+
+# ethnicity
+data_baseline[, demo_ethnicity := substr(ethnicity, 1,1)]
+data_baseline[, .N, demo_ethnicity]
+data_baseline[, demo_white := 'Non-white']
+data_baseline[demo_ethnicity == 1, demo_white := 'White'
+
+# employment status
+data_baseline[, .N, .(job_status1, job_status2, job_status3)][order(job_status1, job_status2, job_status3)]
+data_baseline[, employed := as.numeric(job_status1 == 1)]
+data_baseline[, retired := 0]
+data_baseline[job_status1 == 2 | job_status2 == 2, retired := 1]
+data_baseline[, homemaker := 0]
+data_baseline[job_status1 == 3 | job_status2 == 3 | job_status3 == 3, homemaker := 1]
+data_baseline[, disabled := 0]
+data_baseline[job_status1 == 4 | job_status2 == 4 | job_status3 == 4 | job_status4 == 4, disabled := 1]
+data_baseline[, unemployed:= 0]
+data_baseline[job_status1 == 5 | job_status2 == 5 | job_status3 == 5 | job_status4 == 5 | job_status5 == 5, unemployed := 1]
+data_baseline[, volunteer := 0]
+data_baseline[job_status1 == 6 | job_status2 == 6 | job_status3 == 6 | job_status4 == 6 | job_status5 == 6 | job_status6 == 6, volunteer := 1]
+data_baseline[, student := 0]
+data_baseline[job_status1 == 7 | job_status2 == 7 | job_status3 == 7 | job_status4 == 7 | job_status5 == 7 | job_status6 == 7 | job_status7 == 7, student := 1]
+
+# check overlap
+data_baseline[, .N, .(employed, retired, homemaker, disabled, unemployed, volunteer, student)]
+
+# OCCUPATION
+table(unlist(lapply(data_baseline[, job_code], length))) # all the same lemgth
+data_baseline[, job_topcat := substr(job_code,1,1)]
+data_baseline[, .N, .(is.na(job_topcat), employed)]
+data_baseline[, .N, job_topcat]
+
+data_baseline[, demo_occupation := '10-unemployed']
+data_baseline[job_topcat == 0, demo_occupation := '00-military']
+data_baseline[job_topcat == 1, demo_occupation := '01-manager']
+data_baseline[job_topcat == 2, demo_occupation := '02-professional']
+data_baseline[job_topcat == 3, demo_occupation := '03-assoc professional']
+data_baseline[job_topcat == 4, demo_occupation := '04-admin']
+data_baseline[job_topcat == 5, demo_occupation := '05-skilled trades']
+data_baseline[job_topcat == 6, demo_occupation := '06-personal service']
+data_baseline[job_topcat == 7, demo_occupation := '07-sales customer service']
+data_baseline[job_topcat == 8, demo_occupation := '08-industrial']
+data_baseline[job_topcat == 9, demo_occupation := '09-elementary']
+
+data_baseline[, .N/nrow(data_baseline), demo_occupation]
+# education
+
+# income
+
+# location
+
+# imaging data
+data_baseline[, ]
 
 
 
