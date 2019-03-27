@@ -1,4 +1,5 @@
 ﻿cat,var,biobank code,data code,Notes,Desc,population data
+id,eid,eid,eid,,,
 addr,pob_uk_east,130,,baseline,place of birth (in UK) east coord,
 addr,pob_uk_north,129,,baseline,place of birth (in UK) north coord,
 addr,addr_east,22702,22702-0,baseline,home address east coord,
@@ -44,7 +45,6 @@ health,activity_days_moderate,884,,,,
 health,activity_days_vigorous,904,,,,
 health,activity_duration_moderate,894,,,,
 health,activity_duration_vigorouus,914,,,,
-id,eid,,eid,,,
 neruo,brain_vol,25009,,,,
 neruo,hippo_vol_L,25886,,,,
 neruo,hippo_vol_R,25887,,,,
