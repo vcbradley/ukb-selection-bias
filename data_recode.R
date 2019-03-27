@@ -39,10 +39,9 @@ variables = fread('/well/nichols/users/bwj567/mini-project-1/variable_codings.cs
 variables = unique(variables[, .(cat, var, `biobank code`)])
 setnames(variables, old = 'biobank code', new = 'biobank_code')
 
-all_codes = variables[, biobank_code]
 
 # grab list of actual variable names in the data (at baseline)
-vars_baseline = lapply(all_codes, function(c){
+vars_baseline = lapply(variables[, biobank_code], function(c){
     data_head[grepl(paste0('^',c,'-0'), data_head)]
     })
 names(vars_baseline) = variables[, var]
@@ -51,7 +50,7 @@ vars_baseline = data.table(var = names(vars_baseline), code = vars_baseline)
 
 
 # grab list of actual variable names in the data (at imaging)
-vars_imaging = lapply(all_codes, function(c){
+vars_imaging = lapply(variables[, biobank_code], function(c){
     data_head[grepl(paste0('^',c,'-2'), data_head)]
     })
 names(vars_imaging) = variables[, var]
@@ -113,14 +112,43 @@ data_baseline[, demo_age_bucket := cases(
 	#, age == 70 -> '70plus'
 	)]
 # check age dist
-data_baseline[, .(min_age = min(age), max_age = max(age), .N, dist = .N/nrow(data_baseline)), demo_age_bucket][order(demo_age_bucket)]
+data_baseline[, .(min_age = min(age)
+	, max_age = max(age)
+	, .N
+	, dist = .N/nrow(data_baseline))
+, demo_age_bucket][order(demo_age_bucket)]
 
 
 # ETHNICITY
-data_baseline[, demo_ethnicity := substr(ethnicity, 1,1)]
-data_baseline[, .N, demo_ethnicity]
+data_baseline[, demo_ethnicity_full := cases(
+	'02-White Irish' = (ethnicity == 1002)
+	,'03-White Other' = (ethnicity == 1003)
+	,'01-White' = (substr(ethnicity, 1,1) == 1)
+	,'04-Mixed' = (substr(ethnicity, 1,1) == 2)
+	,'05-Asian Indian' = (ethnicity == 3001)
+	,'05-Asian Pakistani' = (ethnicity == 3002)
+	,'06-Asian Bangladeshi' = (ethnicity == 3003)
+	,'07-Asian Other' = (substr(ethnicity, 1,1) == 3)
+	,'08-Black Carribean' = (ethnicity == 4001)
+	,'09-Black African' = (ethnicity == 4002)
+	,'10-Black Other' = (substr(ethnicity, 1,1) == 4)
+	, '11-Other' = TRUE
+	)]
+data_baseline[, .N, .(ethnicity, demo_ethnicity_full)][order(demo_ethnicity_full)]
+
+# 4-way ethnicity
+data_baseline[, demo_ethnicity_4way := cases(
+	'01-White' = substr(ethnicity,1,1) == 1
+	, '03-Asian' = substr(ethnicity,1,1) == 3
+	, '04-Black' = substr(ethnicity,1,1) == 4
+	, '02-Mixed/Other' = TRUE
+	)]
+data_baseline[, .(.N), .(demo_ethnicity_4way, ethnicity)][order(demo_ethnicity_4way)]
+
+# white
 data_baseline[, demo_white := 'Non-white']
-data_baseline[demo_ethnicity == 1, demo_white := 'White'
+data_baseline[substr(ethnicity, 1,1) == 1, demo_white := 'White']
+
 
 # EMPLOYMENT STATUS
 doEmplRecode = function(r){
@@ -168,14 +196,13 @@ data_baseline[job_topcat == 7, demo_occupation := '07-sales customer service']
 data_baseline[job_topcat == 8, demo_occupation := '08-industrial']
 data_baseline[job_topcat == 9, demo_occupation := '09-elementary']
 
-data_baseline[, .N/nrow(data_baseline), demo_occupation]
+# check occupation distribution
+data_baseline[, .(.N, dist = .N/nrow(data_baseline)), .(job_topcat, demo_occupation)][order(demo_occupation)]
 
 
 # EDUCATION
-# educ1 educ2 educ3 educ4 educ5 educ6
-data_baseline[, educ_collegeplus := ifelse(educ1 == 1, 1, 0)]
-data_baseline[, .N, educ_collegeplus]
 
+## binary indicators
 #r = vector of education data
 doEducRecode = function(r){
         educ_collegeplus = as.numeric(any(r == 1, na.rm = T))
@@ -197,6 +224,7 @@ doEducRecode = function(r){
 data_baseline = cbind(data_baseline
 	, rbindlist(apply(data_baseline[, .(educ1, educ2, educ3, educ4, educ5, educ6)], 1, doEducRecode)))
 
+## highest qualification
 data_baseline[, demo_educ_highest := cases(
             '01-College plus' = (educ1 == 1)
             , '02-A Levels' = (educ1 == 2)
@@ -206,6 +234,7 @@ data_baseline[, demo_educ_highest := cases(
             , '06-Other professional' = (educ1 == 6)
             , '07-None' = TRUE
             )]
+
 data_baseline[, .N, .(demo_educ_highest, educ1)][order(demo_educ_highest)]
 
         
