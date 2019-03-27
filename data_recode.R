@@ -1,5 +1,6 @@
 ## data recode
 library('data.table')
+library('memisc')
 setwd('/well/nichols/projects/UKB/SMS')
 
 # set location of full data file
@@ -119,8 +120,46 @@ data_baseline[job_topcat == 8, demo_occupation := '08-industrial']
 data_baseline[job_topcat == 9, demo_occupation := '09-elementary']
 
 data_baseline[, .N/nrow(data_baseline), demo_occupation]
-# education
 
+
+# EDUCATION
+# educ1 educ2 educ3 educ4 educ5 educ6
+data_baseline[, educ_collegeplus := ifelse(educ1 == 1, 1, 0)]
+data_baseline[, .N, educ_collegeplus]
+
+#r = vector of education data
+doEducRecode = function(r){
+        educ_collegeplus = as.numeric(any(r == 1, na.rm = T))
+        educ_alevels = as.numeric(any(r == 2, na.rm = T))
+        educ_olevels = as.numeric(any(r == 3, na.rm = T))
+        educ_cses = as.numeric(any(r == 4, na.rm = T))
+        educ_vocational = as.numeric(any(r == 5, na.rm = T))
+        educ_profesh = as.numeric(any(r == 6, na.rm = T))
+
+        return(list(educ_collegeplus = educ_collegeplus
+        	, educ_alevels = educ_alevels
+        	, educ_olevels = educ_olevels
+        	, educ_cses = educ_cses
+        	, educ_vocational = educ_vocational
+        	, educ_profesh = educ_profesh
+        	))
+        }
+
+data_baseline = cbind(data_baseline
+	, rbindlist(apply(data_baseline[, .(educ1, educ2, educ3, educ4, educ5, educ6)], 1, doEducRecode)))
+
+data_baseline[, demo_educ_highest := cases(
+        	'01-College plus' = (educ1 == 1)
+        	, '02-A Levels' = (educ1 == 2)
+        	, '03-O Levels' = (educ1 == 3)
+        	, '04-CSEs' = (educ1 == 4)
+        	, '05-Vocational' = (educ1 == 5)
+        	, '06-Other professional' = (educ1 == 6)
+        	, '07-None' = TRUE
+        	)]
+data_baseline[, .N, demo_educ_highest]
+
+        
 # income
 
 # location
