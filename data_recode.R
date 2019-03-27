@@ -1,6 +1,7 @@
 ## data recode
 library('data.table')
 library('memisc')
+library('dplyr')
 setwd('/well/nichols/projects/UKB/SMS')
 
 # set location of full data file
@@ -83,20 +84,28 @@ data_baseline[, demo_white := 'Non-white']
 data_baseline[demo_ethnicity == 1, demo_white := 'White'
 
 # employment status
-data_baseline[, .N, .(job_status1, job_status2, job_status3)][order(job_status1, job_status2, job_status3)]
-data_baseline[, employed := as.numeric(job_status1 == 1)]
-data_baseline[, retired := 0]
-data_baseline[job_status1 == 2 | job_status2 == 2, retired := 1]
-data_baseline[, homemaker := 0]
-data_baseline[job_status1 == 3 | job_status2 == 3 | job_status3 == 3, homemaker := 1]
-data_baseline[, disabled := 0]
-data_baseline[job_status1 == 4 | job_status2 == 4 | job_status3 == 4 | job_status4 == 4, disabled := 1]
-data_baseline[, unemployed:= 0]
-data_baseline[job_status1 == 5 | job_status2 == 5 | job_status3 == 5 | job_status4 == 5 | job_status5 == 5, unemployed := 1]
-data_baseline[, volunteer := 0]
-data_baseline[job_status1 == 6 | job_status2 == 6 | job_status3 == 6 | job_status4 == 6 | job_status5 == 6 | job_status6 == 6, volunteer := 1]
-data_baseline[, student := 0]
-data_baseline[job_status1 == 7 | job_status2 == 7 | job_status3 == 7 | job_status4 == 7 | job_status5 == 7 | job_status6 == 7 | job_status7 == 7, student := 1]
+doEmplRecode = function(r){
+	employed = as.numeric(any(r == 1))
+	retired = as.numeric(any(r == 2))
+	homemaker = as.numeric(any(r == 3))
+	disabled = as.numeric(any(r == 4))
+	unemployed = as.numeric(any(r == 5))
+	volunteer = as.numeric(any(r == 6))
+	student = as.numeric(any(r == 7))
+
+	return(list(employed = employed
+		, retired = retired
+		, homemaker = homemaker
+		, disabled = disabled
+		, unemployed = unemployed
+		, volunteer = volunteer
+		, student = student
+		))
+}
+
+data_baseline = cbind(data_baseline
+	, rbindlist(apply(data_baseline[, .(job_status1, job_status2, job_status3, job_status4, job_status5, job_status6, job_status7)]
+		, 1, doEmplRecode)))
 
 # check overlap
 data_baseline[, .N, .(employed, retired, homemaker, disabled, unemployed, volunteer, student)]
@@ -149,23 +158,61 @@ data_baseline = cbind(data_baseline
 	, rbindlist(apply(data_baseline[, .(educ1, educ2, educ3, educ4, educ5, educ6)], 1, doEducRecode)))
 
 data_baseline[, demo_educ_highest := cases(
-        	'01-College plus' = (educ1 == 1)
-        	, '02-A Levels' = (educ1 == 2)
-        	, '03-O Levels' = (educ1 == 3)
-        	, '04-CSEs' = (educ1 == 4)
-        	, '05-Vocational' = (educ1 == 5)
-        	, '06-Other professional' = (educ1 == 6)
-        	, '07-None' = TRUE
-        	)]
-data_baseline[, .N, demo_educ_highest]
+            '01-College plus' = (educ1 == 1)
+            , '02-A Levels' = (educ1 == 2)
+            , '03-O Levels' = (educ1 == 3)
+            , '04-CSEs' = (educ1 == 4)
+            , '05-Vocational' = (educ1 == 5)
+            , '06-Other professional' = (educ1 == 6)
+            , '07-None' = TRUE
+            )]
+data_baseline[, .N, .(demo_educ_highest, educ1)][order(demo_educ_highest)]
 
         
 # income
+data_baseline[, .N, hh_income_cat]
+data_baseline[, demo_income_bucket := cases(
+	'01-Under 18k' = (hh_income_cat == 1)
+	, '02-18k to 31k' = (hh_income_cat == 2)
+	, '03-31k to 52k' = (hh_income_cat == 3)
+	, '04-52k to 100k' = (hh_income_cat == 4)
+	, '05-Over 100k' = (hh_income_cat == 5)
+	, '06-DNK' = (hh_income_cat == -1)
+	, '07-Refused' = TRUE
+	)]
+data_baseline[, .N, .(hh_income_cat, demo_income_bucket)][order(demo_income_bucket)]
 
 # location
+addr_dates = data_baseline[,vars_baseline[grepl('addr_firstdate', var), var][15:1], with = F]
+
+# the most recent date is in the last populated field
+sum(apply(addr_dates,1, function(r) {
+	r[!is.na(r)][1]
+	})==
+apply(addr_dates,1, function(r) {
+	max(r, na.rm = T)
+	})
+, na.rm = T)
+
+#which means that we can apply the same logic to find most recent location
+addr_east_all = data_baseline[, vars_baseline[grepl('addr_east', var), var][15:1], with = F]
+data_baseline[, 'addr_east_recent' := apply(addr_east_all, 1, function(r){
+	r[!is.na(r)][1]
+	})]
+
+addr_north_all = data_baseline[, vars_baseline[grepl('addr_north', var), var][15:1], with = F]
+data_baseline[, 'addr_north_recent' := apply(addr_north_all, 1, function(r){
+	r[!is.na(r)][1]
+	})]
+
+#some checks that it worked
+data_baseline[is.na(addr_east2), sum(addr_east1 == addr_east_recent, na.rm = T)/sum(is.na(addr_east2))]
+data_baseline[is.na(addr_east6) & !is.na(addr_east5), .(sum(addr_east5 == addr_east_recent, na.rm = T), .N)]
+data_baseline[is.na(addr_north6) & !is.na(addr_north5), .(sum(addr_north5 == addr_north_recent, na.rm = T), .N)]
+
 
 # imaging data
-data_baseline[, ]
+
 
 
 
