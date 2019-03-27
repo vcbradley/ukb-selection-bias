@@ -95,11 +95,11 @@ data_baseline[, .N, .(year(assessment_date))][order(year)]
 # RECODES #
 ###########
 
-# GENDER
+#### GENDER
 data_baseline[, gender_male := as.numeric(sex)]
 data_baseline[, demo_sex := ifelse(sex == 0, 'M', 'F')]
 
-# AGE
+#### AGE
 data_baseline[, max(age_baseline)]
 #data_baseline[, age := age_baseline]
 data_baseline[, demo_age_bucket := cases(
@@ -119,7 +119,7 @@ data_baseline[, .(min_age = min(age)
 , demo_age_bucket][order(demo_age_bucket)]
 
 
-# ETHNICITY
+#### ETHNICITY
 data_baseline[, demo_ethnicity_full := cases(
 	'02-White Irish' = (ethnicity == 1002)
 	,'03-White Other' = (ethnicity == 1003)
@@ -150,7 +150,7 @@ data_baseline[, demo_white := 'Non-white']
 data_baseline[substr(ethnicity, 1,1) == 1, demo_white := 'White']
 
 
-# EMPLOYMENT STATUS
+#### EMPLOYMENT STATUS
 doEmplRecode = function(r){
 	employed = as.numeric(any(r == 1))
 	retired = as.numeric(any(r == 2))
@@ -178,7 +178,7 @@ data_baseline = cbind(data_baseline
 data_baseline[, .N, .(employed, retired, homemaker, disabled, unemployed, volunteer, student)]
 
 
-# OCCUPATION
+#### OCCUPATION
 table(unlist(lapply(data_baseline[, job_code], length))) # all the same lemgth
 data_baseline[, job_topcat := substr(job_code,1,1)]
 data_baseline[, .N, .(is.na(job_topcat), employed)]
@@ -200,7 +200,7 @@ data_baseline[job_topcat == 9, demo_occupation := '09-elementary']
 data_baseline[, .(.N, dist = .N/nrow(data_baseline)), .(job_topcat, demo_occupation)][order(demo_occupation)]
 
 
-# EDUCATION
+#### EDUCATION
 
 ## binary indicators
 #r = vector of education data
@@ -238,7 +238,7 @@ data_baseline[, demo_educ_highest := cases(
 data_baseline[, .N, .(demo_educ_highest, educ1)][order(demo_educ_highest)]
 
         
-# INCOME
+#### INCOME
 data_baseline[, .N, hh_income_cat]
 data_baseline[, demo_income_bucket := cases(
 	'01-Under 18k' = (hh_income_cat == 1)
@@ -252,7 +252,7 @@ data_baseline[, demo_income_bucket := cases(
 data_baseline[, .N, .(hh_income_cat, demo_income_bucket)][order(demo_income_bucket)]
 
 
-# RECENT LOCATION
+#### RECENT LOCATION
 addr_dates = data_baseline[,vars_baseline[grepl('addr_firstdate', var), var][15:1], with = F]
 
 # CHECK: the most recent date is in the last populated field
@@ -286,10 +286,11 @@ data_baseline[is.na(addr_north6) & !is.na(addr_north5), .(sum(addr_north5 == add
 ## NOTE: other location recodes will be more complex, should happen elsewhere
 
 
-# AGE
-data_baseline
 
 
+#############
+# RECODE QC #
+#############
 
 
 
