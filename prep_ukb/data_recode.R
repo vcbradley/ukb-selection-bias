@@ -6,7 +6,7 @@ library('stringr')
 setwd('/well/nichols/users/bwj567/data')
 
 #source code with recode functions
-source('/well/nichols/users/bwj567/mini-project-1/recode_functions.R')
+source('/well/nichols/users/bwj567/mini-project-1/prep_ukb/recode_functions.R')
 
 
 # set params for testing
