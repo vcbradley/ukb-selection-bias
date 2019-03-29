@@ -10,7 +10,7 @@ source('/well/nichols/users/bwj567/mini-project-1/recode_functions.R')
 
 # set params for testing
 full_data_file = 'ukb25120.csv'
-instance = 'baseline'
+instance = 'imaging'
 new_data_file = paste0('ukb25120-weighting-', instance, '.csv')
 
 ## set params from commandline args
@@ -349,37 +349,87 @@ data[health_alc_weekly_total > 0, .N, cut(health_alc_weekly_total, breaks = quan
 data[, names(data)[grep('bp_', names(data))], with = F]
 
 # BP Category
-data %>%
-    select(bp_systolic_auto1, bp_systolic_auto2) %>%
-    mutate(as.numeric(.)) %>%
-    mutate(bp_systolic = rowMeans(., na.rm = T))
+data <- as_tibble(data)
+data <- data %>% 
+    mutate_at(as.numeric, .vars = c('bp_systolic_auto1', 'bp_systolic_auto2', 'bp_systolic_man1', 'bp_systolic_man2')) %>%
+    mutate(bp_systolic = rowMeans(select(., c('bp_systolic_auto1', 'bp_systolic_auto2', 'bp_systolic_man1', 'bp_systolic_man2')), na.rm = T))
+
+data <- data %>% 
+    mutate_at(as.numeric, .vars = c('bp_diastolic_auto1', 'bp_diastolic_auto2', 'bp_diastolic_man1', 'bp_diastolic_man2')) %>%
+    mutate(bp_diastolic = rowMeans(select(., c('bp_diastolic_auto1', 'bp_diastolic_auto2', 'bp_diastolic_man1', 'bp_diastolic_man2')), na.rm = T))
 
 
-data[, health_bp_cat := cases(
-    '01-Normal' = (bp_systolic_auto < 120 & bp_diastolic_auto < 80)
-    #, '02-Elevated' = (bp_systolic_auto >= 120 & bp_systolic_auto < 130 & bp_diastolic_auto < 80)
-    #, '03-Stage 1 HBP' = ((bp_systolic_auto >= 130 & bp_systolic_auto < 140) | (bp_diastolic_auto >= 80 & bp_diastolic_auto < 90))
-    #, '04-Stage 2 HBP' = (bp_systolic_auto >= 140 | bp_diastolic_auto >= 90)
-    )]
+data <- data %>%
+    mutate(health_bp_cat = 
+    	case_when(
+        (bp_systolic < 120 & bp_diastolic < 80) ~ '01-Normal',
+        (bp_systolic >= 120 & bp_systolic < 130 & bp_diastolic < 80) ~ '02-Elevated',
+        ((bp_systolic >= 130 & bp_systolic < 140) | (bp_diastolic >= 80 & bp_diastolic < 90)) ~ '03-Stage 1 HBP',
+        (bp_systolic >= 140 | bp_diastolic >= 90) ~ '04-Stage 2 HBP',
+        TRUE ~ '99-DNK/Refused'
+        )
+    )
+
+data %>% group_by(health_bp_cat) %>% tally()
+data %>% group_by(health_bp_cat) %>% summarize(min_sis = min(bp_systolic), max_sis = max(bp_systolic), min_dia = min(bp_diastolic), max_dia = max(bp_diastolic))
 
 
 # ever diagnosed
-data[, health_bp_high_ever := cases(
-    '01-Yes' = (bp_age_diagnosed >=18)
-    , '03-DNK/Refused' = bp_age_diagnosed < 0
-    )]
-data[is.na(bp_age_diagnosed), health_bp_high_ever := '02-No']
-data[, .N, health_bp_high_ever]
+data <- data %>%
+	mutate(health_bp_high_ever = 
+		case_when(
+			(bp_age_diagnosed >=18) ~ '01-Yes'
+			, bp_age_diagnosed < 0 ~ '03-DNK/Refused'
+			, is.na(bp_age_diagnosed) ~ '02-No'
+			)
+		)
+data %>% group_by(health_bp_high_ever) %>% tally()
 
 # HBP MEDS
-data$health_bp_meds_current_TF <- apply(data[, .(bp_current_meds1,bp_current_meds2,bp_current_meds3)], 1, function(r) any(r == 2, na.rm = T))
-data[, health_bp_meds_current := ifelse(health_bp_meds_current_TF, '01-Yes', '02-No')]
-data[, .N, health_bp_meds_current]
+
+data$health_bp_meds_current <- data %>%
+	select(bp_current_meds1,bp_current_meds2,bp_current_meds3) %>%
+	mutate(health_bp_meds_current_TF = rowSums(. == 2, na.rm = T)
+		, health_bp_meds_current = ifelse(health_bp_meds_current_TF == 1, '01-Yes', '02-No')) %>%
+	pull()
+
+data %>% group_by(health_bp_meds_current, bp_current_meds1,bp_current_meds2,bp_current_meds3) %>% tally()
+
+
+## DIABETES
+data %>% select(., contains('diabetes'))
+data %>% group_by(diabetes) %>% tally()
+
+data$health_diabetes <- data %>% 
+	select(.,diabetes) %>% 
+	mutate(health_diabetes = ifelse(diabetes != 1 | is.na(diabetes), '02-No', '01-Yes')) %>% 
+	pull()
+
+data %>% group_by(diabetes, health_diabetes) %>% tally()
+
+
+##### BRAINS
+
+if(instance == 'imaging'){
+	data <- data %>% mutate(in_imaging_cohort = ifelse(!is.na(MRI_t1_struct) & MRI_completed == 1, 1, 0))
+	data %>% group_by(is.na(MRI_t1_struct), MRI_completed, in_imaging_cohort) %>% tally()
+
+}
+
+
+
 
 #############
 # RECODE QC #
 #############
 
-data[, .(health_alc_weekly_total)]
+
+
+
+
+
+
+
+
 
 
