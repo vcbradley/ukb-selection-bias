@@ -14,13 +14,13 @@ setNumeric = function(DT, col.names){
 
 #r = vector of employment status indicator data
 doEmplRecode = function(r){
-    employed = as.numeric(any(r == 1))
-    retired = as.numeric(any(r == 2))
-    homemaker = as.numeric(any(r == 3))
-    disabled = as.numeric(any(r == 4))
-    unemployed = as.numeric(any(r == 5))
-    volunteer = as.numeric(any(r == 6))
-    student = as.numeric(any(r == 7))
+    employed = as.numeric(any(r == 1, na.rm = T))
+    retired = as.numeric(any(r == 2, na.rm = T))
+    homemaker = as.numeric(any(r == 3, na.rm = T))
+    disabled = as.numeric(any(r == 4, na.rm = T))
+    unemployed = as.numeric(any(r == 5, na.rm = T))
+    volunteer = as.numeric(any(r == 6, na.rm = T))
+    student = as.numeric(any(r == 7, na.rm = T))
 
     return(list(employed = employed
         , retired = retired

@@ -349,9 +349,9 @@ data[health_alc_weekly_total > 0, .N, cut(health_alc_weekly_total, breaks = quan
 
 data[, health_bp_cat := cases(
 	'01-Normal' = (bp_systolic_auto < 120 & bp_diastolic_auto < 80)
-	, '02-Elevated' = (bp_systolic_auto >= 120 & bp_systolic_auto < 130 & bp_diastolic_auto < 80)
-	, '03-Stage 1 HBP' = ((bp_systolic_auto >= 130 & bp_systolic_auto < 140) | (bp_diastolic_auto >= 80 & bp_diastolic_auto < 90))
-	, '04-Stage 2 HBP' = (bp_systolic_auto >= 140 | bp_diastolic_auto >= 90)
+	#, '02-Elevated' = (bp_systolic_auto >= 120 & bp_systolic_auto < 130 & bp_diastolic_auto < 80)
+	#, '03-Stage 1 HBP' = ((bp_systolic_auto >= 130 & bp_systolic_auto < 140) | (bp_diastolic_auto >= 80 & bp_diastolic_auto < 90))
+	#, '04-Stage 2 HBP' = (bp_systolic_auto >= 140 | bp_diastolic_auto >= 90)
 	)]
 data[is.na(health_bp_cat), health_bp_cat := '99-DNK/Refused']
 
