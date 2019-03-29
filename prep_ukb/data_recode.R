@@ -2,38 +2,25 @@
 library('data.table')
 library('memisc')
 library('dplyr')
-setwd('/well/nichols/users/bwj567')
+library('stringr')
+setwd('/well/nichols/users/bwj567/data')
 
 #source code with recode functions
 source('/well/nichols/users/bwj567/mini-project-1/recode_functions.R')
 
 
 # set params for testing
-full_baseline_file = 'data/ukb25120_5k_baseline.tsv'
-all_UKB_vars_file = 'data/ukb25120_allvars.csv'
+full_baseline_file = 'ukb25120_5k_baseline.tsv'
+full_imaging_file = 'ukb25120_5k_imaging.tsv'
+all_UKB_vars_file = 'ukb25120_allvars.csv'
 var_codings_file = '/well/nichols/users/bwj567/mini-project-1/variable_codings.csv'
 new_data_file = 'ukb25120_weighting.csv'
 
-## set params from commandline args
-# args = commandArgs(trailingOnly=TRUE)
-# if(is.na(args[1])){
-#     full_data_file = 'ukb25120.csv'
-# } else{
-#     full_data_file = args[1]
-# }
 
-# if(is.na(args[2])){
-#     instance = 'baseline'
-# } else {
-#     instance = args[2]
-# }
 
-# if(is.na(args[3])){
-#     new_data_file = paste0('ukb25120-weighting-', instance, '.csv')
-# } else {
-#     new_data_file = args[3]
-# }
-
+####################
+# SET UP VARIABLES #
+####################
 
 # read in data header to get all names
 ## ONLY DO ONCE
@@ -72,43 +59,77 @@ setnames(variables_all, c('var','baseline', 'imaging'))
 variables_all[is.na(imaging),var]
 
 
+
+##############
+# DO RECODES #
+##############
+
+
+#### BASELINE ####
+
 # read in ALL the imaging data
-data = fread(full_baseline_file
+data_base = fread(full_baseline_file
     , nrows = 5000     #for testing
     , select = c('eid', variables_all[!is.na(baseline),]$baseline)
     , col.names = c('eid', variables_all[!is.na(baseline),]$var)
     , na.strings = ''
     )
-data <- as_tibble(data)
-
-data %>% group_by(year(assessment_date)) %>% tally()
-
-# write out sample for UKBparse testing
-#write.csv(data,'/well/nichols/users/bwj567/data/ukb25120_sample5k.csv', row.names = F)
+data_base <- as_tibble(data_base)
 
 
+#do recodes
+data_base_recoded <- doRecode(data_base)
+rm(data_base)
+data_base_recoded %>% str(.)
 
-###########
-# RECODES #
-###########
-
-data_recoded <- doRecode(data)
-
-data_recoded %>% str(.)
-
-data_recoded %>% select(., grep('eid|^demo_|^educ_|^health_|age|bmi|addr_east_recent|addr_north_recent', names(data_recoded)))
-names(data_recoded)
-
-
-#############
-# RECODE QC #
-#############
+# select the vars we need
+data_base_recoded <- data_base_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|addr_east_recent|addr_north_recent', names(data_base_recoded)))
 
 
 
+#### IMAGING ####
+
+## read in data
+data_imaging = fread(full_imaging_file
+    , nrows = 5000     #for testing
+    , select = c('eid', variables_all[!is.na(imaging),]$imaging)
+    , col.names = c('eid', variables_all[!is.na(imaging),]$var)
+    , na.strings = ''
+    )
+data_imaging <- as_tibble(data_imaging)
+
+
+## do recodes
+data_imaging_recoded <- doRecode(data_imaging)
+rm(data_imaging)
+data_imaging_recoded %>% str(.)
+
+# select the vars we need
+data_imaging_recoded <- data_imaging_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|addr_east_recent|addr_north_recent', names(data_imaging_recoded)))
 
 
 
+#############################
+# MERGE INTO WEIGHTING FILE #
+#############################
+
+# rename cols with prefix 'base'
+data_base_recoded <- data_base_recoded %>% rename_at(vars(-contains('eid')), funs(paste0('base_', .)))
+
+# rename cols with prefix 'img'
+data_imaging_recoded <- data_imaging_recoded %>% rename_at(vars(-contains('eid')), funs(paste0('img_', .)))
+
+#merge
+data_weighting <- merge(data_base_recoded, data_imaging_recoded, by = 'eid')
+
+names(data_weighting)
+
+
+#####################
+# WRITE OUT TO FILE #
+#####################
+
+write.csv(data_weighting, new_data_file, row.names = F)
 
 
 
