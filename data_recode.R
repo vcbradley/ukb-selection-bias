@@ -144,17 +144,17 @@ data[, job_code_major := substr(job_code_full,1,1)]
 
 #recode
 data[, demo_occupation := cases(
-	'01-manager' = (job_code_major == 1)
-	, '02-professional' = (job_code_major == 2)
-	, '03-assoc professional' = (job_code_major == 3)
-	, '04-admin' = (job_code_major == 4)
-	, '05-skilled trades' = (job_code_major == 5)
-	, '06-personal service' = (job_code_major == 6)
-	, '07-sales customer service' = (job_code_major == 7)
-	, '08-industrial' = (job_code_major == 8)
-	, '09-elementary' = (job_code_major == 9)
-	, '10-unemployed/DNK' = TRUE
-	)]
+    '01-manager' = (job_code_major == 1)
+    , '02-professional' = (job_code_major == 2)
+    , '03-assoc professional' = (job_code_major == 3)
+    , '04-admin' = (job_code_major == 4)
+    , '05-skilled trades' = (job_code_major == 5)
+    , '06-personal service' = (job_code_major == 6)
+    , '07-sales customer service' = (job_code_major == 7)
+    , '08-industrial' = (job_code_major == 8)
+    , '09-elementary' = (job_code_major == 9)
+    , '10-unemployed/DNK' = TRUE
+    )]
 #fill NAs
 data[is.na(demo_occupation), demo_occupation := '10-unemployed/DNK']
 
@@ -233,17 +233,17 @@ data[is.na(addr_north6) & !is.na(addr_north5), .(sum(addr_north5 == addr_north_r
 
 #### YEAR IMMIGRATED
 data[, demo_year_immigrated := cases(
-	'01-Before 1941' = (year_immigrated < 1941)
-	, '02-1941 to 1950' = (year_immigrated <= 1950)
-	, '03-1951 to 1960' = (year_immigrated <= 1960)
-	, '04-1961 to 1970' = (year_immigrated <= 1970)
-	, '05-1971 to 1980' = (year_immigrated <= 1980)
-	, '06-1981 to 1990' = (year_immigrated <= 1990)
-	, '07-1991 to 2000' = (year_immigrated <= 2000)
-	, '08-2001 to 2003' = (year_immigrated <= 2003)
-	, '09-2004 to 2006' = (year_immigrated <= 2006)
-	, '10-2007 to 2009' = (year_immigrated <= 2009)
-	)]
+    '01-Before 1941' = (year_immigrated < 1941)
+    , '02-1941 to 1950' = (year_immigrated <= 1950)
+    , '03-1951 to 1960' = (year_immigrated <= 1960)
+    , '04-1961 to 1970' = (year_immigrated <= 1970)
+    , '05-1971 to 1980' = (year_immigrated <= 1980)
+    , '06-1981 to 1990' = (year_immigrated <= 1990)
+    , '07-1991 to 2000' = (year_immigrated <= 2000)
+    , '08-2001 to 2003' = (year_immigrated <= 2003)
+    , '09-2004 to 2006' = (year_immigrated <= 2006)
+    , '10-2007 to 2009' = (year_immigrated <= 2009)
+    )]
 data[is.na(year_immigrated), demo_year_immigrated := '00-Born in UK']  #this seems safe to assume data[, .N, .(is.na(pob_uk_east), is.na(year_immigrated))]
 
 data[, .N, demo_year_immigrated][order(demo_year_immigrated)]
@@ -254,13 +254,13 @@ data[, .N, demo_year_immigrated][order(demo_year_immigrated)]
 data[, .N, hh_size]
 
 data[, demo_hh_size := cases(
-	'99-DNK/Refused' = (hh_size == -3)
-	, '1' = (hh_size == 1)
-	, '2' = (hh_size == 2)
-	, '3' = (hh_size == 3)
-	, '4' = (hh_size == 4)
-	, '5 or more' = (hh_size > 4)
-	)]
+    '99-DNK/Refused' = (hh_size == -3)
+    , '1' = (hh_size == 1)
+    , '2' = (hh_size == 2)
+    , '3' = (hh_size == 3)
+    , '4' = (hh_size == 4)
+    , '5 or more' = (hh_size > 4)
+    )]
 data[is.na(demo_hh_size), demo_hh_size := '99-DNK/Refused']
 
 data[, .N, demo_hh_size][order(demo_hh_size)]
@@ -268,34 +268,34 @@ data[, .N, demo_hh_size][order(demo_hh_size)]
 ## RENT OR OWN HOME
 data[, .N, hh_ownrent][order(hh_ownrent)]
 data[, demo_hh_ownrent := cases(
-	'01-Own outright' = (hh_ownrent == 1)
-	, '02-Own with mortgage' = (hh_ownrent == 2)
-	, '03-Rent from LA' = (hh_ownrent == 3)
-	, '04-Rent private' = (hh_ownrent == 4)
-	, '05-Shared' = (hh_ownrent == 5)
-	, '06-Rent free' = (hh_ownrent == 6)
-	)]
+    '01-Own outright' = (hh_ownrent == 1)
+    , '02-Own with mortgage' = (hh_ownrent == 2)
+    , '03-Rent from LA' = (hh_ownrent == 3)
+    , '04-Rent private' = (hh_ownrent == 4)
+    , '05-Shared' = (hh_ownrent == 5)
+    , '06-Rent free' = (hh_ownrent == 6)
+    )]
 data[is.na(demo_hh_ownrent), demo_hh_ownrent := '99-DNK/Refused']
 
 data[, .N, demo_hh_ownrent][order(demo_hh_ownrent)]
 
 ## TYPE
-data[, .N, hh_type]
-data[, demo_hh_type := cases(
-	'01-House' = (hh_type == 1)
-	, '02-Flat or apartment' = (hh_type <= 4)
-	)]
-data[is.na(demo_hh_type), demo_hh_type := '03-Other']
+data[, .N, hh_accom_type]
+data[, demo_hh_accom_type := cases(
+    '01-House' = (hh_accom_type == 1)
+    , '02-Flat or apartment' = (hh_accom_type <= 4)
+    )]
+data[is.na(demo_hh_accom_type), demo_hh_accom_type := '03-Other']
 
 
 #### HEALTH VARS
 
 # smoking
 data[, health_smoking_current := cases(
-	'01-Current' = (smoking_status == 2)
-	, '02-Previous' = (smoking_status == 1)
-	, '03-Never' = (smoking_status == 0)
-	)]
+    '01-Current' = (smoking_status == 2)
+    , '02-Previous' = (smoking_status == 1)
+    , '03-Never' = (smoking_status == 0)
+    )]
 data[is.na(health_smoking_current), health_smoking_current := '99-DNK/Refused']
 
 # ever smoked
@@ -305,23 +305,23 @@ data[, .N, .(health_smoking_current, health_smoking_ever)]
 ## BMI
 # https://www.nhs.uk/common-health-questions/lifestyle/what-is-the-body-mass-index-bmi/
 data[, health_BMI_bucket := cases(
-	'01-Underweight' = (bmi < 18.5)
-	, '02-Healthy' = (bmi < 24.9)
-	, '03-Overweight' = (bmi < 29.9)
-	, '04-Obese' = (bmi >= 29.9)
-	)]
+    '01-Underweight' = (bmi < 18.5)
+    , '02-Healthy' = (bmi < 24.9)
+    , '03-Overweight' = (bmi < 29.9)
+    , '04-Obese' = (bmi >= 29.9)
+    )]
 data[is.na(health_BMI_bucket), health_BMI_bucket := '99-DNK/Refused']
 data[, .N, health_BMI_bucket][order(health_BMI_bucket)]
 
 
 data[, health_alc_freq := cases(
-	'01-Every day or almost' = (alc_freq == 1)
-	, '02-Three to four times pw' = (alc_freq == 2)
-	, '03-Once or twice pw' = (alc_freq == 3)
-	, '04-One to three times pm' = (alc_freq == 4) # NOT QUITE THE SAME AS CENSUS
-	, '05-Special occasions' = (alc_freq == 5)
-	, '06-Never' = (alc_freq == 6)
-	)]
+    '01-Every day or almost' = (alc_freq == 1)
+    , '02-Three to four times pw' = (alc_freq == 2)
+    , '03-Once or twice pw' = (alc_freq == 3)
+    , '04-One to three times pm' = (alc_freq == 4) # NOT QUITE THE SAME AS CENSUS
+    , '05-Special occasions' = (alc_freq == 5)
+    , '06-Never' = (alc_freq == 6)
+    )]
 data[is.na(health_alc_freq), health_alc_freq := '99-DNK/Refused']
 
 data[, .N, .(alc_freq, health_alc_freq)]
@@ -333,33 +333,48 @@ setNumeric(data, col.names = c('alc_weekly_beer', 'alc_weekly_champ', 'alc_weekl
 replaceNA(data, col.names = c('alc_weekly_beer', 'alc_weekly_champ', 'alc_weekly_fortwine', 'alc_weekly_other', 'alc_weekly_redwine', 'alc_weekly_spirits'))
 
 for(i in c('alc_weekly_beer', 'alc_weekly_champ', 'alc_weekly_fortwine', 'alc_weekly_other', 'alc_weekly_redwine', 'alc_weekly_spirits'))
-	data[, (i) := ifelse(get(i) < 0, 0, get(i))]
+    data[, (i) := ifelse(get(i) < 0, 0, get(i))]
 
 data[, health_alc_weekly_total := alc_weekly_beer + alc_weekly_champ
-	+ alc_weekly_fortwine
-	+ alc_weekly_other
-	+ alc_weekly_redwine
-	+ alc_weekly_spirits]
+    + alc_weekly_fortwine
+    + alc_weekly_other
+    + alc_weekly_redwine
+    + alc_weekly_spirits]
 
 data[health_alc_weekly_total > 0, .N, cut(health_alc_weekly_total, breaks = quantile(health_alc_weekly_total,probs = seq(0,1,length=5)))][order(cut)]
 
 
 # Blood pressure
 # https://www.acc.org/latest-in-cardiology/articles/2017/11/08/11/47/mon-5pm-bp-guideline-aha-2017
+data[, names(data)[grep('bp_', names(data))], with = F]
+
+# BP Category
+data %>%
+    select(bp_systolic_auto1, bp_systolic_auto2) %>%
+    mutate(as.numeric(.)) %>%
+    mutate(bp_systolic = rowMeans(., na.rm = T))
+
 
 data[, health_bp_cat := cases(
-	'01-Normal' = (bp_systolic_auto < 120 & bp_diastolic_auto < 80)
-	#, '02-Elevated' = (bp_systolic_auto >= 120 & bp_systolic_auto < 130 & bp_diastolic_auto < 80)
-	#, '03-Stage 1 HBP' = ((bp_systolic_auto >= 130 & bp_systolic_auto < 140) | (bp_diastolic_auto >= 80 & bp_diastolic_auto < 90))
-	#, '04-Stage 2 HBP' = (bp_systolic_auto >= 140 | bp_diastolic_auto >= 90)
-	)]
-data[is.na(health_bp_cat), health_bp_cat := '99-DNK/Refused']
-
-data[, .(.N, min(bp_systolic_auto), max(bp_systolic_auto)
-	, min(bp_diastolic_auto), max(bp_diastolic_auto)
-	), health_bp_cat]
+    '01-Normal' = (bp_systolic_auto < 120 & bp_diastolic_auto < 80)
+    #, '02-Elevated' = (bp_systolic_auto >= 120 & bp_systolic_auto < 130 & bp_diastolic_auto < 80)
+    #, '03-Stage 1 HBP' = ((bp_systolic_auto >= 130 & bp_systolic_auto < 140) | (bp_diastolic_auto >= 80 & bp_diastolic_auto < 90))
+    #, '04-Stage 2 HBP' = (bp_systolic_auto >= 140 | bp_diastolic_auto >= 90)
+    )]
 
 
+# ever diagnosed
+data[, health_bp_high_ever := cases(
+    '01-Yes' = (bp_age_diagnosed >=18)
+    , '03-DNK/Refused' = bp_age_diagnosed < 0
+    )]
+data[is.na(bp_age_diagnosed), health_bp_high_ever := '02-No']
+data[, .N, health_bp_high_ever]
+
+# HBP MEDS
+data$health_bp_meds_current_TF <- apply(data[, .(bp_current_meds1,bp_current_meds2,bp_current_meds3)], 1, function(r) any(r == 2, na.rm = T))
+data[, health_bp_meds_current := ifelse(health_bp_meds_current_TF, '01-Yes', '02-No')]
+data[, .N, health_bp_meds_current]
 
 #############
 # RECODE QC #
