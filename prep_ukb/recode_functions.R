@@ -101,10 +101,13 @@ doRecode <- function(data){
     if(exists('job_code', data)){
 
         #coalesce variables
-        data <- data %>% 
-            mutate(job_code_full = ifelse(is.na(job_code_deduced), job_code, job_code_deduced)
-                , job_code_major = substr(job_code_full,1,1)
-            )
+        if(exists('job_code_deduced', data)){
+            data <- data %>% mutate(job_code_full = ifelse(is.na(job_code_deduced), job_code, job_code_deduced))
+        } else {
+            data <- data %>% mutate(job_code_full = job_code)
+        }
+        data <- data %>% mutate(job_code_major = substr(job_code_full,1,1))
+
 
         data <- data %>% mutate(demo_occupation = case_when(
             (job_code_major == 1) ~ '01-manager'
