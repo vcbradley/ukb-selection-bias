@@ -1,22 +1,30 @@
 ##data_extract.sh
 
+#################
+# Script to generate basefiles from ukbiobank data
+# Extracts relevant variables and subjects 
+#################
+
+
 cd /well/nichols/users/bwj567/
 
-
-
 # SET PARAMS
-INSTANCE='baseline'
+INSTANCE='imaging'
 #FILE_IN='/well/nichols/projects/UKB/SMS/ukb25120.csv'
-FILE_IN='/well/nichols/users/bwj567/data/ukb25120_sample5k.csv'
-FILE_OUT='/well/nichols/users/bwj567/ukb25120'
+FILE_IN='/well/nichols/users/bwj567/data/ukb25120_sample5k.csv' ##TESTING
+FILE_OUT='/well/nichols/users/bwj567/data/ukb25120_5k'
 if [ "$INSTANCE" != "baseline" ]
 then 
 	FILE_OUT=$FILE_OUT'_imaging.tsv'
+	VISIT=2
 else
 	FILE_OUT=$FILE_OUT'_baseline.tsv'
+	VISIT=0
 fi
 echo $FILE_OUT
 echo $FILE_IN
+
+
 
 
 
@@ -47,5 +55,5 @@ cat data/vars.csv
 # select only sec
 
 
-ukbparse -nb --log_file /well/nichols/users/bwj567/log.txt -v data/vars.csv -vi 0 $FILE_OUT $FILE_IN 
+ukbparse -nb --log_file /well/nichols/users/bwj567/log.txt -v data/vars.csv -vi $VISIT $FILE_OUT $FILE_IN 
 
