@@ -5,10 +5,11 @@ library('memisc')
 library('dplyr')
 library('stringr')
 
-setwd('/well/nichols/users/bwj567/_data')
+setwd('/well/nichols/users/bwj567/')
 
 var_codings_file = '/well/nichols/users/bwj567/mini-project-1/variable_codings.csv'
-census_file = 'recodev12.csv'
+census_file = '_data/recodev12.csv'
+census_recoded_file = 'data/census11_recoded.csv'
 
 
 # read in list of vars we want
@@ -21,7 +22,7 @@ census_data_header = names(fread(census_file, nrows = 0))
 
 # read in census data
 census_data = fread(census_file    
-    , nrows = 500    
+    #, nrows = 500    # for testing
     , select = unique(variables_census))
 
 census_data <- as_tibble(census_data)
@@ -184,7 +185,7 @@ census_data %>% group_by(yrarr_yearg, demo_year_immigrated) %>% tally()
 
 ## SIZE
 
-censsu_data <- census_data %>% mutate(demo_hh_size = case_when(
+census_data <- census_data %>% mutate(demo_hh_size = case_when(
 	                    (sizhuk11 <= 1) ~ '1'
                     , (sizhuk11 == 2) ~ '2'
                     , (sizhuk11 == 3) ~ '3'
@@ -204,6 +205,24 @@ census_data <- census_data %>% mutate(demo_hh_ownrent = case_when(
             , TRUE ~ '99-DNK/Refused'))
 
 census_data %>% group_by(demo_hh_ownrent, tenure) %>% tally()
+
+## TYPE
+
+census_data <- census_data %>% mutate(demo_hh_accom_type = case_when(
+            (typaccom %in% c(1,2,3)) ~ '01-House'
+            , (typaccom == 4) ~ '02-Flat or apartment'
+            , TRUE ~ '03-Other'
+            ))
+
+
+## CHECK LA
+#census_data %>% select(la_group) %>% pull()
+
+
+
+
+########### WRITE OUT TO FILE
+write.csv(census_data, census_recoded_file, row.names = F)
 
 
 
