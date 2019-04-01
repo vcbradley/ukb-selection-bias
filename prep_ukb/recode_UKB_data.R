@@ -91,7 +91,7 @@ data_base_recoded <- data_base_recoded %>% select(., grep('eid|^demo_|^health_|^
 
 ## read in data
 data_imaging = fread(full_imaging_file
-    #, nrows = 5000     #for testing
+    #, nrows = 10000     #for testing
     , select = c('eid', variables_all[!is.na(imaging),]$imaging)
     , col.names = c('eid', variables_all[!is.na(imaging),]$var)
     , na.strings = ''
@@ -99,13 +99,15 @@ data_imaging = fread(full_imaging_file
 data_imaging <- as_tibble(data_imaging)
 
 
+# limit to only imaging subjects
+data_imaging <- data_imaging %>% filter(., !is.na(MRI_completed))
+
 ## do recodes
 data_imaging_recoded <- doRecode(data_imaging)
 rm(data_imaging)
-data_imaging_recoded %>% str(.)
 
 # select the vars we need
-data_imaging_recoded <- data_imaging_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|addr_east_recent|addr_north_recent', names(data_imaging_recoded)))
+data_imaging_recoded <- data_imaging_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|^MRI|addr_east_recent|addr_north_recent', names(data_imaging_recoded)))
 
 
 
@@ -119,8 +121,11 @@ data_base_recoded <- data_base_recoded %>% rename_at(vars(-contains('eid')), fun
 # rename cols with prefix 'img'
 data_imaging_recoded <- data_imaging_recoded %>% rename_at(vars(-contains('eid')), funs(paste0('img_', .)))
 
+
+
+
 #merge
-data_weighting <- merge(data_base_recoded, data_imaging_recoded, by = 'eid')
+data_weighting <- merge(data_base_recoded, data_imaging_recoded, by = 'eid', all.x = T)
 
 names(data_weighting)
 
