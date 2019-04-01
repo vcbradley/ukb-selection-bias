@@ -273,8 +273,9 @@ doRecode <- function(data){
     if(exists('hh_accom_type', data)){
         data <- data %>% mutate(demo_hh_accom_type = case_when(
             (hh_accom_type == 1) ~ '01-House'
-            , (hh_accom_type <= 4) ~ '02-Flat or apartment'
-            , TRUE ~ '03-Other'
+            , (hh_accom_type <= 4) ~ '02-Flat, apartment or temp'
+            , hh_accom_type %in% c(5,-7) ~ '03-Other'
+            , TRUE ~ '99-DNK/Refused'
             ))
 
         data %>% group_by(demo_hh_accom_type, hh_accom_type) %>% tally()
