@@ -7,7 +7,7 @@ library('stringr')
 
 setwd('/well/nichols/users/bwj567/')
 
-source('/well/nichols/users/bwj567/mini-project-1/')
+source('/well/nichols/users/bwj567/mini-project-1/prep_census/recode_functions_census.R')
 
 var_codings_file = '/well/nichols/users/bwj567/mini-project-1/variable_codings.csv'
 census_file = '_data/recodev12.csv'
@@ -24,7 +24,7 @@ variables_census = variables_census[census_var != "",]$census_var
 
 ####### READ IN DATA
 census_data = fread(census_file    
-    , nrows = 500    # for testing
+    #, nrows = 500    # for testing
     , select = unique(variables_census))
 
 census_data <- as_tibble(census_data)
@@ -35,8 +35,11 @@ census_data_recoded <- doCensusRecode(census_data)
 
 
 ########### WRITE OUT TO FILE
-census_data %>% select(., c('caseno', names(census_data)[grep('demo_', names(census_data))]))
-write.csv(census_data, census_recoded_file, row.names = F)
+# select only the demo cols
+census_data_recoded <- census_data_recoded %>% select(., c('caseno', names(census_data_recoded)[grep('demo_', names(census_data_recoded))]))
+
+# write out recoded data
+write.csv(census_data_recoded, census_recoded_file, row.names = F)
 
 
 rm()
