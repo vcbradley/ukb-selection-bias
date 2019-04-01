@@ -107,7 +107,7 @@ data_imaging_recoded <- doRecode(data_imaging)
 rm(data_imaging)
 
 # select the vars we need
-data_imaging_recoded <- data_imaging_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|^MRI|addr_east_recent|addr_north_recent', names(data_imaging_recoded)))
+data_imaging_recoded <- data_imaging_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|^MRI|was_imaged|addr_east_recent|addr_north_recent', names(data_imaging_recoded)))
 
 
 
@@ -123,8 +123,9 @@ data_imaging_recoded <- data_imaging_recoded %>% rename_at(vars(-contains('eid')
 
 
 # merge imaging flags onto baseline data
-data_base_recoded <- merge(data_base_recoded, select(data_imaging_recoded,c('eid', 'MRI_completed', 'MRI_method', 'MRI_safe', 'was_imaged')), by = 'eid', all.x = T)
+data_base_recoded <- merge(data_base_recoded, select(data_imaging_recoded,c('eid', 'img_MRI_completed', 'img_MRI_method', 'img_MRI_safe', 'img_was_imaged')), by = 'eid', all.x = T)
 
+data_base_recoded %>% group_by(img_was_imaged) %>% tally()
 
 
 #####################
