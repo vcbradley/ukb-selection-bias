@@ -14,7 +14,7 @@ full_baseline_file = 'ukb25120_baseline.tsv'
 full_imaging_file = 'ukb25120_imaging.tsv'
 all_UKB_vars_file = 'ukb25120_allvars.csv'
 var_codings_file = '/well/nichols/users/bwj567/mini-project-1/variable_codings.csv'
-new_data_file = 'ukb25120_weighting.csv'
+new_file_prefix = 'ukb25120_weighting'
 
 
 
@@ -122,19 +122,17 @@ data_base_recoded <- data_base_recoded %>% rename_at(vars(-contains('eid')), fun
 data_imaging_recoded <- data_imaging_recoded %>% rename_at(vars(-contains('eid')), funs(paste0('img_', .)))
 
 
+# merge imaging flags onto baseline data
+data_base_recoded <- merge(data_base_recoded, select(data_imaging_recoded,c('eid', 'MRI_completed', 'MRI_method', 'MRI_safe', 'was_imaged')), by = 'eid', all.x = T)
 
-
-#merge
-data_weighting <- merge(data_base_recoded, data_imaging_recoded, by = 'eid', all.x = T)
-
-names(data_weighting)
 
 
 #####################
 # WRITE OUT TO FILE #
 #####################
 
-write.csv(data_weighting, new_data_file, row.names = F)
+write.csv(data_base_recoded, paste0(new_file_prefix,'_base.csv'), row.names = F)
+write.csv(data_imaging_recoded, paste0(new_file_prefix,'_img.csv'), row.names = F)
 
 
 
