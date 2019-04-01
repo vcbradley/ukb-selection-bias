@@ -12,7 +12,7 @@ doRecode <- function(data){
 
     #### GENDER
     if(exists('sex', data)){
-        data <- data %>% mutate(demo_sex = ifelse(sex == 0, 'M', 'F'))
+        data <- data %>% mutate(demo_sex = ifelse(sex == 0, 'Male', 'Female'))
 
         #checks
         data %>% group_by(demo_sex) %>% tally()
@@ -151,7 +151,7 @@ doRecode <- function(data){
 
 
         ## highest qualification
-        data <- data %>% mutate(demo_educ_highest = case_when(
+        data <- data %>% mutate(demo_educ_highest_full = case_when(
                                   (educ1 == 1) ~ '01-College plus'
                                 , (educ1 == 2) ~ '02-A Levels'
                                 , (educ1 == 3) ~ '03-O Levels'
@@ -160,6 +160,15 @@ doRecode <- function(data){
                                 , (educ1 == 6) ~ '06-Other professional'
                                 , (educ1 < 0) ~ '99-DNK/Refused'
                                 , TRUE ~ '07-None'
+            ))
+
+        data <- data %>% mutate(demo_educ_highest = case_when(
+                                  (educ1 %in% c(1,6)) ~ '01-College plus/profesh'
+                                , (educ1 == 2) ~ '02-A Levels'
+                                , (educ1 %in% c(3,4)) ~ '03-O Levels/CEs'
+                                , (educ1 > 0) ~ '04-Vocational/Other'
+                                , (educ1 < 0) ~ '99-DNK/Refused'
+                                , TRUE ~ '05-None'
             ))
 
         data %>% group_by(demo_educ_highest, educ1) %>% tally()
