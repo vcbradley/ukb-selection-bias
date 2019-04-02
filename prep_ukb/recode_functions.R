@@ -27,8 +27,7 @@ doRecode <- function(data){
             , age < 55 ~ '50 to 54'
             , age < 60 ~ '55 to 59'
             , age < 65 ~ '60 to 64'
-            , age <= 70 ~ '65 to 70'  
-            , TRUE ~ '70 plus' 
+            , TRUE ~ '65 to 69'  
             ))
 
         # check age dist
