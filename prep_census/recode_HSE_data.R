@@ -70,14 +70,37 @@ hse_data <- hse_data %>% mutate(demo_age_bucket = case_when(
     , Age35g == 20.0 ~ '80 to 84'
     , Age35g == 21.0 ~ '85 to 89'
     , Age35g == 22.0 ~ '90+'
+    , TRUE ~ '99-DNK/Refused'
     ))
 
 
 hse_data %>% group_by(Age35g, demo_age_bucket) %>% tally()
 
 
+#### ETHNICITY
+
+hse_data <- hse_data %>% mutate(demo_ethnicity_4way = case_when(
+		Origin2 == 1.0 ~ '01-White'
+		, Origin2 == 3.0 ~ '03-Asian'
+		, Origin2 == 2.0 ~ '04-Black'
+		, Origin2 >= 4 ~ '02-Mixed/Other'
+		, TRUE ~ '99-DNK/Refused'
+		))
+
+hse_data <- hse_data %>% mutate(demo_white = case_when(
+		Origin2 == 1.0 ~ '01-White'
+		, Origin2 < 0 ~ '99-DNK/Refused'
+		, TRUE ~ '02-Non-white'
+		))
+
+hse_data %>% group_by(Origin2, demo_ethnicity_4way, demo_white) %>% tally()
 
 
+#### EMPLOYMENT STATUS
+
+
+
+#### OCCUPATION
 
 
 
