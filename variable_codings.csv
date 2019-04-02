@@ -15,7 +15,7 @@ admin,assessment_quarter,,,,,,,,,Qrtint
 admin,assessment_date,53,,,,,,,,
 demo,job_code,132,,http://nesstar.ukdataservice.ac.uk/webview/index.jsp?v=2&mode=documentation&submode=abstract&study=http://nesstar.ukdataservice.ac.uk:80/obj/fStudy/7605&top=yes,X,OCCG,,SOC2010B,,SOC2010B
 demo,job_code_deduced,20024,coalesce with job_code - this is from free text field,,X,,,,,
-demo,sex,31,,,X,SEX,,Sex,,sex
+demo,sex,31,,,X,SEX,,Sex,,Sex
 demo,yob,34,,,,,,,,
 demo,mob,52,,,,,,,,
 demo,dob,33,,,,,,,,
