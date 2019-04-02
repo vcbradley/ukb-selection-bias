@@ -83,8 +83,7 @@ rm(data_base)
 data_base_recoded %>% str(.)
 
 # select the vars we need
-data_base_recoded <- data_base_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|addr_east_recent|addr_north_recent', names(data_base_recoded)))
-
+data_base_recoded <- data_base_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|addr_east_recent|addr_north_recent|^assessment', names(data_base_recoded)))
 
 
 #### IMAGING ####
@@ -107,7 +106,7 @@ data_imaging_recoded <- doRecode(data_imaging)
 rm(data_imaging)
 
 # select the vars we need
-data_imaging_recoded <- data_imaging_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|^MRI|was_imaged|addr_east_recent|addr_north_recent', names(data_imaging_recoded)))
+data_imaging_recoded <- data_imaging_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|^MRI|was_imaged|addr_east_recent|addr_north_recent|^assessment', names(data_imaging_recoded)))
 
 
 
