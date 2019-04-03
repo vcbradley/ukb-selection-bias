@@ -26,7 +26,7 @@ variables_hse = unlist(lapply(variables_hse, function(x) unlist(strsplit(x, ', '
 ####### READ IN DATA
 hse_data = fread(hse_file    
     #, nrows = 500    # for testing
-    , select = unique(variables_hse)
+    #, select = unique(variables_hse)
     )
 
 hse_data <- as_tibble(hse_data)

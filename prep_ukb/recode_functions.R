@@ -52,7 +52,8 @@ doRecode <- function(data){
             ,(ethnicity == 4001) ~ '08-Black Carribean'
             ,(ethnicity == 4002) ~ '09-Black African'
             ,(substr(ethnicity, 1,1) == 4) ~ '10-Black Other'
-            ,TRUE ~  '11-Other'
+            , ethnicity > 0 ~ '11-Other'
+            ,TRUE ~  '99-DNK/Refused'
             ))
 
         #4-way
@@ -60,11 +61,16 @@ doRecode <- function(data){
              substr(ethnicity,1,1) == 1 ~ '01-White'
             , substr(ethnicity,1,1) == 3 ~  '03-Asian'
             , substr(ethnicity,1,1) == 4 ~  '04-Black'
-            , TRUE ~  '02-Mixed/Other'
+            , ethnicity > 0 ~ '02-Mixed/Other'
+            , TRUE ~ '99-DNK/Refused'
             ))
 
         #white/non-white
-        data <- data %>% mutate(demo_white = ifelse(substr(ethnicity, 1,1) == 1, '01-White', '02-Non-white'))
+        data <- data %>% mutate(demo_white = case_when(
+            substr(ethnicity,1,1) == 1 ~ '01-White'
+            , ethnicity < 0 ~ '99-DNK/Refused'
+            , TRUE ~ '02-Non-white'
+            ))
 
         #checks
         data %>% group_by(demo_ethnicity_full) %>% tally()
