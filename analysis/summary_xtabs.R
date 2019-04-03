@@ -18,50 +18,61 @@ hsedata = fread('data/hse16_recoded.csv')
 hsedata <- as_tibble(hsedata)
 
 # limit to people 40 to 70
-censusdata <- censusdata %>% filter(demo_age_bucket >= '40 to 44')
-	%>% filter(demo_age_bucket <= '40 to 44')
+censusdata <- censusdata %>% filter(demo_age_bucket >= '40 to 44') %>% filter(demo_age_bucket <= '65 to 69')
 
 # limit HSE people to 40 to 70
-hsedata <- hsedata %>% filter(demo_age_bucket >= '40 to 44')
-	%>% filter(demo_age_bucket <= '40 to 44')
+hsedata <- hsedata %>% filter(demo_age_bucket >= '40 to 44') %>% filter(demo_age_bucket <= '65 to 69')
 
 
 ukbdata %>% group_by(base_demo_age_bucket) %>% tally()
+censusdata %>% group_by(demo_age_bucket) %>% tally()
+hsedata %>% group_by(demo_age_bucket) %>% tally()
 
 #summary function
 getDemoSummary <- function(data, var){
-	
-	if(exists('img_was_imaged', data)){
-		n_imaged = sum(data$img_was_imaged, na.rm = T)
 
-		summary = data %>% 
-					group_by_(var) %>% 
-					summarize(count_base = n()
-						, count_img = sum(img_was_imaged, na.rm = T)
-						, dist_base = n()/nrow(data)
-						, dist_img = sum(img_was_imaged, na.rm = T)/n_imaged
-						)
-	} else {
-		summary = data %>% 
-					group_by_(var) %>% 
-					summarize(count_census = n()
-						, dist_census = n()/nrow(data)
-						)
-	}
+	summary = data %>% 
+                    group_by_(var) %>% 
+                    summarize(count = n()
+                        , dist = n()/nrow(data)
+                        )
 
-	cbind(var, summary)
+    cbind(var, summary)
+}
+
+getAllSummaries <- function(data, varlist, suffix = ""){
+
+	# get summary
+	summary = rbindlist(lapply(varlist, getDemoSummary, data = data))
+
+	#set colnames
+	suffix = ifelse(suffix == "", "", paste0("_", suffix))
+	setnames(summary, c('var', 'level', paste0('count', suffix), paste0('dist', suffix)))
+
+	# fix varnames
+	summary[, var := gsub('base_demo', 'demo', var)]
+
+	return(summary)
 }
 
 
+# set list of vars
+varlist = c(names(ukbdata)[grepl('base_demo', names(ukbdata))], names(ukbdata)[grepl('base_health', names(ukbdata))])
+
+
 #### DO UKB SUMMARY
-var_list = c(names(ukbdata)[grepl('base_demo', names(ukbdata))], names(ukbdata)[grepl('base_health', names(ukbdata))])
-summary_base = rbindlist(lapply(var_list, getDemoSummary, data = ukbdata))
-summary_base[, var := gsub('base_demo', 'demo', var)]
-setnames(summary_base, old = 'base_demo_sex', new = 'level')
+summary_base = getAllSummaries(data = ukbdata, varlist = varlist, suffix = 'ukb')
+
+#### DO IMG SUMMARY
+summary_img = getAllSummaries(data = ukbdata %>% filter(img_has_t1_MRI == 1), varlist = varlist, suffix = 'ukb_img')
 
 #### DO CENSUS SUMMARY
-summary_census = rbindlist(lapply(names(censusdata)[grepl('demo_', names(censusdata))], getDemoSummary, data = censusdata))
-setnames(summary_census, old = 'demo_sex', new = 'level')
+summary_census = getAllSummaries(data = censusdata, varlist = varlist[varlist %in% names(censusdata)], suffix = 'census')
+
+
+#### DO HSE SUMMARY
+summary_hse = getAllSummaries(data = hsedata, varlist = varlist[varlist %in% names(hsedata)], suffix = 'hse16')
+
 
 merge(summary_base, summary_census, by = c('var', 'level'), all = T)
 
