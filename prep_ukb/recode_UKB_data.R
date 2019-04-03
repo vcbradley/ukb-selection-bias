@@ -10,8 +10,8 @@ source('/well/nichols/users/bwj567/mini-project-1/prep_ukb/recode_functions.R')
 
 
 # set params for testing
-full_baseline_file = 'ukb25120_baseline.tsv'
-full_imaging_file = 'ukb25120_imaging.tsv'
+full_baseline_file = 'ukb25120_raw_baseline.tsv'
+full_imaging_file = 'ukb25120_raw_imaging.tsv'
 all_UKB_vars_file = 'ukb25120_allvars.csv'
 var_codings_file = '/well/nichols/users/bwj567/mini-project-1/variable_codings.csv'
 new_file_prefix = 'ukb25120_weighting'
@@ -71,7 +71,7 @@ variables_all[is.na(imaging),var]
 data_base = fread(full_baseline_file
     #, nrows = 5000     #for testing
     , select = c('eid', variables_all[!is.na(baseline),]$baseline)
-    , col.names = c('eid', variables_all[!is.na(baseline),]$var)
+    #, col.names = c('eid', variables_all[!is.na(baseline),]$var)
     , na.strings = ''
     )
 data_base <- as_tibble(data_base)
