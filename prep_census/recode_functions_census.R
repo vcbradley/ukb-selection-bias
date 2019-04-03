@@ -167,15 +167,15 @@ doCensusRecode <- function(data){
 
     ## RENT OR OWN
     census_data <- census_data %>% mutate(demo_hh_ownrent = case_when(
-                tenure == 0 ~ '01-Own outright'
-                , tenure == 1 ~ '02-Own with mortgage'
-                , tenure %in% c(3,4) ~ '03-Rent from LA'
-                , tenure %in% c(5,6,7,8) ~ '04-Rent private'
-                , tenure == 2 ~ '05-Shared'
-                , tenure == 9 ~ '06-Rent free'
+                tenduk11 == 0 ~ '01-Own outright'
+                , tenduk11 == 1 ~ '02-Own with mortgage'
+                , tenduk11 %in% c(3,4) ~ '03-Rent from LA'
+                , tenduk11 %in% c(5,6,7,8) ~ '04-Rent private'
+                , tenduk11 == 2 ~ '05-Shared'
+                , tenduk11 == 9 ~ '06-Rent free'
                 , TRUE ~ '99-DNK/Refused'))
 
-    census_data %>% group_by(demo_hh_ownrent, tenure) %>% tally()
+    census_data %>% group_by(demo_hh_ownrent, tenduk11) %>% tally()
 
     ## TYPE
 
