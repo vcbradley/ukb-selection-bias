@@ -231,7 +231,7 @@ doHSERecodes <- function(data){
             mutate(health_bp_high_ever = 
                 case_when(
                     DocBP == 1 ~ '01-Yes'
-                    , (DocBP == 2 | EverBP == 2) ~ '01-No'
+                    , (DocBP == 2 | EverBP == 2) ~ '02-No'
                     , TRUE ~ '03-DNK/Refused'
                     )
                 )
