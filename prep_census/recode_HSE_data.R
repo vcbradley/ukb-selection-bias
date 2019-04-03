@@ -185,7 +185,118 @@ hse_data %>% group_by(demo_hh_ownrent, TenureB2, LandLord) %>% tally()
 
 #### HEALTH
 
-## SMOKING
+## SMOKING - NOT ASKED OF CHILDREN
+hse_data %>% filter(demo_age_bucket >= '16 to 19') %>% group_by(cignow, cigst1) %>% tally()
+
+hse_data <- hse_data %>% mutate(health_smoking_status = case_when(
+            (cigst1 == 4) ~ '01-Current'
+            , (cigst1 == 1) ~ '03-Never'
+            , (cigst1 < 0 ) ~ '99-DNK/Refused'
+            , TRUE ~ '02-Previous'
+	))
+
+hse_data %>% group_by(demo_age_bucket, health_smoking_status, cignow, cigst1) %>% tally()
+
+
+## BMI
+
+hse_data <- hse_data %>% mutate(health_BMI_bucket = case_when(
+            (BMIval < 0) ~ '99-DNK/Refused'
+            , (BMIval < 18.5) ~ '01-Underweight'
+            , (BMIval < 24.9) ~ '02-Healthy'
+            , (BMIval < 29.9) ~ '03-Overweight'
+            , (BMIval >= 29.9) ~ '04-Obese'
+            , TRUE ~ '99-DNK/Refused'
+            ))
+
+hse_data %>% group_by(health_BMI_bucket) %>% summarize(length(BMIval), min(BMIval), max(BMIval))
+
+
+### ALC CONSUMPTION
+
+## frequency
+hse_data <- hse_data %>% mutate(health_alc_freq = case_when(
+            (dnoft3 < 0) ~ '99-DNK/Refused'
+            , (dnoft3 <= 2) ~ '01-Every day or almost'
+            , (dnoft3 == 3) ~ '02-Three to four times pw'
+            , (dnoft3 == 4) ~ '03-Once or twice pw'
+            , (dnoft3 == 5) ~ '04-One to three times pm' # NOT QUITE THE SAME AS CENSUS 
+            , (dnoft3 <= 7) ~ '05-Special occasions'
+            , (dnoft3 == 8) ~ '06-Never'
+            , TRUE ~ '99-DNK/Refused'
+            ))
+
+hse_data %>% group_by(health_alc_freq, dnoft3) %>% tally()
+
+## weekly amount
+hse_data <- hse_data %>% mutate(health_alc_weekly_total = ifelse(totalwu < 0, 0, totalwu))
+
+hse_data %>% select(health_alc_weekly_total) %>% glimpse(.)
+hse_data %>% select(health_alc_weekly_total) %>% summary()
+
+
+
+
+#### BLOOD PRESSURE
+
+## BP cat
+hse_data <- hse_data %>%
+            mutate(health_bp_cat = 
+                case_when(
+                	(omsysval < 0 | omdiaval < 0) ~ '99-DNK/Refused',
+	                (omsysval < 120 & omdiaval < 80) ~ '01-Normal',
+	                (omsysval >= 120 & omsysval < 130 & omdiaval < 80) ~ '02-Elevated',
+	                ((omsysval >= 130 & omsysval < 140) | (omdiaval >= 80 & omdiaval < 90)) ~ '03-Stage 1 HBP',
+	                (omsysval >= 140 | omdiaval >= 90) ~ '04-Stage 2 HBP',
+	                TRUE ~ '99-DNK/Refused'
+                )
+            )
+
+# checks
+hse_data %>% group_by(health_bp_cat) %>% tally()
+hse_data %>% group_by(health_bp_cat) %>% summarize(count = n(), min_sis = min(omsysval), max_sis = max(omsysval), min_dia = min(omdiaval), max_dia = max(omdiaval))
+
+
+## ever diagnosed with high BP
+hse_data <- hse_data %>%
+        mutate(health_bp_high_ever = 
+            case_when(
+                (AgeBP > 0) ~ '01-Yes'
+                , AgeBP == -1
+                , AgeBP < 0 ~ '03-DNK/Refused'
+                , is.na(AgeBP) ~ '02-No'
+                )
+            )
+hse_data %>% group_by(health_bp_high_ever) %>% tally()
+
+
+## take medicine for BP
+
+hse_data <- hse_data %>% mutate(health_bp_meds_current = case_when(
+	bpmedc2 == 1 ~ '01-Yes'
+	, bpmedc2 == 0 ~ '02-No'
+	, TRUE ~ '99-DNK/Refused
+	'))
+hse_data %>% group_by(health_bp_meds_current,bpmedc2) %>% tally()
+
+
+
+#### DIABETES
+
+hse_data <- hse_data %>% mutate(health_diabetes = case_when(
+	(EverDi == 1 & Diabetes == 1) ~ '01-Yes'
+	, EverDi < 0 ~ '99-DNK/Refused'
+	, TRUE ~ '02-No'
+	))
+
+hse_data %>% group_by(EverDi, Diabetes, health_diabetes) %>% tally()
+
+
+
+
+
+
+
 
 
 
