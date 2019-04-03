@@ -23,7 +23,7 @@ doRecode <- function(data){
     if(exists('age', data)){
         data <- data %>% mutate(demo_age_bucket = case_when(
             age < 45 ~ '40 to 44'
-            , age < 50 ~ '44 to 49'
+            , age < 50 ~ '45 to 49'
             , age < 55 ~ '50 to 54'
             , age < 60 ~ '55 to 59'
             , age < 65 ~ '60 to 64'
