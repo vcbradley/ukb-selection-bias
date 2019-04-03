@@ -393,8 +393,8 @@ doRecode <- function(data){
             mutate(health_bp_meds_current_TF = rowSums(. == 2, na.rm = T)
                 , health_bp_meds_current_REFUSED = rowSums(. == -1 | . == -3, na.rm = T)
                 , health_bp_meds_current = case_when(
-                    health_bp_meds_current_REFUSED ~ '99-DNK/Refused'
-                    , health_bp_meds_current_TF ~ '01-Yes'
+                    health_bp_meds_current_TF ~ '01-Yes'
+                    , (health_bp_meds_current_REFUSED > 0) ~ '99-DNK/Refused'
                     , TRUE ~ '02-No'
                     )) %>%
             pull()
