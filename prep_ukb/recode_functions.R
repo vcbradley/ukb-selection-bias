@@ -164,7 +164,7 @@ doRecode <- function(data){
         data <- data %>% mutate(demo_educ_highest = case_when(
                                   (educ1 %in% c(1,6)) ~ '01-College plus/profesh'
                                 , (educ1 == 2) ~ '02-A Levels'
-                                , (educ1 %in% c(3,4)) ~ '03-O Levels/CEs'
+                                , (educ1 %in% c(3,4)) ~ '03-O Levels/CSEs'
                                 , (educ1 > 0) ~ '04-Vocational/Other'
                                 , (educ1 < 0) ~ '99-DNK/Refused'
                                 , TRUE ~ '05-None'
