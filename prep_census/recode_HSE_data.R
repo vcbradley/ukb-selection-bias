@@ -35,3 +35,6 @@ hse_data %>% str(.)
 
 hse_data_recoded <- doHSERecodes(hse_data)
 
+names(hse_data_recoded)
+
+
