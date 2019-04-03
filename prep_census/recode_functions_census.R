@@ -23,7 +23,7 @@ doCensusRecode <- function(data){
                 , ageh == 7 ~ '30 to 34'        
                 , ageh == 8 ~ '35 to 39'            
                 , ageh == 9 ~ '40 to 44'
-                , ageh == 10 ~ '44 to 49'
+                , ageh == 10 ~ '45 to 49'
                 , ageh == 11 ~ '50 to 54'
                 , ageh == 12 ~ '55 to 59'
                 , ageh == 13 ~ '60 to 64'
