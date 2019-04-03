@@ -120,7 +120,7 @@ doCensusRecode <- function(data){
     census_data <- census_data %>% mutate(demo_educ_highest = case_when(
         hlqupuk11 == 15 ~ '01-College plus/profesh'
         , hlqupuk11 == 14 ~ '02-A Levels'
-        , hlqupuk11 %in% c(11,12) ~ '03-Levels/CES'
+        , hlqupuk11 %in% c(11,12) ~ '03-Levels/CSEs'
         , hlqupuk11 %in% c(13,16) ~ '04-Vocational/Other'
         , hlqupuk11 == 10 ~ '05-None'
         , TRUE ~ '00-DNK/Refused'
