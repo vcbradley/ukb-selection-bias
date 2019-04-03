@@ -417,7 +417,7 @@ doRecode <- function(data){
     ##### IMAGING
     if(exists('MRI_t1_struct', data)){
         data <- data %>% mutate(
-            was_imaged = as.numeric(!is.na(MRI_t1_struct))
+            has_t1_MRI = as.numeric(!is.na(MRI_t1_struct))
             )
     }
 

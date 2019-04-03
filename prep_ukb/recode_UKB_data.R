@@ -79,7 +79,7 @@ data_base <- as_tibble(data_base)
 
 #do recodes
 data_base_recoded <- doRecode(data_base)
-rm(data_base)
+#rm(data_base)
 data_base_recoded %>% str(.)
 
 # select the vars we need
@@ -103,12 +103,14 @@ data_imaging <- data_imaging %>% filter(., !is.na(MRI_completed))
 
 ## do recodes
 data_imaging_recoded <- doRecode(data_imaging)
-rm(data_imaging)
+#rm(data_imaging)
 
 # select the vars we need
-data_imaging_recoded <- data_imaging_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|^MRI|was_imaged|addr_east_recent|addr_north_recent|^assessment', names(data_imaging_recoded)))
+data_imaging_recoded <- data_imaging_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|^MRI|has_t1_MRI|addr_east_recent|addr_north_recent|^assessment', names(data_imaging_recoded)))
 
 
+
+data_imaging %>% select(., MRI_t1_struct) %>% summary(.)
 
 #############################
 # MERGE INTO WEIGHTING FILE #
@@ -122,10 +124,11 @@ data_imaging_recoded <- data_imaging_recoded %>% rename_at(vars(-contains('eid')
 
 
 # merge imaging flags onto baseline data
-data_base_recoded <- merge(data_base_recoded, select(data_imaging_recoded,c('eid', 'img_MRI_completed', 'img_MRI_method', 'img_MRI_safe', 'img_was_imaged')), by = 'eid', all.x = T)
+data_base_recoded <- merge(data_base_recoded, select(data_imaging_recoded,c('eid', 'img_MRI_completed', 'img_MRI_method', 'img_MRI_safe', 'img_has_t1_MRI')), by = 'eid', all.x = T)
+data_base_recoded <- data_base_recoded %>% mutate(img_has_t1_MRI = ifelse(is.na(img_has_t1_MRI), 0, 1))
 
-data_base_recoded %>% group_by(img_was_imaged) %>% tally()
-
+data_base_recoded %>% group_by(img_has_t1_MRI) %>% tally()
+data_imaging_recoded %>% group_by(img_MRI_completed,img_has_t1_MRI, is.na(img_MRI_t1_struct)) %>% tally()
 
 #####################
 # WRITE OUT TO FILE #
