@@ -80,35 +80,112 @@ hse_data %>% group_by(Age35g, demo_age_bucket) %>% tally()
 #### ETHNICITY
 
 hse_data <- hse_data %>% mutate(demo_ethnicity_4way = case_when(
-		Origin2 == 1.0 ~ '01-White'
-		, Origin2 == 3.0 ~ '03-Asian'
-		, Origin2 == 2.0 ~ '04-Black'
-		, Origin2 >= 4 ~ '02-Mixed/Other'
-		, TRUE ~ '99-DNK/Refused'
-		))
+        Origin2 == 1.0 ~ '01-White'
+        , Origin2 == 3.0 ~ '03-Asian'
+        , Origin2 == 2.0 ~ '04-Black'
+        , Origin2 >= 4 ~ '02-Mixed/Other'
+        , TRUE ~ '99-DNK/Refused'
+        ))
 
 hse_data <- hse_data %>% mutate(demo_white = case_when(
-		Origin2 == 1.0 ~ '01-White'
-		, Origin2 < 0 ~ '99-DNK/Refused'
-		, TRUE ~ '02-Non-white'
-		))
+        Origin2 == 1.0 ~ '01-White'
+        , Origin2 < 0 ~ '99-DNK/Refused'
+        , TRUE ~ '02-Non-white'
+        ))
 
 hse_data %>% group_by(Origin2, demo_ethnicity_4way, demo_white) %>% tally()
 
 
 #### EMPLOYMENT STATUS
 
+hse_data <- cbind(hse_data, 
+            hse_data %>% 
+                select(.,grep('Activb2', names(hse_data))) %>%
+                transmute(
+                    demo_empl_employed = rowSums(. >= 2 & . <= 4, na.rm = T)
+                    , demo_empl_retired = rowSums(. == 8, na.rm = T)
+                    , demo_empl_homemaker = rowSums(. == 9, na.rm = T)
+                    , demo_empl_disabled = rowSums(. == 7, na.rm = T)
+                    , demo_empl_unemployed = rowSums(. == 5, na.rm = T)
+                    , demo_empl_volunteer = 0#rowSums(. == 100, na.rm = T)
+                    , demo_empl_student = rowSums(. == 1, na.rm = T)
+                    )
+            )
+
+hse_data %>% group_by(Activb2, demo_empl_employed, demo_empl_retired, demo_empl_homemaker, demo_empl_disabled, demo_empl_unemployed, demo_empl_volunteer, demo_empl_student) %>% tally()
 
 
 #### OCCUPATION
 
+hse_data <- hse_data %>% mutate(demo_occupation = case_when(
+            (substr(SOC2010B, 1, 1) == 1) ~ '01-manager'
+            , (substr(SOC2010B, 1, 1) == 2) ~ '02-professional'
+            , (substr(SOC2010B, 1, 1) == 3) ~ '03-assoc professional'
+            , (substr(SOC2010B, 1, 1) == 4) ~ '04-admin'
+            , (substr(SOC2010B, 1, 1) == 5) ~ '05-skilled trades'
+            , (substr(SOC2010B, 1, 1) == 6) ~ '06-personal service'
+            , (substr(SOC2010B, 1, 1) == 7) ~ '07-sales customer service'
+            , (substr(SOC2010B, 1, 1) == 8) ~ '08-industrial'
+            , (substr(SOC2010B, 1, 1) == 9) ~ '09-elementary'
+            , TRUE ~ '10-unemployed/DNK'
+            ))
+
+# check
+hse_data %>% group_by(demo_occupation, SOC2010B) %>% tally()
+
+
+#### Education
+
+hse_data <- hse_data %>% mutate(demo_educ_highest = case_when(
+        (topqual3 == 1) ~ '01-College plus/profesh'
+        , (topqual3 %in% c(2,3)) ~ '02-A Levels'
+        , (topqual3 %in% c(4,5)) ~ '03-O Levels/CSEs'
+        , (topqual3 == 7) ~ '05-None'
+        , (topqual3 < 0) ~ '99-DNK/Refused'
+        , TRUE ~ '04-Vocational/Other'
+        ))
+
+
+hse_data %>% group_by_(.dots = c('topqual3', names(hse_data)[grepl('Degree', names(hse_data))])) %>% tally()
+
+hse_data %>% group_by(demo_educ_highest, topqual3) %>% tally()
+
+
+#### INCOME
+
+hse_data <- hse_data %>% mutate(demo_income_bucket = case_when(
+            (HHInc2 <= 4) ~ '01-Under 18k'
+            , (HHInc2 <= 9) ~ '02-18k to 31k'
+            , (HHInc2 <= 14) ~ '03-31k to 52k'
+            , (HHInc2 <= 19) ~ '04-52k to 100k'
+            , (HHInc2 <= 21) ~ '05-Over 100k'
+            , TRUE ~ '06-DNK/Refused'
+            ))
+
+hse_data %>% group_by(HHInc2, demo_income_bucket) %>% tally()
 
 
 
+##### HOUSEHOLD
+
+## TYPE
+hse_data <- hse_data %>% mutate(demo_hh_ownrent = case_when(
+            (TenureB2 == 1) ~ '01-Own outright'
+            , (TenureB2 == 2) ~ '02-Own with mortgage'
+            , (TenureB2 == 4 & LandLord %in% c(1,2)) ~ '03-Rent from LA'
+            , (TenureB2 == 4) ~ '04-Rent private'
+            , (TenureB2 == 3) ~ '05-Shared'
+            , (TenureB2 == 5) ~ '06-Rent free'
+            , TRUE ~ '99-DNK/Refused'
+            ))
+
+hse_data %>% group_by(demo_hh_ownrent, TenureB2, LandLord) %>% tally()
 
 
 
+#### HEALTH
 
+## SMOKING
 
 
 
