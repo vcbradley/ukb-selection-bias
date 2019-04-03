@@ -12,7 +12,10 @@ doRecode <- function(data){
 
     #### GENDER
     if(exists('sex', data)){
-        data <- data %>% mutate(demo_sex = ifelse(sex == 0, 'Male', 'Female'))
+        data <- data %>% mutate(demo_sex = case_when(
+            sex == 0 ~ 'Female'
+            , sex == 1 ~ 'Male'
+            , TRUE ~ '99-DNK/Refused'))
 
         #checks
         data %>% group_by(demo_sex) %>% tally()
