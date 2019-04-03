@@ -29,10 +29,9 @@ census_data = fread(census_file
 
 census_data <- as_tibble(census_data)
 
-
 ###### DO RECODE
 census_data_recoded <- doCensusRecode(census_data)
-
+rm(census_data)
 
 ########### WRITE OUT TO FILE
 # select only the demo cols
