@@ -181,7 +181,7 @@ doCensusRecode <- function(data){
 
     census_data <- census_data %>% mutate(demo_hh_accom_type = case_when(
                 (typaccom %in% c(1,2,3)) ~ '01-House'
-                , (typaccom == 4) ~ '02-Flat or apartment'
+                , (typaccom == 4) ~ '02-Flat, apartment or temp'
                 , TRUE ~ '03-Other'
                 ))
 
