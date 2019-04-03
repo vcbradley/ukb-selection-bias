@@ -71,7 +71,7 @@ variables_all[is.na(imaging),var]
 data_base = fread(full_baseline_file
     #, nrows = 5000     #for testing
     , select = c('eid', variables_all[!is.na(baseline),]$baseline)
-    #, col.names = c('eid', variables_all[!is.na(baseline),]$var)
+    , col.names = c('eid', variables_all[!is.na(baseline),]$var)
     , na.strings = ''
     )
 data_base <- as_tibble(data_base)
