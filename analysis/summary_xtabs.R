@@ -50,7 +50,7 @@ getAllSummaries <- function(data, varlist, suffix = ""){
 	setnames(summary, c('var', 'level', paste0('count', suffix), paste0('dist', suffix)))
 
 	# fix varnames
-	summary[, var := gsub('base_demo', 'demo', var)]
+	summary[, var := gsub('base_', '', var)]
 
 	return(summary)
 }
@@ -67,14 +67,15 @@ summary_base = getAllSummaries(data = ukbdata, varlist = varlist, suffix = 'ukb'
 summary_img = getAllSummaries(data = ukbdata %>% filter(img_has_t1_MRI == 1), varlist = varlist, suffix = 'ukb_img')
 
 #### DO CENSUS SUMMARY
-summary_census = getAllSummaries(data = censusdata, varlist = varlist[varlist %in% names(censusdata)], suffix = 'census')
-
+summary_census = getAllSummaries(data = censusdata, varlist = names(censusdata)[grepl('demo|health', names(censusdata))], suffix = 'census')
 
 #### DO HSE SUMMARY
-summary_hse = getAllSummaries(data = hsedata, varlist = varlist[varlist %in% names(hsedata)], suffix = 'hse16')
+summary_hse = getAllSummaries(data = hsedata, varlist = names(hsedata)[grepl('demo|health', names(hsedata))], suffix = 'hse16')
 
 
-merge(summary_base, summary_census, by = c('var', 'level'), all = T)
+#### MERGE ALL TOGETHER
+Reduce(function(x, y) merge(x, y, by=c("var", 'level'), all = T), list(summary_base, summary_img, summary_census, summary_hse))
+
 
 summary_base <- summary_base %>% mutate(dist_diff = dist_img - dist_base)
 
