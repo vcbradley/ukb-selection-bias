@@ -84,13 +84,14 @@ col_order = c('var', 'level'
 summary_full = summary_full[, col_order, with = F]
 
 
+
 #### Calc differences
 summary_full[, diff_ukb := dist_ukb_img - dist_ukb]
 summary_full[, diff_census := dist_ukb_img - dist_census]
 summary_full[, diff_hse := dist_ukb_img - dist_hse16]
 
 ##### Write out to file
-write.csv(summary_full, file = 'mini-project-1/analysis/summary_full.csv', row.names = F, na = "")
+write.csv(summary_full[var != 'health_alc_weekly_total'], file = 'mini-project-1/analysis/summary_full.csv', row.names = F, na = "")
 
 
 
