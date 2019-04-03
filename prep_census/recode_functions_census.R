@@ -83,13 +83,14 @@ doCensusRecode <- function(data){
     #### EMPLOYMENT STATUS
 
     ## Employment status
+    census_data <- census_data %>% mutate(ecopuk11_0s = ifelse(is.na(ecopuk11), -99,ecopuk11))
     census_data <- census_data %>% 
         mutate(
-            demo_empl_employed = as.numeric(ecopuk11 >=1 & ecopuk11 <= 8)
-            , demo_empl_retired = as.numeric(ecopuk11 == 10)
-            , demo_empl_disabled = as.numeric(ecopuk11 == 13)
-            , demo_empl_unemployed = as.numeric(ecopuk11 %in% c(7,9))
-            , demo_empl_student = as.numeric(ecopuk11 %in% c(8,9,11))
+            demo_empl_employed = as.numeric(ecopuk11_0s >=1 & ecopuk11_0s <= 8)
+            , demo_empl_retired = as.numeric(ecopuk11_0s == 10)
+            , demo_empl_disabled = as.numeric(ecopuk11_0s == 13)
+            , demo_empl_unemployed = as.numeric(ecopuk11_0s %in% c(7,9))
+            , demo_empl_student = as.numeric(ecopuk11_0s %in% c(8,9,11))
             )
 
     census_data %>% group_by(ecopuk11, demo_empl_employed, demo_empl_retired
