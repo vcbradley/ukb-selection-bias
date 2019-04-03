@@ -14,9 +14,19 @@ ukbdata <- as_tibble(ukbdata)
 censusdata = fread('data/census11_recoded.csv')
 censusdata <- as_tibble(censusdata)
 
-censusdata
+hsedata = fread('data/hse16_recoded.csv')
+hsedata <- as_tibble(hsedata)
+
+# limit to people 40 to 70
+censusdata <- censusdata %>% filter(demo_age_bucket >= '40 to 44')
+	%>% filter(demo_age_bucket <= '40 to 44')
+
+# limit HSE people to 40 to 70
+hsedata <- hsedata %>% filter(demo_age_bucket >= '40 to 44')
+	%>% filter(demo_age_bucket <= '40 to 44')
 
 
+ukbdata %>% group_by(base_demo_age_bucket) %>% tally()
 
 #summary function
 getDemoSummary <- function(data, var){
