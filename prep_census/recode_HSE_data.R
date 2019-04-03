@@ -7,7 +7,7 @@ library('stringr')
 
 setwd('/well/nichols/users/bwj567/')
 
-source('/well/nichols/users/bwj567/mini-project-1/prep_hse/recode_functions_hse.R')
+source('/well/nichols/users/bwj567/mini-project-1/prep_census/recode_functions_hse.R')
 
 
 
