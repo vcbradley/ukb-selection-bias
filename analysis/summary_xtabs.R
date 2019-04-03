@@ -90,7 +90,7 @@ summary_full[, diff_census := dist_ukb_img - dist_census]
 summary_full[, diff_hse := dist_ukb_img - dist_hse16]
 
 ##### Write out to file
-write.csv(summary_full, file = 'mini-project-1/analysis/summary_full.csv', row.names = F)
+write.csv(summary_full, file = 'mini-project-1/analysis/summary_full.csv', row.names = F, na = "")
 
 
 
