@@ -74,17 +74,23 @@ summary_hse = getAllSummaries(data = hsedata, varlist = names(hsedata)[grepl('de
 
 
 #### MERGE ALL TOGETHER
-Reduce(function(x, y) merge(x, y, by=c("var", 'level'), all = T), list(summary_base, summary_img, summary_census, summary_hse))
+summary_full = Reduce(function(x, y) merge(x, y, by=c("var", 'level'), all = T), list(summary_img, summary_base, summary_census, summary_hse))
+
+#### Rearrage columns
+col_order = c('var', 'level'
+	, names(summary_full)[grepl('count', names(summary_full))]
+	, names(summary_full)[grepl('dist', names(summary_full))]
+	)
+summary_full = summary_full[, col_order, with = F]
 
 
-summary_base <- summary_base %>% mutate(dist_diff = dist_img - dist_base)
-
-
+#### Calc differences
+summary_full[, diff_ukb := dist_ukb_img - dist_ukb]
+summary_full[, diff_census := dist_ukb_img - dist_census]
+summary_full[, diff_hse := dist_ukb_img - dist_hse16]
 
 ##### Write out to file
-write.csv(summary_base, file = 'mini-project-1/summary_base.csv', row.names = F)
+write.csv(summary_full, file = 'mini-project-1/analysis/summary_full.csv', row.names = F)
 
-
-getDemoSummary(data = ukbdata, var = 'base_demo_sex')
 
 
