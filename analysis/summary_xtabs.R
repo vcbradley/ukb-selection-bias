@@ -28,37 +28,51 @@ ukbdata %>% group_by(base_demo_age_bucket) %>% tally()
 censusdata %>% group_by(demo_age_bucket) %>% tally()
 hsedata %>% group_by(demo_age_bucket) %>% tally()
 
-#summary function
-getDemoSummary <- function(data, var){
+hsedata %>% select(., grep('wt', names(hsedata)))
 
-	summary = data %>% 
+hse_data %>% filter(Age35g >= 12 & Age35g <= 17) %>% group_by(BMIvg5 == -1, BMIok, is.na(wt_nurse)) %>% tally()
+
+
+# BP = NURSE
+
+#hsedata %>% group_by_('demo_age_bucket') %>% summarize(count_raw = n(), dist_raw = n()/nrow(hsedata), dist = sum(get(weight.col))/sum(hsedata %>% select_(., weight.col)))
+
+#summary function
+getDemoSummary <- function(data, var, weight.col = NULL){
+
+	if(is.null(weight.col)){
+		summary = data %>% 
                     group_by_(var) %>% 
                     summarize(count = n()
                         , dist = n()/nrow(data)
                         )
-
+	}else{
+		summary = data %>% 
+					group_by_(var) %>%
+					summarize(count = sum(get(weight.col)), dist = sum(get(weight.col))/sum(data %>% select_(., weight.col)))
+	}
+    
     cbind(var, summary)
 }
 
-getAllSummaries <- function(data, varlist, suffix = ""){
+getAllSummaries <- function(data, varlist, suffix = "", weight.col = NULL){
 
-	# get summary
-	summary = rbindlist(lapply(varlist, getDemoSummary, data = data))
+    # get summary
+    summary = rbindlist(lapply(varlist, getDemoSummary, data = data, weight.col = weight.col))
 
-	#set colnames
-	suffix = ifelse(suffix == "", "", paste0("_", suffix))
-	setnames(summary, c('var', 'level', paste0('count', suffix), paste0('dist', suffix)))
+    #set colnames
+    suffix = ifelse(suffix == "", "", paste0("_", suffix))
+    setnames(summary, c('var', 'level', paste0('count', suffix), paste0('dist', suffix)))
 
-	# fix varnames
-	summary[, var := gsub('base_', '', var)]
+    # fix varnames
+    summary[, var := gsub('base_', '', var)]
 
-	return(summary)
+    return(summary)
 }
 
 
 # set list of vars
 varlist = c(names(ukbdata)[grepl('base_demo', names(ukbdata))], names(ukbdata)[grepl('base_health', names(ukbdata))])
-
 
 #### DO UKB SUMMARY
 summary_base = getAllSummaries(data = ukbdata, varlist = varlist, suffix = 'ukb')
@@ -70,7 +84,7 @@ summary_img = getAllSummaries(data = ukbdata %>% filter(img_has_t1_MRI == 1), va
 summary_census = getAllSummaries(data = censusdata, varlist = names(censusdata)[grepl('demo|health', names(censusdata))], suffix = 'census')
 
 #### DO HSE SUMMARY
-summary_hse = getAllSummaries(data = hsedata, varlist = names(hsedata)[grepl('demo|health', names(hsedata))], suffix = 'hse16')
+summary_hse = getAllSummaries(data = hsedata, varlist = names(hsedata)[grepl('demo|health', names(hsedata))], suffix = 'hse16', weight.col = 'wt_nurse')
 
 
 #### MERGE ALL TOGETHER
@@ -78,9 +92,9 @@ summary_full = Reduce(function(x, y) merge(x, y, by=c("var", 'level'), all = T),
 
 #### Rearrage columns
 col_order = c('var', 'level'
-	, names(summary_full)[grepl('count', names(summary_full))]
-	, names(summary_full)[grepl('dist', names(summary_full))]
-	)
+    , names(summary_full)[grepl('count', names(summary_full))]
+    , names(summary_full)[grepl('dist', names(summary_full))]
+    )
 summary_full = summary_full[, col_order, with = F]
 
 
