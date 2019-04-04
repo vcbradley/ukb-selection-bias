@@ -40,7 +40,7 @@ hse_data %>% filter(Age35g >= 12 & Age35g <= 17) %>% group_by(BMIvg5 == -1, BMIo
 #summary function
 getDemoSummary <- function(data, var, weight.col = NULL){
 
-	if(is.null(weight)){
+	if(is.null(weight.col)){
 		summary = data %>% 
                     group_by_(var) %>% 
                     summarize(count = n()
