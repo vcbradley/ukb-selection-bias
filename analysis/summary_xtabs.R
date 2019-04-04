@@ -49,7 +49,7 @@ getDemoSummary <- function(data, var, weight.col = NULL){
 	}else{
 		summary = data %>% 
 					group_by_(var) %>%
-					summarize(count = sum(get(weight.col)), dist = sum(get(weight.col))/sum(data %>% select_(., weight.col)))
+					summarize(count = sum(get(weight.col), na.rm = T), dist = sum(get(weight.col), na.rm = T)/sum(data %>% select_(., weight.col), na.rm = T))
 	}
     
     cbind(var, summary)
