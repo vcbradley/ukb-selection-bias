@@ -42,7 +42,7 @@ names(hse_data_recoded)
 
 ########### WRITE OUT TO FILE
 # select only the demo cols
-hse_data_recoded <- hse_data_recoded %>% select(., c('SerialA', names(hse_data_recoded)[grep('demo_|health_', names(hse_data_recoded))]))
+hse_data_recoded <- hse_data_recoded %>% select(., c('SerialA', names(hse_data_recoded)[grep('demo_|health_|wt_', names(hse_data_recoded))]))
 
 # write out recoded data
 write.csv(hse_data_recoded, hse_recoded_file, row.names = F)
