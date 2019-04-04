@@ -112,6 +112,8 @@ data_imaging_recoded <- data_imaging_recoded %>% select(., grep('eid|^demo_|^hea
 
 data_imaging %>% select(., MRI_t1_struct) %>% summary(.)
 
+data_imaging_recoded %>% group_by(is.na(MRI_t1_struct), has_t1_MRI) %>% tally()
+
 #############################
 # MERGE INTO WEIGHTING FILE #
 #############################
@@ -125,9 +127,13 @@ data_imaging_recoded <- data_imaging_recoded %>% rename_at(vars(-contains('eid')
 
 # merge imaging flags onto baseline data
 data_base_recoded <- merge(data_base_recoded, select(data_imaging_recoded,c('eid', 'img_MRI_completed', 'img_MRI_method', 'img_MRI_safe', 'img_has_t1_MRI')), by = 'eid', all.x = T)
-data_base_recoded <- data_base_recoded %>% mutate(img_has_t1_MRI = ifelse(is.na(img_has_t1_MRI), 0, 1))
+data_base_recoded <- data_base_recoded %>% mutate(img_has_t1_MRI = ifelse(is.na(img_has_t1_MRI), 0, img_has_t1_MRI))
+
+length(unique(data_base_recoded$eid))
+length((data_base_recoded$eid))
 
 data_base_recoded %>% group_by(img_has_t1_MRI) %>% tally()
+data_imaging_recoded %>% group_by(img_has_t1_MRI) %>% tally()
 data_imaging_recoded %>% group_by(img_MRI_completed,img_has_t1_MRI, is.na(img_MRI_t1_struct)) %>% tally()
 
 #####################
