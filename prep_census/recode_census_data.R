@@ -40,6 +40,6 @@ census_data_recoded <- census_data_recoded %>% select(., c('caseno', names(censu
 # write out recoded data
 write.csv(census_data_recoded, census_recoded_file, row.names = F)
 
-
 rm()
+
 
