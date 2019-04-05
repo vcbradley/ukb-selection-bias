@@ -68,15 +68,14 @@ doHSERecodes <- function(data){
 
     data <- cbind(data, 
                 data %>% 
-                    select(.,grep('Activb2', names(data))) %>%
                     transmute(
-                        demo_empl_employed = rowSums(. >= 2 & . <= 4, na.rm = T)
-                        , demo_empl_retired = rowSums(. == 8, na.rm = T)
-                        , demo_empl_homemaker = rowSums(. == 9, na.rm = T)
-                        , demo_empl_disabled = rowSums(. == 7, na.rm = T)
-                        , demo_empl_unemployed = rowSums(. == 5, na.rm = T)
-                        , demo_empl_volunteer = 0#rowSums(. == 100, na.rm = T)
-                        , demo_empl_student = rowSums(. == 1, na.rm = T)
+                        demo_empl_employed = as.numeric((Activb2 >= 2 & Activb2 <= 4) | StWork == 1)
+                        , demo_empl_retired = as.numeric(Activb2 == 8)
+                        , demo_empl_homemaker = as.numeric(Activb2 == 9)
+                        , demo_empl_disabled = as.numeric(Activb2 == 7)
+                        , demo_empl_unemployed = as.numeric(Activb2 == 5)
+                        , demo_empl_volunteer = 0#as.numeric(Activb2 == 100)
+                        , demo_empl_student = as.numeric(Activb2 == 1)
                         )
                 )
 
@@ -84,7 +83,6 @@ doHSERecodes <- function(data){
 
 
     #### OCCUPATION
-
     data <- data %>% mutate(demo_occupation = case_when(
                 (substr(SOC2010B, 1, 1) == 1) ~ '01-manager'
                 , (substr(SOC2010B, 1, 1) == 2) ~ '02-professional'
