@@ -118,7 +118,8 @@ doRecode <- function(data){
 
 
         data <- data %>% mutate(demo_occupation = case_when(
-            (job_code_major == 1) ~ '01-manager'
+            demo_empl_employed == 0 ~ '10-unemployed'
+            , (job_code_major == 1) ~ '01-manager'
             , (job_code_major == 2) ~ '02-professional'
             , (job_code_major == 3) ~ '03-assoc professional'
             , (job_code_major == 4) ~ '04-admin'
@@ -127,7 +128,7 @@ doRecode <- function(data){
             , (job_code_major == 7) ~ '07-sales customer service'
             , (job_code_major == 8) ~ '08-industrial'
             , (job_code_major == 9) ~ '09-elementary'
-            , TRUE ~ '10-unemployed/DNK'
+            , TRUE ~ '99-DNK/Refused'
             ))
 
         # check

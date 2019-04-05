@@ -100,7 +100,8 @@ doCensusRecode <- function(data){
 
     ## Occupation
     census_data <- census_data %>% mutate(demo_occupation = case_when(
-                (substr(occg,1,1) == 1) ~ '01-manager'
+                demo_empl_employed == 1 ~ '10-unemployed'
+                , (substr(occg,1,1) == 1) ~ '01-manager'
                 , (substr(occg,1,1) == 2) ~ '02-professional'
                 , (substr(occg,1,1) == 3) ~ '03-assoc professional'
                 , (substr(occg,1,1) == 4) ~ '04-admin'
@@ -109,7 +110,7 @@ doCensusRecode <- function(data){
                 , (substr(occg,1,1) == 7) ~ '07-sales customer service'
                 , (substr(occg,1,1) == 8) ~ '08-industrial'
                 , (substr(occg,1,1) == 9) ~ '09-elementary'
-                , TRUE ~ '10-unemployed/DNK'
+                , TRUE ~ '99-DNK/Refused'
 
         ))
 

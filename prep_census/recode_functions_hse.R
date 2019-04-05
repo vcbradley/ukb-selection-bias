@@ -84,7 +84,8 @@ doHSERecodes <- function(data){
 
     #### OCCUPATION
     data <- data %>% mutate(demo_occupation = case_when(
-                (substr(SOC2010B, 1, 1) == 1) ~ '01-manager'
+                demo_empl_employed == 0 ~ '10-unemployed'
+                , (substr(SOC2010B, 1, 1) == 1) ~ '01-manager'
                 , (substr(SOC2010B, 1, 1) == 2) ~ '02-professional'
                 , (substr(SOC2010B, 1, 1) == 3) ~ '03-assoc professional'
                 , (substr(SOC2010B, 1, 1) == 4) ~ '04-admin'
@@ -93,7 +94,7 @@ doHSERecodes <- function(data){
                 , (substr(SOC2010B, 1, 1) == 7) ~ '07-sales customer service'
                 , (substr(SOC2010B, 1, 1) == 8) ~ '08-industrial'
                 , (substr(SOC2010B, 1, 1) == 9) ~ '09-elementary'
-                , TRUE ~ '10-unemployed/DNK'
+                , TRUE ~ '99-DNK/Refused'
                 ))
 
     # check
