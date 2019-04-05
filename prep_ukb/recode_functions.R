@@ -176,7 +176,7 @@ doRecode <- function(data){
                                 , (educ1 == 2) ~ '02-A Levels'
                                 , (educ1 %in% c(3,4)) ~ '03-O Levels/CSEs'
                                 , (educ1 > 0) ~ '04-Vocational/Other'
-                                , (educ1 == -7) ~ '07-None'
+                                , (educ1 == -7) ~ '05-None'
                                 , TRUE ~ '99-DNK/Refused'
             ))
 
