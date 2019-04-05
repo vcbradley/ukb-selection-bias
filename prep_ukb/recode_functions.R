@@ -166,8 +166,8 @@ doRecode <- function(data){
                                 , (educ1 == 4) ~ '04-CSEs'
                                 , (educ1 == 5) ~ '05-Vocational'
                                 , (educ1 == 6) ~ '06-Other professional'
-                                , (educ1 < 0) ~ '99-DNK/Refused'
-                                , TRUE ~ '07-None'
+                                , (educ1 == -7) ~ '07-None'
+                                , TRUE ~ '99-DNK/Refused'
             ))
 
         data <- data %>% mutate(demo_educ_highest = case_when(
@@ -175,8 +175,8 @@ doRecode <- function(data){
                                 , (educ1 == 2) ~ '02-A Levels'
                                 , (educ1 %in% c(3,4)) ~ '03-O Levels/CSEs'
                                 , (educ1 > 0) ~ '04-Vocational/Other'
-                                , (educ1 < 0) ~ '99-DNK/Refused'
-                                , TRUE ~ '05-None'
+                                , (educ1 == -7) ~ '07-None'
+                                , TRUE ~ '99-DNK/Refused'
             ))
 
         data %>% group_by(demo_educ_highest, educ1) %>% tally()
