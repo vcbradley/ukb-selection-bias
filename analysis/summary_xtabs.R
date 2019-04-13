@@ -17,20 +17,24 @@ censusdata <- as_tibble(censusdata)
 hsedata = fread('data/hse16_recoded.csv')
 hsedata <- as_tibble(hsedata)
 
+hsedata11 = fread('data/hse11_recoded.csv')
+hsedata11 <- as_tibble(hsedata11)
+
 # limit to people 40 to 70
 censusdata <- censusdata %>% filter(demo_age_bucket >= '40 to 44') %>% filter(demo_age_bucket <= '65 to 69')
 
 # limit HSE people to 40 to 70
 hsedata <- hsedata %>% filter(demo_age_bucket >= '40 to 44') %>% filter(demo_age_bucket <= '65 to 69')
+hsedata11 <- hsedata11 %>% filter(demo_age_bucket >= '40 to 44') %>% filter(demo_age_bucket <= '65 to 69')
 
 
 ukbdata %>% group_by(base_demo_age_bucket) %>% tally()
 censusdata %>% group_by(demo_age_bucket) %>% tally()
 hsedata %>% group_by(demo_age_bucket) %>% tally()
+hsedata11 %>% group_by(demo_age_bucket) %>% tally()
 
 hsedata %>% select(., grep('wt', names(hsedata)))
-
-hse_data %>% filter(Age35g >= 12 & Age35g <= 17) %>% group_by(BMIvg5 == -1, BMIok, is.na(wt_nurse)) %>% tally()
+hsedata11 %>% select(., grep('wt', names(hsedata11)))
 
 
 # BP = NURSE
