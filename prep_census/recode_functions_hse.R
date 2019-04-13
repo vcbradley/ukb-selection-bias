@@ -122,12 +122,13 @@ doHSERecodes <- function(data){
 
     data <- data %>% mutate(hhinc_full = ifelse(JNTINC2 == -1, HHInc2, JNTINC2))
     data <- data %>% mutate(demo_income_bucket = case_when(
-                (hhinc_full <= 4) ~ '01-Under 18k'
-                , (hhinc_full <= 9) ~ '02-18k to 31k'
-                , (hhinc_full <= 14) ~ '03-31k to 52k'
-                , (hhinc_full <= 19) ~ '04-52k to 100k'
-                , (hhinc_full <= 21) ~ '05-Over 100k'
-                , TRUE ~ '06-DNK/Refused'
+                HHInc < 0 '99-DNK/Refused'
+                , (HHInc <= 4) ~ '01-Under 18k'
+                , (HHInc <= 9) ~ '02-18k to 31k'
+                , (HHInc <= 14) ~ '03-31k to 52k'
+                , (HHInc <= 19) ~ '04-52k to 100k'
+                , (HHInc <= 21) ~ '05-Over 100k'
+                , TRUE ~ '99-DNK/Refused'
                 ))
 
     data %>% group_by(hhinc_full, demo_income_bucket) %>% tally()
