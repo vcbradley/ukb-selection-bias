@@ -90,9 +90,12 @@ summary_census = getAllSummaries(data = censusdata, varlist = names(censusdata)[
 #### DO HSE SUMMARY
 summary_hse = getAllSummaries(data = hsedata, varlist = names(hsedata)[grepl('demo|health', names(hsedata))], suffix = 'hse16', weight.col = 'wt_nurse')
 
+#### DO HSE11 SUMMARY
+summary_hse11 = getAllSummaries(data = hsedata11, varlist = names(hsedata11)[grepl('demo|health', names(hsedata11))], suffix = 'hse11', weight.col = 'wt_nurse')
+
 
 #### MERGE ALL TOGETHER
-summary_full = Reduce(function(x, y) merge(x, y, by=c("var", 'level'), all = T), list(summary_img, summary_base, summary_census, summary_hse))
+summary_full = Reduce(function(x, y) merge(x, y, by=c("var", 'level'), all = T), list(summary_img, summary_base, summary_census, summary_hse11, summary_hse))
 
 #### Rearrage columns
 col_order = c('var', 'level'
@@ -106,7 +109,8 @@ summary_full = summary_full[, col_order, with = F]
 #### Calc differences
 summary_full[, diff_ukb := dist_ukb_img - dist_ukb]
 summary_full[, diff_census := dist_ukb_img - dist_census]
-summary_full[, diff_hse := dist_ukb_img - dist_hse16]
+summary_full[, diff_hse16 := dist_ukb_img - dist_hse16]
+summary_full[, diff_hse11 := dist_ukb_img - dist_hse11]
 
 ##### Write out to file
 write.csv(summary_full[var != 'health_alc_weekly_total'], file = 'mini-project-1/analysis/summary_full.csv', row.names = F, na = "")
