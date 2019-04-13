@@ -25,7 +25,7 @@ variables_hse = unlist(lapply(variables_hse, function(x) unlist(strsplit(x, ', '
 
 ####### READ IN DATA
 hse_data = fread(hse_file    
-    , nrows = 500    # for testing
+    #, nrows = 500    # for testing
     #, select = unique(variables_hse)
     )
 
@@ -43,7 +43,9 @@ names(hse_data_recoded)
 
 ########### WRITE OUT TO FILE
 # select only the demo cols
-hse_data_recoded <- hse_data_recoded %>% select(., c('SerialA', names(hse_data_recoded)[grep('demo_|health_|wt_', names(hse_data_recoded))]))
+hse_data_recoded <- hse_data_recoded %>% select(., c('pserial', names(hse_data_recoded)[grep('demo_|health_|wt_', names(hse_data_recoded))]))
+
+names(hse_data_recoded)
 
 # write out recoded data
 write.csv(hse_data_recoded, hse_recoded_file, row.names = F)
