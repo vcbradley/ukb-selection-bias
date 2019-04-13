@@ -52,7 +52,7 @@ doRecode <- function(data){
             ,(ethnicity == 3002) ~ '05-Asian Pakistani'
             ,(ethnicity == 3003) ~ '06-Asian Bangladeshi'
             ,(substr(ethnicity, 1,1) == 3) ~ '07-Asian Other'
-            ,(ethnicity == 4001) ~ '08-Black Carribean'
+            ,(ethnicity == 4001) ~ '08-Black Caribbean'
             ,(ethnicity == 4002) ~ '09-Black African'
             ,(substr(ethnicity, 1,1) == 4) ~ '10-Black Other'
             , ethnicity > 0 ~ '11-Other'
