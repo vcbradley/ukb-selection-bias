@@ -255,5 +255,5 @@ doHSE11Recode <- function(data){
 
     data %>% group_by(everdi, docinfo1, health_diabetes) %>% tally()
 
-
+return(data)
 }
