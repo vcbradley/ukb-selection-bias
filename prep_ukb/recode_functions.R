@@ -195,7 +195,7 @@ doRecode <- function(data){
             , (hh_income_cat == 3) ~ '03-31k to 52k'
             , (hh_income_cat == 4) ~ '04-52k to 100k'
             , (hh_income_cat == 5) ~ '05-Over 100k'
-            , TRUE ~ '06-DNK/Refused'
+            , TRUE ~ '99-DNK/Refused'
             ))
 
         data %>% group_by(demo_income_bucket) %>% tally()
