@@ -52,7 +52,7 @@ doHSE11Recode <- function(data){
     data %>% group_by(Origin, demo_ethnicity_full) %>% tally()
 
     # 4-way
-    data <- data %>% mutate(demo_ethnicity = case_when(
+    data <- data %>% mutate(demo_ethnicity_4way = case_when(
         Origin < 0 ~ '99-DNK/Refused'
         , Origin <= 4 ~ '01-White'
         , Origin <= 8 | Origin >= 17 ~ '02-Mixed/Other'
@@ -60,7 +60,7 @@ doHSE11Recode <- function(data){
         , Origin <= 16 ~  '04-Black'
         ))
 
-    data %>% group_by(Origin, demo_ethnicity) %>% tally()
+    data %>% group_by(Origin, demo_ethnicity_4way) %>% tally()
 
     # White v. non-white
     data <- data %>% mutate(demo_white = case_when(
