@@ -32,7 +32,7 @@ getAllSummaries <- function(data, varlist, suffix = "", weight.col = NULL){
     setnames(summary, c('var', 'level', paste0('count', suffix), paste0('dist', suffix)))
 
     # fix varnames
-    summary[, var := gsub('base_', '', var)]
+    summary[, var := gsub('^base_|^img_', '', var)]
 
     return(summary)
 }
