@@ -22,8 +22,10 @@ doHSE11Recode <- function(data){
         , Age < 55 ~ '50 to 54'
         , Age < 60 ~ '55 to 59'
         , Age < 65 ~ '60 to 64'
-        , Age <= 70 ~ '65 to 69'  
-        , TRUE ~ 'Over 70'
+        , Age < 69 ~ '65 to 69'  
+        , Age < 75 ~ '70 to 74'  
+        , Age < 79 ~ '75 to 79'  
+        , TRUE ~ 'Over 80'
         ))
 
     data %>% group_by(demo_age_bucket) %>% tally()
