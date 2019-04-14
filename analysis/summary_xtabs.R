@@ -7,6 +7,9 @@ library('dplyr')
 library('stringr')
 setwd('/well/nichols/users/bwj567')
 
+# source summary functions
+source('mini-project-1/analysis/functions.R')
+
 
 ukbdata = fread('data/ukb25120_weighting_base.csv')
 ukbdata <- as_tibble(ukbdata)
@@ -40,39 +43,6 @@ hsedata11 %>% select(., grep('wt', names(hsedata11)))
 # BP = NURSE
 
 #hsedata %>% group_by_('demo_age_bucket') %>% summarize(count_raw = n(), dist_raw = n()/nrow(hsedata), dist = sum(get(weight.col))/sum(hsedata %>% select_(., weight.col)))
-
-#summary function
-getDemoSummary <- function(data, var, weight.col = NULL){
-
-	if(is.null(weight.col)){
-		summary = data %>% 
-                    group_by_(var) %>% 
-                    summarize(count = n()
-                        , dist = n()/nrow(data)
-                        )
-	}else{
-		summary = data %>% 
-					group_by_(var) %>%
-					summarize(count = sum(get(weight.col), na.rm = T), dist = sum(get(weight.col), na.rm = T)/sum(data %>% select_(., weight.col), na.rm = T))
-	}
-    
-    cbind(var, summary)
-}
-
-getAllSummaries <- function(data, varlist, suffix = "", weight.col = NULL){
-
-    # get summary
-    summary = rbindlist(lapply(varlist, getDemoSummary, data = data, weight.col = weight.col))
-
-    #set colnames
-    suffix = ifelse(suffix == "", "", paste0("_", suffix))
-    setnames(summary, c('var', 'level', paste0('count', suffix), paste0('dist', suffix)))
-
-    # fix varnames
-    summary[, var := gsub('base_', '', var)]
-
-    return(summary)
-}
 
 
 # set list of vars
