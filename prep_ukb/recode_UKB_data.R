@@ -3,6 +3,7 @@ library('data.table')
 library('memisc')
 library('dplyr')
 library('stringr')
+library('MESS')
 setwd('/well/nichols/users/bwj567/data')
 
 #source code with recode functions
@@ -76,6 +77,13 @@ data_base = fread(full_baseline_file
     )
 data_base <- as_tibble(data_base)
 
+### IMPUTE DOB
+#impute bday as the middle of the month in which they were born
+data_base <- data_base %>% mutate(dob_imputed = as.Date(paste0(yob,'-',mob,'-','15')))
+
+#check error
+data_base %>% mutate(age_same = (age(dob_imputed, assessment_date) - age)) %>% group_by(age_same) %>% tally()
+
 
 #do recodes
 data_base_recoded <- doRecode(data_base)
@@ -83,7 +91,9 @@ data_base_recoded <- doRecode(data_base)
 data_base_recoded %>% str(.)
 
 # select the vars we need
-data_base_recoded <- data_base_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|addr_east_recent|addr_north_recent|^assessment', names(data_base_recoded)))
+data_base_recoded <- data_base_recoded %>% select(., grep('eid|^demo_|^health_|^age|^dob|^bmi|addr_east_recent|addr_north_recent|^assessment', names(data_base_recoded)))
+
+
 
 
 #### IMAGING ####
@@ -97,9 +107,22 @@ data_imaging = fread(full_imaging_file
     )
 data_imaging <- as_tibble(data_imaging)
 
-
 # limit to only imaging subjects
-data_imaging <- data_imaging %>% filter(., !is.na(MRI_completed))
+data_imaging <- data_imaging %>% filter(., !is.na(MRI_t1_struct))
+
+# join in impt columns from the baseliine data
+data_imaging <- left_join(data_imaging, data_base %>% select(eid, dob_imputed, sex, base_age = age, base_assessment_date = assessment_date))
+
+# calculate age at imaging
+data_imaging <- data_imaging %>% mutate(age = age(dob_imputed, assessment_date))
+
+# check dist of diff between age at base and age at imaging
+data_imaging %>% mutate(age_diff = age - base_age) %>% group_by(age_diff) %>% tally()
+data_imaging %>% mutate(date_diff = age(base_assessment_date, assessment_date)) %>% group_by(date_diff) %>% tally()
+
+names(data_imaging)
+
+
 
 ## do recodes
 data_imaging_recoded <- doRecode(data_imaging)
