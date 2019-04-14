@@ -113,7 +113,7 @@ data_imaging <- as_tibble(data_imaging)
 data_imaging <- data_imaging %>% filter(., !is.na(MRI_t1_struct))
 
 # join in impt columns from the baseliine data
-data_imaging <- left_join(data_imaging, data_base %>% select(eid, dob_imputed, sex, base_age = age, base_assessment_date = assessment_date))
+data_imaging <- left_join(data_imaging, data_base %>% select(eid, dob_imputed, sex, base_age = age, base_assessment_date = assessment_date, base_ethnicity = ethnicity))
 
 # calculate age at imaging
 data_imaging <- data_imaging %>% mutate(age = age(dob_imputed, assessment_date))
@@ -121,6 +121,11 @@ data_imaging <- data_imaging %>% mutate(age = age(dob_imputed, assessment_date))
 # check dist of diff between age at base and age at imaging
 data_imaging %>% mutate(age_diff = age - base_age) %>% group_by(age_diff) %>% tally()
 data_imaging %>% mutate(date_diff = age(base_assessment_date, assessment_date)) %>% group_by(date_diff) %>% tally()
+
+
+# impute missing ethnicities with ethnicity at base
+data_imaging <- data_imaging %>% mutate(ethnicity = ifelse(is.na(ethnicity) | ethnicity < 0, base_ethnicity, ethnicity))
+data_imaging %>% group_by(ethnicity) %>% tally() %>% data.table
 
 
 ## do recodes
