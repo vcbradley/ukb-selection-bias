@@ -24,14 +24,28 @@ doRecode <- function(data){
 
     #### AGE
     if(exists('age', data)){
-        data <- data %>% mutate(demo_age_bucket = case_when(
-            age < 45 ~ '40 to 44'
-            , age < 50 ~ '45 to 49'
-            , age < 55 ~ '50 to 54'
-            , age < 60 ~ '55 to 59'
-            , age < 65 ~ '60 to 64'
-            , TRUE ~ '65 to 69'  
+
+        if(data %>% select(age) %>% max > 75){
+            data <- data %>% mutate(demo_age_bucket = case_when(
+                age < 50 ~ '45 to 49'
+                , age < 55 ~ '50 to 54'
+                , age < 60 ~ '55 to 59'
+                , age < 65 ~ '60 to 64'
+                , age < 70 ~ '65 to 69'
+                , age < 75 ~ '70 to 74'
+                , TRUE ~ '75 to 79'
             ))
+        }else{
+            data <- data %>% mutate(demo_age_bucket = case_when(
+                age < 45 ~ '40 to 44'
+                , age < 50 ~ '45 to 49'
+                , age < 55 ~ '50 to 54'
+                , age < 60 ~ '55 to 59'
+                , age < 65 ~ '60 to 64' 
+                , TRUE ~ '65 to 69'  
+            ))
+        }
+        
 
         # check age dist
         data %>% group_by(demo_age_bucket) %>% tally()
