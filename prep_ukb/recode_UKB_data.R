@@ -85,6 +85,8 @@ data_base <- data_base %>% mutate(dob_imputed = as.Date(paste0(yob,'-',mob,'-','
 data_base %>% mutate(age_same = (age(dob_imputed, assessment_date) - age)) %>% group_by(age_same) %>% tally()
 
 
+
+
 #do recodes
 data_base_recoded <- doRecode(data_base)
 #rm(data_base)
@@ -120,9 +122,6 @@ data_imaging <- data_imaging %>% mutate(age = age(dob_imputed, assessment_date))
 data_imaging %>% mutate(age_diff = age - base_age) %>% group_by(age_diff) %>% tally()
 data_imaging %>% mutate(date_diff = age(base_assessment_date, assessment_date)) %>% group_by(date_diff) %>% tally()
 
-names(data_imaging)
-
-
 
 ## do recodes
 data_imaging_recoded <- doRecode(data_imaging)
@@ -130,7 +129,6 @@ data_imaging_recoded <- doRecode(data_imaging)
 
 # select the vars we need
 data_imaging_recoded <- data_imaging_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|^MRI|has_t1_MRI|addr_east_recent|addr_north_recent|^assessment', names(data_imaging_recoded)))
-
 
 
 data_imaging %>% select(., MRI_t1_struct) %>% summary(.)

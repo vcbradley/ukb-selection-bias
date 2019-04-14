@@ -30,7 +30,7 @@ hsedata11 <- as_tibble(hsedata11)
 censusdata <- censusdata %>% filter(demo_age_bucket >= '40 to 44') %>% filter(demo_age_bucket <= '65 to 69')
 
 # limit HSE people to 40 to 70
-hsedata <- hsedata %>% filter(demo_age_bucket >= '40 to 44') %>% filter(demo_age_bucket <= '80 to 84')
+hsedata <- hsedata %>% filter(demo_age_bucket >= '40 to 44') %>% filter(demo_age_bucket <= '75 to 79')
 hsedata11 <- hsedata11 %>% filter(demo_age_bucket >= '40 to 44') %>% filter(demo_age_bucket <= '65 to 69')
 
 
@@ -73,7 +73,7 @@ summary_hse11 = getAllSummaries(data = hsedata11, varlist = names(hsedata11)[gre
 
 
 #### MERGE ALL TOGETHER
-summary_full = Reduce(function(x, y) merge(x, y, by=c("var", 'level'), all = T), list(summary_img, summary_base, summary_img_atimg, summary_census, summary_hse11, summary_hse))
+summary_full = Reduce(function(x, y) merge(x, y, by=c("var", 'level'), all = T), list(summary_base, summary_img, summary_img_atimg, summary_census, summary_hse11, summary_hse))
 
 #### Rearrage columns
 col_order = c('var', 'level'
@@ -89,6 +89,7 @@ summary_full[, diff_ukb := dist_ukb_img - dist_ukb]
 summary_full[, diff_census := dist_ukb_img - dist_census]
 summary_full[, diff_hse11 := dist_ukb_img - dist_hse11]
 summary_full[, diff_hse16 := dist_ukb_img_atimg - dist_hse16]
+summary_full[, diff_img := dist_ukb_img_atimg - dist_ukb_img]
 
 
 ##### Write out to file
