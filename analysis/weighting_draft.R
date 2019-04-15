@@ -75,7 +75,7 @@ getPopframe = function(data, vars, weight_col = NULL){
 
 	popframe = popframe %>% mutate(Freq = get(ifelse(!is.null(weight_col), 'prop_wt', 'prop')))
 
-	return(popframe)
+	return(popframe %>% select(-c(n,prop,n_wt,prop_wt)))
 }
 
 
@@ -91,7 +91,7 @@ doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL){
 	strata = as.formula(paste0('~', paste(vars, collapse = '+')))
 
 	# weight
-	weighted = postStratify(svydata, strata = strata, population = popframe %>% select(-c(n,prop,n_wt,prop_wt)))
+	weighted = postStratify(svydata, strata = strata, population = popframe)
 	weighted = cbind(weighted$variables, weight = (1/weighted$prob)/mean(1/weighted$prob, na.rm = T))
 
 	#check mean
@@ -105,3 +105,21 @@ ukbweighted = doPostStrat(svydata = ukbdata, popdata = hsedata, vars = strat_var
 names(ukbweighted)
 
 
+doRaking = function(svydata, popdata, vars, pop_weight_col = NULL, control = list(maxit = 100, epsilon = 10e-4, verbose=FALSE)){
+	# get population frame
+	popmargins = lapply(vars, getPopframe, data = popdata, weight_col = pop_weight_col)
+
+	strata = lapply(vars, function(x) as.formula(paste("~", x)))
+
+	svydata = svydesign(id = ~1, weights = ~1, data = svydata)
+
+	# do weighting
+	weighted = rake(svydata, sample.margins = strata, population.margins = popmargins, control = control)
+	weighted = cbind(weighted$variables, weight = (1/weighted$prob)/mean(1/weighted$prob, na.rm = T))
+
+	return(weighted)
+}
+
+ukbweighted = doRaking(svydata = ukbdata, popdata = hsedata, vars = strat_vars, pop_weight_col = 'wt_blood')
+
+names(ukbweighted)
