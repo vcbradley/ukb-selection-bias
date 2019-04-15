@@ -80,12 +80,13 @@ getPopframe = function(data, vars, weight_col = NULL){
 
 
 #### Function to post-stratify survey
-doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL){
+doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weight_col = NULL){
 	# get population frame
 	popframe  = getPopframe(popdata, vars = vars, weight_col = pop_weight_col)
 
 	# make survey data
-	svydata = svydesign(id = ~1, weights = ~1, data = svydata)
+	prior_weight = as.formula(ifelse(!is.null(prior_weight_col), paste0('~', prior_weight_col), '~1'))
+	svydata = svydesign(id = ~1, weights = prior_weight, data = svydata)
 
 	# define strata for post-stratification
 	strata = as.formula(paste0('~', paste(vars, collapse = '+')))
@@ -105,13 +106,18 @@ ukbweighted = doPostStrat(svydata = ukbdata, popdata = hsedata, vars = strat_var
 names(ukbweighted)
 
 
-doRaking = function(svydata, popdata, vars, pop_weight_col = NULL, control = list(maxit = 100, epsilon = 10e-4, verbose=FALSE)){
+doRaking = function(svydata, popdata, vars
+	, pop_weight_col = NULL
+	, prior_weight_col = NULL
+	, control = list(maxit = 100, epsilon = 10e-4, verbose=FALSE)
+	){
 	# get population frame
 	popmargins = lapply(vars, getPopframe, data = popdata, weight_col = pop_weight_col)
 
 	strata = lapply(vars, function(x) as.formula(paste("~", x)))
 
-	svydata = svydesign(id = ~1, weights = ~1, data = svydata)
+	prior_weight = as.formula(ifelse(!is.null(prior_weight_col), paste0('~', prior_weight_col), '~1'))
+	svydata = svydesign(id = ~1, weights = prior_weight, data = svydata)
 
 	# do weighting
 	weighted = rake(svydata, sample.margins = strata, population.margins = popmargins, control = control)
