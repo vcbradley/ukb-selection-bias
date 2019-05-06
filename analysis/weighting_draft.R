@@ -145,73 +145,152 @@ ukbweighted = doRaking(svydata = ukbdata, popdata = hsedata, vars = strat_vars, 
 names(ukbweighted)
 
 
-
 ukbweighted = doRaking(svydata = ukbdata, popdata = hsedata, vars = strat_vars, pop_weight_col = 'wt_blood')
 hsedata %>% group_by(health_diabetes) %>% summarize(n()/nrow(hsedata))
 ukbweighted %>% group_by(health_diabetes) %>% summarize(raw =n()/nrow(ukbweighted), weighted = sum(weight)/sum(ukbweighted$weight))
 
-
-
 ukbdata %>% count(demo_income_bucket)
 hsedata %>% group_by(demo_income_bucket) %>% summarize(sum(wt_blood, na.rm = T)/sum(hsedata$wt_blood, na.rm = T))
 
+
+
 # create full data set
-ukbdata = ukbdata %>% mutate(weight = 1, selected = 1)
+ukbdata = ukbdata %>% mutate(pop_weight = 1, selected = 1)
 hsedata = hsedata %>% mutate(selected = 0)
-nrdata = rbind(
-    ukbdata %>% select(id = eid, strat_vars, selected, weight)
-    , hsedata %>% filter(!is.na(wt_blood)) %>% select(id = SerialA, strat_vars, selected, weight = wt_blood)
+fulldata = rbind(
+    ukbdata %>% select(id = eid, strat_vars, selected, pop_weight)
+    , hsedata %>% filter(!is.na(wt_blood)) %>% select(id = SerialA, strat_vars, selected, pop_weight = wt_blood)
     )
 
 
+doLassoRake = function(
+    data
+    , strat_vars
+    , selected_ind 
+    , outcome
+    , pop_weight_col
+    , n_interactions = 2
+){
 
-n_interactions = 2
-selected_ind = 'selected'
-outcome = 'MRI_brain_vol'
-formula = as.formula(paste0('~ -1 + (', paste(strat_vars, collapse = ' + '), ')^', n_interactions))
+    formula = as.formula(paste0('~ -1 + (', paste(strat_vars, collapse = ' + '), ')^', n_interactions))
 
-#moodmat for nr data
-nrdata_modmat = model.Matrix(formula, nrdata)
-outdata_modmat = model.Matrix(formula, nrdata %>% filter_(paste0(selected_ind, ' == 1')))
+    #moodmat for nr data
+    data_modmat = model.matrix(formula, data)
+    outdata_modmat = model.matrix(formula, data %>% filter_(paste0(selected_ind, ' == 1')))
 
-# rename columns to variable codes
-colnames(nrdata_modmat) = vars$var_code
-colnames(outdata_modmat) = vars$var_code
+    ##### PREP VARIABLES #####
+    samp = apply(outdata_modmat, 2, sum)
+    pop = apply(data_modmat, 2, sum)
 
-samp = apply(outdata_modmat, 2, sum)
-pop = apply(nrdata_modmat, 2, sum)
+    # create var data table with variable codes
+    vars = data.table(var_name = names(pop), var_code = paste0('v', 1:length(pop)), n_pop = pop, n_samp = samp)
 
-# create var data table with variable codes
-vars = data.table(var_name = names(pop), var_code = paste0('v', 1:length(pop)), n_pop = pop, n_samp = samp)
+    # rename columns to variable codes
+    colnames(data_modmat) = vars$var_code
+    colnames(outdata_modmat) = vars$var_code
 
-# calc distributions
-vars[, dist_pop := n_pop/nrow(nrdata_modmat)]
-vars[, dist_samp := n_samp/nrow(outdata_modmat)]
+    # calc distributions
+    vars[, dist_pop := n_pop/nrow(data_modmat)]
+    vars[, dist_samp := n_samp/nrow(outdata_modmat)]
 
-# figure out which vars to drop
-drop_samp = which(vars$dist_samp < 0.02 | vars$dist_samp > 0.98)
-drop_pop = which(vars$dist_pop < 0.02 | vars$dist_pop > 0.98)
+    # figure out which vars to drop
+    drop_samp = which(vars$dist_samp < 0.02 | vars$dist_samp > 0.98)
+    drop_pop = which(vars$dist_pop < 0.02 | vars$dist_pop > 0.98)
 
-# drop variables from vars and data
-vars = vars[-unique(drop_pop, drop_samp)]
-nrdata_modmat = nrdata_modmat[, -unique(drop_pop, drop_samp)]
-
-# fit nonresponse lasso
-fit_nr = cv.glmnet(y = nrdata %>% select_(selected_ind) %>% pull
-    , x = nrdata_modmat
-    , weights = nrdata$weight  #because the population data is weighted, include this
-    , family = 'binomial'
-    , nfolds = 10)
-
-fit_out = cv.glmnet(y = ukbdata %>% select_(outcome) %>% pull
-    , x = outdata_modmat
-    , nfolds = 10)
-
-coef_nr = rownames(coef(fit_nr, lambda = 'lambda.1se'))[as.numeric(coef(fit_nr, lambda = 'lambda.1se')) != 0][-1]
-coef_out = rownames(coef(fit_ut, lambda = 'lambda.1se'))[as.numeric(coef(fit_ut, lambda = 'lambda.1se')) != 0][-1]
+    # drop variables from vars and data
+    vars = vars[-unique(drop_pop, drop_samp)]
+    data_modmat = data_modmat[, -unique(drop_pop, drop_samp)]
 
 
+    ###### FIT MODELS ######
+    # fit nonresponse lasso
+    fit_nr = cv.glmnet(y = data %>% select_(selected_ind) %>% pull
+        , x = data_modmat
+        , weights = data %>% select_(pop_weight_col) %>% pull  #because the population data is weighted, include this
+        , family = 'binomial'
+        , nfolds = 10)
 
+
+    ##### RANK COEFS #####
+    fit_out = cv.glmnet(y = ukbdata %>% select_(outcome) %>% pull
+        , x = outdata_modmat
+        , nfolds = 10)
+
+    coef_nr = data.frame(var_code = rownames(coef(fit_nr, lambda = 'lambda.1se')), coef_nr = coef(fit_nr, lambda = 'lambda.1se')[,1])[-1,]
+    coef_out = data.frame(var_code = rownames(coef(fit_out, lambda = 'lambda.1se')), coef_out = coef(fit_out, lambda = 'lambda.1se')[,1])[-1,]
+
+    vars[coef_nr, on = 'var_code', coef_nr := i.coef_nr]
+    vars[coef_out, on = 'var_code', coef_out := i.coef_out]
+
+    ##### RANK VARIABLES BY IMPORTANCE -- SHOULD REEVALUATE
+    vars[order(abs(coef_nr), decreasing = T), rank_nr := .I]
+    vars[coef_nr == 0, rank_nr := NA]
+    vars[order(abs(coef_out), decreasing = T), rank_out := .I]
+    vars[coef_out == 0, rank_out := NA]
+
+    vars[,as.numeric(!is.na(rank_nr)) + as.numeric(!is.na(rank_out))]
+    vars[order(as.numeric(is.na(rank_nr)) + as.numeric(is.na(rank_out)), as.numeric(rank_nr + rank_out)), rank_total := .I]
+
+    vars[rank_total < 15, ]
+
+    #create data table for weighting
+    data = cbind(data, as.matrix(data_modmat))
+
+    # get variable subsets for raking
+    vars = vars[!is.na(rank_nr) | !is.na(rank_out)]
+
+    vars[, subset := floor(rank_total/20)]
+    vars[, subset := (max(subset) + 1)- subset]
+
+    svydata = data.table(data %>% filter(selected == 1))
+    popdata = data.table(data %>% filter(selected == 0))
+
+
+
+    ##### DO RAKING THROUGH SUBSETS #####
+    for(s in 1:max(vars$subset)){
+        vars_for_raking <- vars[subset == s, var_code]
+
+        # set prior weight for first subset
+        if(s == 1){
+            svydata[, prior_weight := 1]
+        }
+
+        # do raking
+        rakeddata = doRaking(svydata = svydata
+                                , popdata = popdata
+                                , vars = vars_for_raking
+                                , pop_weight_col = 'pop_weight'
+                                , prior_weight_col = 'prior_weight'
+                                , control = list(maxit = 100, epsilon = 10e-4, verbose=FALSE)
+                                )
+        # replace prior weight with new weight
+        svydata$prior_weight = rakeddata$weight
+        rm(rakeddata)
+
+    }
+
+    #set final weight
+    svydata$weight = svydata$prior_weight
+
+    return(svydata)
+}
+
+
+
+ukbweighted = doLassoRake(data = fulldata
+    , strat_vars = strat_vars
+    , selected_ind = 'selected'
+    , outcome = 'MRI_brain_vol'
+    , pop_weight_col = 'pop_weight'
+    , n_interactions = 2)
+ukbdata = ukbdata %>% select(.,-weight)
+ukbdata = ukbdata %>% left_join(ukbweighted[, .(id, weight)], by = c('eid' = 'id'))
+
+
+summary(ukbweighted$weight)
+hsedata %>% group_by(health_diabetes) %>% summarize(n()/nrow(hsedata))
+ukbdata %>% group_by(health_diabetes) %>% summarize(raw =n()/nrow(ukbdata), weighted = sum(weight)/sum(ukbdata$weight))
 
 
 
