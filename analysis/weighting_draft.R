@@ -3,10 +3,10 @@
 #############
 
 
-library('data.table')
-library('memisc')
-library('dplyr')
-library('stringr')
+library(data.table)
+library(memisc)
+library(dplyr)
+library(stringr)
 library(survey)
 library(MatrixModels)
 library(Matrix)
@@ -166,27 +166,27 @@ nrdata = rbind(
 
 
 n_interactions = 2
-outcome = 'selected'
+selected_ind = 'selected'
+outcome = 'MRI_brain_vol'
 formula = as.formula(paste0('~ -1 + (', paste(strat_vars, collapse = ' + '), ')^', n_interactions))
 
+#moodmat for nr data
 nrdata_modmat = model.Matrix(formula, nrdata)
+outdata_modmat = model.Matrix(formula, nrdata %>% filter_(paste0(selected_ind, ' == 1')))
 
-# drop levels with to few observations
-head(nrdata_modmat)
-colnames(nrdata_modmat)
+# rename columns to variable codes
+colnames(nrdata_modmat) = vars$var_code
+colnames(outdata_modmat) = vars$var_code
 
-samp = apply(nrdata_modmat[nrdata%>% select_(outcome) == 1, ], 2, sum)
+samp = apply(outdata_modmat, 2, sum)
 pop = apply(nrdata_modmat, 2, sum)
 
 # create var data table with variable codes
 vars = data.table(var_name = names(pop), var_code = paste0('v', 1:length(pop)), n_pop = pop, n_samp = samp)
 
-# rename columns to variable codes
-colnames(nrdata_modmat) = vars$var_code
-
 # calc distributions
 vars[, dist_pop := n_pop/nrow(nrdata_modmat)]
-vars[, dist_samp := n_samp/sum(nrdata%>% select_(outcome))]
+vars[, dist_samp := n_samp/nrow(outdata_modmat)]
 
 # figure out which vars to drop
 drop_samp = which(vars$dist_samp < 0.02 | vars$dist_samp > 0.98)
@@ -197,16 +197,14 @@ vars = vars[-unique(drop_pop, drop_samp)]
 nrdata_modmat = nrdata_modmat[, -unique(drop_pop, drop_samp)]
 
 # fit nonresponse lasso
-fit_nr = cv.glmnet(y = nrdata$selected
+fit_nr = cv.glmnet(y = nrdata %>% select_(selected_ind) %>% pull
     , x = nrdata_modmat
     , weights = nrdata$weight  #because the population data is weighted, include this
     , family = 'binomial'
     , nfolds = 10)
 
-fit_out = cv.glmnet(y = nrdata %>% select_(outcome)
-    , x = nrdata_modmat[]
-    , weights = nrdata %>% filter_(interp(~outcome==1, v=as.name(outcome)))$weight  #because the population data is weighted, include this
-    , family = 'binomial'
+fit_out = cv.glmnet(y = ukbdata %>% select_(outcome) %>% pull
+    , x = outdata_modmat
     , nfolds = 10)
 
 coef_nr = rownames(coef(fit_nr, lambda = 'lambda.1se'))[as.numeric(coef(fit_nr, lambda = 'lambda.1se')) != 0][-1]
