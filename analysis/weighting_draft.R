@@ -88,7 +88,6 @@ fulldata = rbind(
 
 
 
-
 ukbweighted = doLassoRake(data = fulldata
     , strat_vars = strat_vars
     , selected_ind = 'selected'
