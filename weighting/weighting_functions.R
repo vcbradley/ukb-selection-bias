@@ -1,4 +1,11 @@
 ## WEIGHTING FUNCTIONS
+library(survey)
+library(dplyr)
+library(data.table)
+library(MatrixModels)
+library(Matrix)
+library(glmnet)
+library(lazyeval)
 
 
 # function to create popframe
