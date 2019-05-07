@@ -7,6 +7,35 @@ library(Matrix)
 library(glmnet)
 library(lazyeval)
 
+#Utility function for creating a design matrix with all levels of factor variables included, rather than omitting a reference level
+#as one should generally do when passing a design matrix to glmnet/cv.glmnet for a lasso (or elastic net) model
+modmat_all_levs=function(formula, data, sparse = F) UseMethod("modmat_all_levs",data)
+
+modmat_all_levs.data.frame=function(formula, data, sparse = F){
+  #data.frame method: data should be a data.frame containing the variables referred to in formula, which determines the model matrix
+  terms_data=data.frame(lapply(data[,all.vars(formula),drop=F],function(x)if (is.character(x)) as.factor(x) else x)) #convert character to factor #need drop=F to maintain a dataframe if only one factor!
+  
+  if(sparse){
+    require(Matrix)
+    sparse.model.matrix(formula,terms_data,contrasts.arg = lapply(terms_data[,sapply(terms_data,function(x)is.factor(x)),drop=F], contrasts, contrasts=FALSE)) 
+  }else{
+    model.matrix(formula,terms_data,contrasts.arg = lapply(terms_data[,sapply(terms_data,function(x)is.factor(x)),drop=F], contrasts, contrasts=FALSE)) 
+  }
+  
+}
+modmat_all_levs.data.table=function(formula, data, sparse = F){
+  #data.table method: data should be a data.table containing the variables referred to in formula, which determines the model matrix
+  require(data.table)
+  terms_data=setDT(lapply(data[,all.vars(formula),with=F],function(x)if (is.character(x)) as.factor(x) else x))
+  
+  if(sparse){
+    require(Matrix)
+    sparse.model.matrix(formula,terms_data,contrasts.arg = lapply(terms_data[,sapply(terms_data,function(x)is.factor(x)),with=F,drop=F], contrasts, contrasts=FALSE)) #need drop=F to maintain a dataframe if only one factor!
+  }else{
+    model.matrix(formula,terms_data,contrasts.arg = lapply(terms_data[,sapply(terms_data,function(x)is.factor(x)),with=F,drop=F], contrasts, contrasts=FALSE)) #need drop=F to maintain a dataframe if only one factor!
+  }
+}
+
 
 # function to create popframe
 getPopframe = function(data, vars, weight_col = NULL){
@@ -45,15 +74,23 @@ getPopframe = function(data, vars, weight_col = NULL){
 
     popframe = popframe %>% mutate(Freq = get(ifelse(!is.null(weight_col), 'prop_wt', 'prop')))
 
-    return(popframe %>% select(-c(n,prop,n_wt,prop_wt)))
+    #drop extra cols
+    popframe = popframe %>% select(-c(n, prop))
+    if(!is.null(weight_col)){
+    	popframe = popframe %>% select(-c(n_wt, prop_wt))
+    }
+    return(popframe)
 }
+
+
 
 
 
 #### Function to post-stratify survey
 doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weight_col = NULL){
     # get population frame
-    popframe  = getPopframe(popdata, vars = vars, weight_col = pop_weight_col)
+
+    popframe  = getPopframe(popdata, vars = vars, weight_col = ifelse(is.null(pop_weight_col), NULL, pop_weight_col))
 
     # make survey data
     prior_weight = as.formula(ifelse(!is.null(prior_weight_col), paste0('~', prior_weight_col), '~1'))
@@ -74,15 +111,25 @@ doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weig
 
 
 ## Raking function
-doRaking = function(svydata, popdata, vars
+doRaking = function(svydata
+    , popdata
+    , vars
     , pop_weight_col = NULL
     , prior_weight_col = NULL
     , control = list(maxit = 100, epsilon = 10e-4, verbose=FALSE)
     ){
     # get population frame
-    popmargins = lapply(vars, getPopframe, data = popdata, weight_col = pop_weight_col)
+    if(is.null(pop_weight_col)){
+    	popmargins = lapply(vars, getPopframe, data = popdata, weight_col = NULL)
+    }else{
+    	popmargins = lapply(vars, getPopframe, data = popdata, weight_col = pop_weight_col)
+    }
+    
+
+    #print(popmargins)
 
     strata = lapply(vars, function(x) as.formula(paste("~", x)))
+    #print(strata)
 
     prior_weight = as.formula(ifelse(!is.null(prior_weight_col), paste0('~', prior_weight_col), '~1'))
     svydata = svydesign(id = ~1, weights = prior_weight, data = svydata)
@@ -108,8 +155,8 @@ doLassoRake = function(
     formula = as.formula(paste0('~ -1 + (', paste(strat_vars, collapse = ' + '), ')^', n_interactions))
 
     #moodmat for nr data
-    data_modmat = model.matrix(formula, data)
-    outdata_modmat = model.matrix(formula, data %>% filter_(paste0(selected_ind, ' == 1')))
+    data_modmat = modmat_all_levs(formula, data)
+    outdata_modmat = modmat_all_levs(formula, data %>% filter_(paste0(selected_ind, ' == 1')))
 
     ##### PREP VARIABLES #####
     samp = apply(outdata_modmat, 2, sum)
