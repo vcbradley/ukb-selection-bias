@@ -77,7 +77,7 @@ getPopframe = function(data, vars, weight_col = NULL){
     #drop extra cols
     popframe = popframe %>% select(-c(n, prop))
     if(!is.null(weight_col)){
-    	popframe = popframe %>% select(-c(n_wt, prop_wt))
+        popframe = popframe %>% select(-c(n_wt, prop_wt))
     }
     return(popframe)
 }
@@ -87,10 +87,16 @@ getPopframe = function(data, vars, weight_col = NULL){
 
 
 #### Function to post-stratify survey
-doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weight_col = NULL){
-    # get population frame
+doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weight_col = NULL, partial=FALSE){
+    
 
-    popframe  = getPopframe(popdata, vars = vars, weight_col = ifelse(is.null(pop_weight_col), NULL, pop_weight_col))
+    # get population frame
+    if(is.null(pop_weight_col)){
+        popframe  = getPopframe(popdata, vars = vars)
+    }else{
+        popframe  = getPopframe(popdata, vars = vars, weight_col = pop_weight_col)
+    }
+    
 
     # make survey data
     prior_weight = as.formula(ifelse(!is.null(prior_weight_col), paste0('~', prior_weight_col), '~1'))
@@ -100,8 +106,8 @@ doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weig
     strata = as.formula(paste0('~', paste(vars, collapse = '+')))
 
     # weight
-    weighted = postStratify(svydata, strata = strata, population = popframe)
-    weighted = cbind(weighted$variables, weight = (1/weighted$prob)/mean(1/weighted$prob, na.rm = T))
+    weighted = postStratify(svydata, strata = strata, population = popframe, partial = partial)
+    weighted = cbind(weighted$variables, weight = (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T))
 
     #check mean
     mean(weighted$weight)
@@ -120,9 +126,9 @@ doRaking = function(svydata
     ){
     # get population frame
     if(is.null(pop_weight_col)){
-    	popmargins = lapply(vars, getPopframe, data = popdata, weight_col = NULL)
+        popmargins = lapply(vars, getPopframe, data = popdata, weight_col = NULL)
     }else{
-    	popmargins = lapply(vars, getPopframe, data = popdata, weight_col = pop_weight_col)
+        popmargins = lapply(vars, getPopframe, data = popdata, weight_col = pop_weight_col)
     }
     
 
@@ -136,7 +142,7 @@ doRaking = function(svydata
 
     # do weighting
     weighted = rake(svydata, sample.margins = strata, population.margins = popmargins, control = control)
-    weighted = cbind(weighted$variables, weight = (1/weighted$prob)/mean(1/weighted$prob, na.rm = T))
+    weighted = cbind(weighted$variables, weight = (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T))
 
     return(weighted)
 }
