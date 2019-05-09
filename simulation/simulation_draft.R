@@ -51,6 +51,8 @@ kable(varsum, format = 'latex')
 
 
 #### Probability of missingness
+
+### TO DO: ADD IN INTERACTIONS
 vars_to_consider = names(ukbdata)[-grep('^MRI|eid|has|assessment|demo_ethnicity_4way|demo_white|demo_educ_highest$', names(ukbdata))]
 formula = paste("~-1+(", paste0(vars_to_consider, collapse = " + "), ")")
 ukbdata_modmat = modmat_all_levs(as.formula(formula), data = ukbdata[1:5000,])
@@ -217,6 +219,22 @@ calibrated_data = doCalibration(svydata = sample
 	, epsilon = 1)
 
 summary(calibrated_data$weight)
+
+
+###### LASSO RAKE
+data = cbind(ukbdata[1:5000], selected = samples[,1])
+
+selected_ind = 'selected'
+
+
+
+lassorake_data = doLassoRake(data  = data
+    , vars = vars
+    , selected_ind = 'selected'
+    , outcome = 'MRI_brain_vol'
+    , pop_weight_col = NULL
+    , n_interactions = 2)
+
 
 
 
