@@ -106,7 +106,7 @@ doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weig
     strata = as.formula(paste0('~', paste(vars, collapse = '+')))
 
     # weight
-    weighted = postStratify(svydata, strata = strata, population = popframe, partial = partial)
+    weighted = postStratify(design = svydata, strata = strata, population = popframe, partial = partial)
     weighted = cbind(weighted$variables, weight = (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T))
 
     #check mean
@@ -124,21 +124,76 @@ doRaking = function(svydata
     , prior_weight_col = NULL
     , control = list(maxit = 100, epsilon = 10e-4, verbose=FALSE)
     ){
-    # get population frame
-    if(is.null(pop_weight_col)){
-        popmargins = lapply(vars, getPopframe, data = popdata, weight_col = NULL)
-    }else{
-        popmargins = lapply(vars, getPopframe, data = popdata, weight_col = pop_weight_col)
-    }
-    
 
-    #print(popmargins)
+	if(is.null(pop_weight_col)){
+		popdata[, pop_weight := 1]
+	}else{
+		popdata[, pop_weight := get(pop_weight_col)]
+	}
+
+	if(is.null(prior_weight_col)){
+		svydata[, prior_weight := 1]
+	}else{
+		svydata[, prior_weight := get(prior_weight_col)]
+	}
+
+    drop_pop = 1
+    drop_samp = 1
+    while(length(drop_samp)>0 | length(drop_pop)>0){
+        drop_samp = unlist(lapply(vars, function(v){
+            popmargin = popdata[, .(pop_prop = sum(pop_weight)/sum(popdata$pop_weight)), by = v]
+            sampmargin = svydata[, .(samp_prop = sum(prior_weight)/sum(svydata$prior_weight)), by = v]
+            margins = merge(popmargin, sampmargin, all = T)
+            margins = cbind(var = v, margins)
+
+            drop_samp = margins[is.na(pop_prop)]
+
+            if(nrow(drop_samp) > 0){
+                print("WARNING DROPPING strata because null in population")
+                print(drop_samp)
+            }
+
+            drop = which(svydata[,get(as.character(v))] %in% drop_samp[, 2])
+
+            return(drop)
+            }))
+
+        if(length(drop_samp)>0){
+            svydata = svydata[-drop_samp, ]
+        }
+
+        drop_pop = unlist(lapply(vars, function(v){
+            popmargin = popdata[, .(pop_prop = sum(pop_weight)/sum(popdata$pop_weight)), by = v]
+            sampmargin = svydata[, .(samp_prop = sum(prior_weight)/sum(svydata$prior_weight)), by = v]
+            margins = merge(popmargin, sampmargin, all = T)
+            margins = cbind(var = v, margins)
+
+            drop_pop = margins[is.na(samp_prop)]
+
+            if(nrow(drop_pop) > 0){
+                print("WARNING DROPPING strata because null in sample")
+                print(drop_pop)
+            }
+
+            drop = which(popdata[,get(as.character(v))] %in% drop_pop[, 2])
+
+            return(drop)
+            }))
+
+        if(length(drop_pop) > 0){
+            popdata = popdata[-drop_pop, ]
+        }
+        
+    }
+
+    popmargins = lapply(vars, getPopframe, data = popdata, weight_col = 'pop_weight')
+   
 
     strata = lapply(vars, function(x) as.formula(paste("~", x)))
-    #print(strata)
 
     prior_weight = as.formula(ifelse(!is.null(prior_weight_col), paste0('~', prior_weight_col), '~1'))
     svydata = svydesign(id = ~1, weights = prior_weight, data = svydata)
+
 
     # do weighting
     weighted = rake(svydata, sample.margins = strata, population.margins = popmargins, control = control)
