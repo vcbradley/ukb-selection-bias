@@ -206,36 +206,51 @@ doLassoRake = function(
     , vars
     , selected_ind 
     , outcome
-    , pop_weight_col
+    , pop_weight_col = NULL
     , n_interactions = 2
 ){
 
     formula = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^', n_interactions))
 
     #moodmat for nr data
-    data_modmat = modmat_all_levs(formula, data)
-    outdata_modmat = modmat_all_levs(formula, data[get(selected_ind) == 1, ])
+    data_modmat = modmat_all_levs(formula, data, sparse = T)
+    outdata_modmat = modmat_all_levs(formula, data[get(selected_ind) == 1, ], sparse = T)
 
     ##### PREP VARIABLES #####
     samp = apply(outdata_modmat, 2, sum)
     pop = apply(data_modmat, 2, sum)
 
     # create var data table with variable codes
-    lasso_vars = data.table(var_name = names(pop), var_code = paste0('v', 1:length(pop)), n_pop = pop)
+    lasso_vars = data.table(var_name = names(pop), var_code = paste0('v', str_pad(1:length(pop), width = 4, side = 'left', pad = '0')), n_pop = pop)
     samp = data.table(var_name = names(samp), n_samp = samp)
     lasso_vars = merge(lasso_vars, samp, by = 'var_name', all = T)
 
-    # rename columns to variable codes
-    colnames(data_modmat) = lasso_vars$var_code
-    colnames(outdata_modmat) = lasso_vars$var_code
+    lasso_vars[order(var_code),]
+
+    # drop strata that are null in the pop or the sample
+    strata_missing = lasso_vars[(is.na(n_pop) | is.na(n_samp)),]
+    if(nrow(strata_missing) > 0){
+    	print("WARNING dropping strata because missing in sample or pop")
+    	print(strata_missing)
+    	lasso_vars = lasso_vars[!(is.na(n_pop) | is.na(n_samp)),]
+    }
+
+    data_modmat = data_modmat[, which(colnames(data_modmat) %in% lasso_vars$var_name)]
+    outdata_modmat = outdata_modmat[, which(colnames(outdata_modmat) %in% lasso_vars$var_name)]
+
+    ### rename columns to variable codes
+    # mean(colnames(data_modmat) == lasso_vars[order(var_code), var_name])
+    # mean(colnames(outdata_modmat) == lasso_vars[order(var_code), var_name])
+    colnames(data_modmat) = lasso_vars[order(var_code), var_name]
+    colnames(outdata_modmat) = lasso_vars[order(var_code), var_name]
 
     # calc distributions
     lasso_vars[, dist_pop := n_pop/nrow(data_modmat)]
     lasso_vars[, dist_samp := n_samp/nrow(outdata_modmat)]
 
     # figure out which lasso_vars to drop
-    drop_samp = which(lasso_vars$dist_samp < 0.02 | lasso_vars$dist_samp > 0.98)
-    drop_pop = which(lasso_vars$dist_pop < 0.02 | lasso_vars$dist_pop > 0.98)
+    drop_samp = which(lasso_vars$dist_samp < 0.01 | lasso_vars$dist_samp > 0.99)
+    drop_pop = which(lasso_vars$dist_pop < 0.01 | lasso_vars$dist_pop > 0.99)
 
     # drop variables from lasso_vars and data
     lasso_vars = lasso_vars[-unique(drop_pop, drop_samp)]
@@ -244,12 +259,17 @@ doLassoRake = function(
 
     ###### FIT MODELS ######
     # fit nonresponse lasso
+    if(is.null(pop_weight_col)){
+    	data[, pop_weight := 1]
+    }else{
+    	data[, pop_weight := get(pop_weight_col)]
+    }
+
     fit_nr = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
         , x = data_modmat
-        , weights = as.numeric(data[, get(pop_weight_col)])  #because the population data is weighted, include this
+        , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
         , family = 'binomial'
         , nfolds = 10)
-
 
     ##### RANK COEFS #####
     fit_out = cv.glmnet(y = as.numeric(data[, get(outcome)])
@@ -321,8 +341,8 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1){
 
     # make model matricies
     formula_modmat = as.formula(paste0('~ ', paste(vars, collapse = '+')))
-    pop_modmat = modmat_all_levs(formula_modmat, popdata)
-    samp_modmat = modmat_all_levs(formula_modmat, svydata)
+    pop_modmat = modmat_all_levs(formula_modmat, popdata, sparse = T)
+    samp_modmat = modmat_all_levs(formula_modmat, svydata, sparse = T)
 
     ### DROP strata that are entirely missing
     drop_pop_levels = which(!colnames(pop_modmat) %in% colnames(samp_modmat))
