@@ -89,31 +89,22 @@ getPopframe = function(data, vars, weight_col = NULL){
 #### Function to post-stratify survey
 doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weight_col = NULL, partial=FALSE){
     
-
-    # get population frame
-    if(is.null(pop_weight_col)){
-        popframe  = getPopframe(popdata, vars = vars)
-    }else{
-        popframe  = getPopframe(popdata, vars = vars, weight_col = pop_weight_col)
-    }
+    popframe  = data.table(getPopframe(popdata, vars = strat_vars, weight_col = NULL))
+	setnames(popframe, old = 'Freq', new = 'pop_prop')
+    popframe = popframe[, pop_N := pop_prop * nrow(popdata)]
     
+    sampframe  = data.table(getPopframe(sample, vars = strat_vars, weight_col = NULL))
+    setnames(sampframe, old = 'Freq', new = 'samp_prop')
+    sampframe = sampframe[, samp_N := samp_prop * nrow(svydata)]
 
-    # make survey data
-    prior_weight = as.formula(ifelse(!is.null(prior_weight_col), paste0('~', prior_weight_col), '~1'))
-    svydata = svydesign(id = ~1, weights = prior_weight, data = svydata)
-
-    # define strata for post-stratification
-    strata = as.formula(paste0('~', paste(vars, collapse = '+')))
-
-    # weight
-    weighted = postStratify(design = svydata, strata = strata, population = popframe, partial = partial)
-    weighted = cbind(weighted$variables, weight = (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T))
-
-    #check mean
-    mean(weighted$weight)
+    # DO weighting
+    weighted = merge(popframe, sampframe, by = strat_vars)
+    weighted[, weight := (pop_prop/samp_prop)]
+    weighted = merge(svydata, weighted, by = vars, all.x = T)
 
     return(weighted)
 }
+
 
 
 ## Raking function
@@ -125,17 +116,17 @@ doRaking = function(svydata
     , control = list(maxit = 100, epsilon = 10e-4, verbose=FALSE)
     ){
 
-	if(is.null(pop_weight_col)){
-		popdata[, pop_weight := 1]
-	}else{
-		popdata[, pop_weight := get(pop_weight_col)]
-	}
+    if(is.null(pop_weight_col)){
+        popdata[, pop_weight := 1]
+    }else{
+        popdata[, pop_weight := get(pop_weight_col)]
+    }
 
-	if(is.null(prior_weight_col)){
-		svydata[, prior_weight := 1]
-	}else{
-		svydata[, prior_weight := get(prior_weight_col)]
-	}
+    if(is.null(prior_weight_col)){
+        svydata[, prior_weight := 1]
+    }else{
+        svydata[, prior_weight := get(prior_weight_col)]
+    }
 
     drop_pop = 1
     drop_samp = 1
@@ -315,4 +306,74 @@ doLassoRake = function(
     svydata$weight = svydata$prior_weight
 
     return(svydata)
+}
+
+
+doCalibration = function(svydata, popdata, vars, epsilon = 1){
+
+    # make model matricies
+    formula_modmat = as.formula(paste0('~ ', paste(vars, collapse = '+')))
+    pop_modmat = modmat_all_levs(formula_modmat, popdata)
+    samp_modmat = modmat_all_levs(formula_modmat, svydata)
+
+    ### DROP strata that are entirely missing
+    drop_pop_levels = which(!colnames(pop_modmat) %in% colnames(samp_modmat))
+
+    if(length(drop_pop_levels) > 0){
+        print("WARNING dropping population levels because not in sample\n")
+        apply(pop_modmat[,drop_pop_levels], 2, mean)
+        pop_modmat = pop_modmat[, -drop_pop_levels]
+    }
+    
+
+    ### rename variables so calibrate doesn't hate us
+    cal_vars = data.table(var_name = colnames(pop_modmat), var_code = paste0('v', str_pad(1:ncol(pop_modmat), width = 3, side = 'left', pad='0')))
+
+    colnames(pop_modmat) = cal_vars$var_code
+    colnames(samp_modmat) = cal_vars$var_code[which(cal_vars$var_name %in% colnames(samp_modmat))]
+
+    ## calculate sample and population totals
+    pop_totals = apply(pop_modmat, 2, sum)
+    samp_totals = apply(samp_modmat, 2, sum)
+
+    ### DROP more levels that are too small
+    small_pop_strata = pop_totals/nrow(pop_modmat)
+    small_pop_strata = small_pop_strata[small_pop_strata < 0.01 | (small_pop_strata > 0.99 & small_pop_strata < 1)]
+    small_pop_strata = data.table(var_code = names(small_pop_strata), pop_prop = small_pop_strata)
+
+    small_samp_strata = samp_totals/nrow(samp_modmat)
+    small_samp_strata = small_samp_strata[small_samp_strata < 0.01 | (small_samp_strata > 0.99 & small_samp_strata < 1)]
+    small_samp_strata = data.table(var_code = names(small_samp_strata), samp_prop = small_samp_strata)
+
+    small_strata = merge(merge(cal_vars, small_pop_strata, all = T), small_samp_strata, all = T)
+    small_strata = small_strata[!is.na(pop_prop) | !is.na(samp_prop)]
+
+    if(nrow(small_strata) > 0){
+        print('WARNING dropping strata because <1% of pop or sample')
+        print(small_strata)
+        pop_modmat = pop_modmat[, -which(colnames(pop_modmat) %in% small_strata$var_code)]
+    	samp_modmat = samp_modmat[, -which(colnames(samp_modmat) %in% small_strata$var_code)]
+    }
+    
+    ## re-calc pop totals
+    pop_totals = apply(pop_modmat, 2, sum)
+
+    ## make survey data
+    svydata = svydesign(id = ~1, data = data.frame(samp_modmat))
+
+    ## make formula
+    formula_cal = as.formula(paste0('~ -1 +', paste(names(pop_totals), collapse = '+')))
+
+    ## DO calibration
+    weighted = calibrate(design = svydata
+            , formula = formula_cal
+            , population = pop_totals
+            , calfun = 'raking' #'logit', 'linear'
+            , maxit = 1000
+            , epsilon = epsilon #THIS IS KEY
+            )
+
+    weighted = cbind(weighted$variables, weight = (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T))
+
+    return(weighted)
 }
