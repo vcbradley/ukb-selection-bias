@@ -62,12 +62,6 @@ names(ukbweighted)
 
 
 
-
-ukbweighted = doRaking(svydata = ukbdata, popdata = hsedata, vars = strat_vars, pop_weight_col = 'wt_blood')
-
-names(ukbweighted)
-
-
 ukbweighted = doRaking(svydata = ukbdata, popdata = hsedata, vars = strat_vars, pop_weight_col = 'wt_blood')
 hsedata %>% group_by(health_diabetes) %>% summarize(n()/nrow(hsedata))
 ukbweighted %>% group_by(health_diabetes) %>% summarize(raw =n()/nrow(ukbweighted), weighted = sum(weight)/sum(ukbweighted$weight))
@@ -84,8 +78,6 @@ fulldata = rbind(
     ukbdata %>% select(id = eid, strat_vars, selected, pop_weight)
     , hsedata %>% filter(!is.na(wt_blood)) %>% select(id = SerialA, strat_vars, selected, pop_weight = wt_blood)
     )
-
-
 
 
 ukbweighted = doLassoRake(data = fulldata
