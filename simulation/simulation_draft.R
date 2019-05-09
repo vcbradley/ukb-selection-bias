@@ -156,22 +156,25 @@ raked_data = doRaking(svydata = sample
     , vars = vars
     )
 
+summary(raked_data$weight)
+sum(raked_data$weight)
+
 #rake summary
 rbindlist(lapply(c('has_t1_MRI', vars), function(v){
-	pop = ukbdata[1:5000, .(
-		pop_count = .N
-		, pop_prop = .N/nrow(ukbdata[1:5000])
-		, pop_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
-		), by = v]
-	samp = raked_data[, .(
-		samp_count = .N
-		, weghted_count = sum(weight)
-		, weighted_prop = sum(weight)/sum(raked_data$weight)
-		, samp_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
-		, weighted_brainvol = sum(as.numeric(MRI_brain_vol) * weight, na.rm = T)/sum(weight)
-		), by = v]
-	cbind(v, merge(pop, samp, all = T, by = v))
-	}))
+    pop = ukbdata[1:5000, .(
+        pop_count = .N
+        , pop_prop = .N/nrow(ukbdata[1:5000])
+        , pop_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
+        ), by = v]
+    samp = raked_data[, .(
+        samp_count = .N
+        , weghted_count = sum(weight)
+        , weighted_prop = sum(weight)/sum(raked_data$weight)
+        , samp_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
+        , weighted_brainvol = sum(as.numeric(MRI_brain_vol) * weight, na.rm = T)/sum(weight)
+        ), by = v]
+    cbind(v, merge(pop, samp, all = T, by = v))
+    }))
 
 
 
@@ -182,7 +185,7 @@ ps_modmat = ukbdata[1:5000, vars, with = F]
 ps_modmat[,(vars):=lapply(.SD, as.factor),.SDcols=vars]
 
 # fit random forest and calc variable importance
-ps_fit = randomForest(y = samples[,1], x = ps_modmat, importance = T)
+ps_fit = randomForest(y = samples[,1], x = ps_modmat, importance = T, ntree = 100)
 ps_vars = sort(ps_fit$importance[, 1], decreasing = T)
 
 ### Increase number of stratification variables until we lose too much of the pop
@@ -208,12 +211,10 @@ n_vars = n_vars - 1
 strat_vars = names(ps_vars[1:n_vars])
 
 ## DO POST STRAT
-drop_pop = merge(ukbdata[1:5000, .(prop_pop = .N/nrow(ukbdata[1:5000])), by = strat_vars]
-        , sample[, .(n_samp = .N, prop_samp = .N/nrow(sample)), by = strat_vars], all.x = T)
+strat_data = doPostStrat(svydata = sample, popdata = ukbdata[1:5000,], vars = strat_vars)
 
-drop_pop[, weight := prop_pop/prop_samp]
-strat_data = merge(sample, drop_pop, by = strat_vars, all.x = T)
-
+summary(strat_data$weight)
+sum(strat_data$weight)
 
 #spot check
 strat_data[, .(.N/nrow(strat_data), sum(weight, na.rm = T)/sum(strat_data$weight, na.rm = T)), demo_hh_size]
@@ -224,4 +225,13 @@ ukbdata[1:5000, .N/nrow(ukbdata[1:5000]), demo_age_bucket]
 
 
 
+####### CALIBRATE
+vars_cal = c(vars, 'age', 'age_sq')
 
+
+calibrated_data = doCalibration(svydata = sample
+	, popdata = ukbdata[1:5000,]
+	, vars = vars_cal
+	, epsilon = 1)
+
+summary(calibrated_data$weight)
