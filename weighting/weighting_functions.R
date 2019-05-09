@@ -89,18 +89,24 @@ getPopframe = function(data, vars, weight_col = NULL){
 #### Function to post-stratify survey
 doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weight_col = NULL, partial=FALSE){
     
-    popframe  = data.table(getPopframe(popdata, vars = strat_vars, weight_col = NULL))
+    popframe  = data.table(getPopframe(popdata, vars = vars, weight_col = NULL))
 	setnames(popframe, old = 'Freq', new = 'pop_prop')
     popframe = popframe[, pop_N := pop_prop * nrow(popdata)]
     
-    sampframe  = data.table(getPopframe(sample, vars = strat_vars, weight_col = NULL))
+    sampframe  = data.table(getPopframe(sample, vars = vars, weight_col = NULL))
     setnames(sampframe, old = 'Freq', new = 'samp_prop')
     sampframe = sampframe[, samp_N := samp_prop * nrow(svydata)]
 
     # DO weighting
-    weighted = merge(popframe, sampframe, by = strat_vars)
+    weighted = merge(popframe, sampframe, by = vars)
     weighted[, weight := (pop_prop/samp_prop)]
-    weighted = merge(svydata, weighted, by = vars, all.x = T)
+    weighted = merge(svydata, weighted[, c(vars, 'weight'), with = F], by = vars, all.x = T)
+
+    #fix col sorting
+    weighted = weighted[, c(names(svydata), 'weight'), with = F]
+
+    # normalize
+    weighted = weighted[, weight := weight/mean(weight, na.rm = T)]
 
     return(weighted)
 }
@@ -197,91 +203,93 @@ doRaking = function(svydata
 ## LAsso rake function
 doLassoRake = function(
     data
-    , strat_vars
+    , vars
     , selected_ind 
     , outcome
     , pop_weight_col
     , n_interactions = 2
 ){
 
-    formula = as.formula(paste0('~ -1 + (', paste(strat_vars, collapse = ' + '), ')^', n_interactions))
+    formula = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^', n_interactions))
 
     #moodmat for nr data
     data_modmat = modmat_all_levs(formula, data)
-    outdata_modmat = modmat_all_levs(formula, data %>% filter_(paste0(selected_ind, ' == 1')))
+    outdata_modmat = modmat_all_levs(formula, data[get(selected_ind) == 1, ])
 
     ##### PREP VARIABLES #####
     samp = apply(outdata_modmat, 2, sum)
     pop = apply(data_modmat, 2, sum)
 
     # create var data table with variable codes
-    vars = data.table(var_name = names(pop), var_code = paste0('v', 1:length(pop)), n_pop = pop, n_samp = samp)
+    lasso_vars = data.table(var_name = names(pop), var_code = paste0('v', 1:length(pop)), n_pop = pop)
+    samp = data.table(var_name = names(samp), n_samp = samp)
+    lasso_vars = merge(lasso_vars, samp, by = 'var_name', all = T)
 
     # rename columns to variable codes
-    colnames(data_modmat) = vars$var_code
-    colnames(outdata_modmat) = vars$var_code
+    colnames(data_modmat) = lasso_vars$var_code
+    colnames(outdata_modmat) = lasso_vars$var_code
 
     # calc distributions
-    vars[, dist_pop := n_pop/nrow(data_modmat)]
-    vars[, dist_samp := n_samp/nrow(outdata_modmat)]
+    lasso_vars[, dist_pop := n_pop/nrow(data_modmat)]
+    lasso_vars[, dist_samp := n_samp/nrow(outdata_modmat)]
 
-    # figure out which vars to drop
-    drop_samp = which(vars$dist_samp < 0.02 | vars$dist_samp > 0.98)
-    drop_pop = which(vars$dist_pop < 0.02 | vars$dist_pop > 0.98)
+    # figure out which lasso_vars to drop
+    drop_samp = which(lasso_vars$dist_samp < 0.02 | lasso_vars$dist_samp > 0.98)
+    drop_pop = which(lasso_vars$dist_pop < 0.02 | lasso_vars$dist_pop > 0.98)
 
-    # drop variables from vars and data
-    vars = vars[-unique(drop_pop, drop_samp)]
+    # drop variables from lasso_vars and data
+    lasso_vars = lasso_vars[-unique(drop_pop, drop_samp)]
     data_modmat = data_modmat[, -unique(drop_pop, drop_samp)]
 
 
     ###### FIT MODELS ######
     # fit nonresponse lasso
-    fit_nr = cv.glmnet(y = data %>% select_(selected_ind) %>% pull
+    fit_nr = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
         , x = data_modmat
-        , weights = data %>% select_(pop_weight_col) %>% pull  #because the population data is weighted, include this
+        , weights = as.numeric(data[, get(pop_weight_col)])  #because the population data is weighted, include this
         , family = 'binomial'
         , nfolds = 10)
 
 
     ##### RANK COEFS #####
-    fit_out = cv.glmnet(y = ukbdata %>% select_(outcome) %>% pull
+    fit_out = cv.glmnet(y = as.numeric(data[, get(outcome)])
         , x = outdata_modmat
         , nfolds = 10)
 
     coef_nr = data.frame(var_code = rownames(coef(fit_nr, lambda = 'lambda.1se')), coef_nr = coef(fit_nr, lambda = 'lambda.1se')[,1])[-1,]
     coef_out = data.frame(var_code = rownames(coef(fit_out, lambda = 'lambda.1se')), coef_out = coef(fit_out, lambda = 'lambda.1se')[,1])[-1,]
 
-    vars[coef_nr, on = 'var_code', coef_nr := i.coef_nr]
-    vars[coef_out, on = 'var_code', coef_out := i.coef_out]
+    lasso_vars[coef_nr, on = 'var_code', coef_nr := i.coef_nr]
+    lasso_vars[coef_out, on = 'var_code', coef_out := i.coef_out]
 
     ##### RANK VARIABLES BY IMPORTANCE -- SHOULD REEVALUATE
-    vars[order(abs(coef_nr), decreasing = T), rank_nr := .I]
-    vars[coef_nr == 0, rank_nr := NA]
-    vars[order(abs(coef_out), decreasing = T), rank_out := .I]
-    vars[coef_out == 0, rank_out := NA]
+    lasso_vars[order(abs(coef_nr), decreasing = T), rank_nr := .I]
+    lasso_vars[coef_nr == 0, rank_nr := NA]
+    lasso_vars[order(abs(coef_out), decreasing = T), rank_out := .I]
+    lasso_vars[coef_out == 0, rank_out := NA]
 
-    vars[,as.numeric(!is.na(rank_nr)) + as.numeric(!is.na(rank_out))]
-    vars[order(as.numeric(is.na(rank_nr)) + as.numeric(is.na(rank_out)), as.numeric(rank_nr + rank_out)), rank_total := .I]
+    lasso_vars[,as.numeric(!is.na(rank_nr)) + as.numeric(!is.na(rank_out))]
+    lasso_vars[order(as.numeric(is.na(rank_nr)) + as.numeric(is.na(rank_out)), as.numeric(rank_nr + rank_out)), rank_total := .I]
 
-    vars[rank_total < 15, ]
+    lasso_vars[rank_total < 15, ]
 
     #create data table for weighting
     data = cbind(data, as.matrix(data_modmat))
 
     # get variable subsets for raking
-    vars = vars[!is.na(rank_nr) | !is.na(rank_out)]
+    lasso_vars = lasso_vars[!is.na(rank_nr) | !is.na(rank_out)]
 
-    vars[, subset := floor(rank_total/20)]
-    vars[, subset := (max(subset) + 1)- subset]
+    lasso_vars[, subset := floor(rank_total/20)]
+    lasso_vars[, subset := (max(subset) + 1)- subset]
 
-    svydata = data.table(data %>% filter(selected == 1))
-    popdata = data.table(data %>% filter(selected == 0))
+    svydata = data[get(selected_ind) == 1, ]
+    popdata = data[get(selected_ind) == 0, ]
 
 
 
     ##### DO RAKING THROUGH SUBSETS #####
-    for(s in 1:max(vars$subset)){
-        vars_for_raking <- vars[subset == s, var_code]
+    for(s in 1:max(lasso_vars$subset)){
+        vars_for_raking <- lasso_vars[subset == s, var_code]
 
         # set prior weight for first subset
         if(s == 1){

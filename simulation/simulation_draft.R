@@ -159,24 +159,6 @@ raked_data = doRaking(svydata = sample
 summary(raked_data$weight)
 sum(raked_data$weight)
 
-#rake summary
-rbindlist(lapply(c('has_t1_MRI', vars), function(v){
-    pop = ukbdata[1:5000, .(
-        pop_count = .N
-        , pop_prop = .N/nrow(ukbdata[1:5000])
-        , pop_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
-        ), by = v]
-    samp = raked_data[, .(
-        samp_count = .N
-        , weghted_count = sum(weight)
-        , weighted_prop = sum(weight)/sum(raked_data$weight)
-        , samp_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
-        , weighted_brainvol = sum(as.numeric(MRI_brain_vol) * weight, na.rm = T)/sum(weight)
-        ), by = v]
-    cbind(v, merge(pop, samp, all = T, by = v))
-    }))
-
-
 
 ####### POST STRAT
 
@@ -235,3 +217,31 @@ calibrated_data = doCalibration(svydata = sample
 	, epsilon = 1)
 
 summary(calibrated_data$weight)
+
+
+
+
+
+#### EVALUATION
+rbindlist(lapply(c('has_t1_MRI', vars), function(v){
+    pop = ukbdata[1:5000, .(
+        pop_count = .N
+        , pop_prop = .N/nrow(ukbdata[1:5000])
+        , pop_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
+        ), by = v]
+    samp = raked_data[, .(
+        samp_count = .N
+        , weghted_count = sum(weight)
+        , weighted_prop = sum(weight)/sum(raked_data$weight)
+        , samp_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
+        , weighted_brainvol = sum(as.numeric(MRI_brain_vol) * weight, na.rm = T)/sum(weight)
+        ), by = v]
+    cbind(v, merge(pop, samp, all = T, by = v))
+    }))
+
+
+
+
+
+
+
