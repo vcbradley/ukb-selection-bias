@@ -226,8 +226,6 @@ data = cbind(ukbdata[1:5000], selected = samples[,1])
 
 selected_ind = 'selected'
 
-
-
 lassorake_data = doLassoRake(data  = data
     , vars = vars
     , selected_ind = 'selected'
@@ -235,8 +233,8 @@ lassorake_data = doLassoRake(data  = data
     , pop_weight_col = NULL
     , n_interactions = 2)
 
-
-
+summary(lassorake_data$weight)
+sum(lassorake_data$weight)
 
 
 
