@@ -234,6 +234,7 @@ doLassoRake = function(
     	print(strata_missing)
     	lasso_vars = lasso_vars[!(is.na(n_pop) | is.na(n_samp)),]
     }
+    lasso_vars = lasso_vars[order(var_code)]
 
     data_modmat = data_modmat[, which(colnames(data_modmat) %in% lasso_vars$var_name)]
     outdata_modmat = outdata_modmat[, which(colnames(outdata_modmat) %in% lasso_vars$var_name)]
@@ -241,8 +242,8 @@ doLassoRake = function(
     ### rename columns to variable codes
     # mean(colnames(data_modmat) == lasso_vars[order(var_code), var_name])
     # mean(colnames(outdata_modmat) == lasso_vars[order(var_code), var_name])
-    colnames(data_modmat) = lasso_vars[order(var_code), var_name]
-    colnames(outdata_modmat) = lasso_vars[order(var_code), var_name]
+    colnames(data_modmat) = lasso_vars[order(var_code), var_code]
+    colnames(outdata_modmat) = lasso_vars[order(var_code), var_code]
 
     # calc distributions
     lasso_vars[, dist_pop := n_pop/nrow(data_modmat)]
@@ -253,8 +254,9 @@ doLassoRake = function(
     drop_pop = which(lasso_vars$dist_pop < 0.01 | lasso_vars$dist_pop > 0.99)
 
     # drop variables from lasso_vars and data
-    lasso_vars = lasso_vars[-unique(drop_pop, drop_samp)]
-    data_modmat = data_modmat[, -unique(drop_pop, drop_samp)]
+    lasso_vars = lasso_vars[-unique(drop_pop, drop_samp),]
+    data_modmat = data_modmat[, colnames(data_modmat) %in% lasso_vars$var_code]
+    outdata_modmat = outdata_modmat[, colnames(data_modmat) %in% lasso_vars$var_code]
 
 
     ###### FIT MODELS ######
@@ -272,15 +274,16 @@ doLassoRake = function(
         , nfolds = 10)
 
     ##### RANK COEFS #####
-    fit_out = cv.glmnet(y = as.numeric(data[, get(outcome)])
+    fit_out = cv.glmnet(y = as.numeric(data[get(selected_ind) == 1, get(outcome)])
         , x = outdata_modmat
         , nfolds = 10)
 
-    coef_nr = data.frame(var_code = rownames(coef(fit_nr, lambda = 'lambda.1se')), coef_nr = coef(fit_nr, lambda = 'lambda.1se')[,1])[-1,]
-    coef_out = data.frame(var_code = rownames(coef(fit_out, lambda = 'lambda.1se')), coef_out = coef(fit_out, lambda = 'lambda.1se')[,1])[-1,]
+    coef_nr = data.table(var_code = rownames(coef(fit_nr, lambda = 'lambda.1se')), coef_nr = coef(fit_nr, lambda = 'lambda.1se')[,1])[-1,]
+    coef_out = data.table(var_code = rownames(coef(fit_out, lambda = 'lambda.1se')), coef_out = coef(fit_out, lambda = 'lambda.1se')[,1])[-1,]
 
     lasso_vars[coef_nr, on = 'var_code', coef_nr := i.coef_nr]
     lasso_vars[coef_out, on = 'var_code', coef_out := i.coef_out]
+    lasso_vars[coef_nr != 0 | coef_out != 0]
 
     ##### RANK VARIABLES BY IMPORTANCE -- SHOULD REEVALUATE
     lasso_vars[order(abs(coef_nr), decreasing = T), rank_nr := .I]
