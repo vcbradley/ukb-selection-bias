@@ -340,19 +340,26 @@ doLassoRake = function(
 }
 
 
-doCalibration = function(svydata, popdata, vars, epsilon = 1){
+doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking'){
 
     # make model matricies
     formula_modmat = as.formula(paste0('~ ', paste(vars, collapse = '+')))
-    pop_modmat = modmat_all_levs(formula_modmat, popdata, sparse = T)
-    samp_modmat = modmat_all_levs(formula_modmat, svydata, sparse = T)
+    
+    # use model matrix that drops a level for each categorical var so that result is not singular
+    pop_modmat = model.matrix(formula_modmat, popdata, sparse = T)
+    samp_modmat = model.matrix(formula_modmat, svydata, sparse = T)
 
     ### DROP strata that are entirely missing
     drop_pop_levels = which(!colnames(pop_modmat) %in% colnames(samp_modmat))
 
     if(length(drop_pop_levels) > 0){
         print("WARNING dropping population levels because not in sample\n")
-        apply(pop_modmat[,drop_pop_levels], 2, mean)
+        if(length(drop_pop_levels) == 1){
+        	print(paste(colnames(pop_modmat)[drop_pop_levels],mean(pop_modmat[,drop_pop_levels])))
+        }else{
+        	print(apply(pop_modmat[,drop_pop_levels], 2, mean))
+        }
+        
         pop_modmat = pop_modmat[, -drop_pop_levels]
     }
     
@@ -390,7 +397,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1){
     pop_totals = apply(pop_modmat, 2, sum)
 
     ## make survey data
-    svydata = svydesign(id = ~1, data = data.frame(samp_modmat))
+    svydata = svydesign(id = ~1, data = data.frame(as.matrix(samp_modmat)))
 
     ## make formula
     formula_cal = as.formula(paste0('~ -1 +', paste(names(pop_totals), collapse = '+')))
@@ -399,7 +406,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1){
     weighted = calibrate(design = svydata
             , formula = formula_cal
             , population = pop_totals
-            , calfun = 'raking' #'logit', 'linear'
+            , calfun = calfun #'raking' #'logit', 'linear'
             , maxit = 1000
             , epsilon = epsilon #THIS IS KEY
             )

@@ -214,11 +214,14 @@ vars_cal = c(vars, 'age', 'age_sq')
 
 
 calibrated_data = doCalibration(svydata = sample
-	, popdata = ukbdata[1:5000,]
-	, vars = vars_cal
-	, epsilon = 1)
+    , popdata = ukbdata[1:5000,]
+    , vars = vars_cal
+    , epsilon = 1
+    , calfun = 'raking')
 
 summary(calibrated_data$weight)
+
+
 
 
 ###### LASSO RAKE
