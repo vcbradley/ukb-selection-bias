@@ -271,12 +271,12 @@ doLassoRake = function(
         , x = data_modmat
         , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
         , family = 'binomial'
-        , nfolds = 10)
+        , nfolds = 5)
 
     ##### RANK COEFS #####
     fit_out = cv.glmnet(y = as.numeric(data[get(selected_ind) == 1, get(outcome)])
         , x = outdata_modmat
-        , nfolds = 10)
+        , nfolds = 5)
 
     coef_nr = data.table(var_code = rownames(coef(fit_nr, lambda = 'lambda.1se')), coef_nr = coef(fit_nr, lambda = 'lambda.1se')[,1])[-1,]
     coef_out = data.table(var_code = rownames(coef(fit_out, lambda = 'lambda.1se')), coef_out = coef(fit_out, lambda = 'lambda.1se')[,1])[-1,]
