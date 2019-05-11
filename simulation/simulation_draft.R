@@ -212,7 +212,6 @@ ukbdata[1:5000, .N/nrow(ukbdata[1:5000]), demo_age_bucket]
 ####### CALIBRATE
 vars_cal = c(vars, 'age', 'age_sq')
 
-
 calibrated_data = doCalibration(svydata = sample
     , popdata = ukbdata[1:5000,]
     , vars = vars_cal
@@ -238,6 +237,54 @@ lassorake_data = doLassoRake(data  = data
 
 summary(lassorake_data$weight)
 sum(lassorake_data$weight)
+
+
+###### LOGIT
+
+vars_logit = c(vars, 'age', 'age_sq')
+selected_id = 'selected'
+pop_weight_col = NULL
+
+doLogitWeight = function(data, vars, selected_ind, pop_weight_col = NULL){
+
+	# set pop weight col if it's null
+    if(is.null(pop_weight_col)){
+        data[, pop_weight := 1]
+    }else{
+        data[, pop_weight := get(pop_weight_col)]
+    }
+
+    # create modmat for modeling
+    formula_logit = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^2'))
+    logit_modmat = modmat_all_levs(formula = formula_logit, data = data, sparse = T)
+    colnames(logit_modmat)
+
+    # fiit logit model
+    fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
+            , x = logit_modmat
+            , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
+            , family = 'binomial'
+            , nfolds = 5)
+
+    coef_logit = data.table(rownames(coef(fit_logit, lambda = 'lambda.1se')), coef = as.numeric(coef(fit_logit, lambda = 'lambda.1se')))
+    coef_logit = coef_logit[coef != 0,]
+
+    # calculate weights
+    lp = predict(fit_logit, newx = logit_modmat[data$selected == 1, ], s = 'lambda.1se')
+    probs = 1/(1+exp(lp))
+    weighted = data[selected == 1,]
+    weighted[, prob := probs]
+    weighted[, weight := (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T)]
+
+    return(weighted[, -prob])
+}
+
+logit_weighted = doLogitWeight(data = data
+	, vars = vars_logit
+	, selected_ind = 'selected')
+
+
+summary(weighted$weight)
 
 
 
