@@ -3,6 +3,7 @@
 library(stringr)
 library(knitr)
 library(randomForest)
+library(BayesTree)
 
 
 setwd('/well/nichols/users/bwj567')
@@ -93,7 +94,6 @@ coeff_samples = rbindlist(lapply(missingness_covars$data_type, function(t, n_sam
         spike = rbinom(n = n_samples, size = 1, prob = spike_prob)
         slab_sd = ifelse(t == 'int', 1.5, 2)
     }  
-
     
     slab = rnorm(n = n_samples, 0, slab_sd)
 
@@ -125,6 +125,8 @@ apply(samples, 1, sum)
 # number of vars used on avg
 apply(coeff_samples, 2, function(x) sum(x != 0))
 
+cbind(missingness_covars, coeff_samples$X1)[coeff_samples[, X1!= 0],]
+
 
 sample = ukbdata[1:5000,][samples[,1] == 1,]
 
@@ -151,6 +153,10 @@ vars = c('demo_sex'
         , 'demo_hh_accom_type'
         )
 
+data = cbind(ukbdata[1:5000], selected = samples[,1])
+
+selected_ind = 'selected'
+
 
 ###### RAKING
 raked_data = doRaking(svydata = sample
@@ -162,51 +168,50 @@ summary(raked_data$weight)
 sum(raked_data$weight)
 
 
-####### POST STRAT
+####### POST STRAT WITH variable selection
 
-# make model matrix with categorical vars for random forest
-ps_modmat = ukbdata[1:5000, vars, with = F]
-ps_modmat[,(vars):=lapply(.SD, as.factor),.SDcols=vars]
+doPostStratVarSelect = function(data, vars, selected_ind){
+    # make model matrix with categorical vars for random forest
+    ps_modmat = data[, vars, with = F]
+    ps_modmat[,(vars):=lapply(.SD, as.factor), .SDcols=vars]
 
-# fit random forest and calc variable importance
-ps_fit = randomForest(y = samples[,1], x = ps_modmat, importance = T, ntree = 100)
-ps_vars = sort(ps_fit$importance[, 1], decreasing = T)
+    # fit random forest and calc variable importance
+    ps_fit = randomForest(y = data[, get(selected_ind)], x = ps_modmat, importance = T, ntree = 100)
+    ps_vars = sort(ps_fit$importance[, 1], decreasing = T)
 
-### Increase number of stratification variables until we lose too much of the pop
-prop_pop_dropped = 0
-n_vars = 2
-# implicit tolerance threshold for dropped strata
-while(prop_pop_dropped < 0.01){
-    # get strat vars
+    ### Increase number of stratification variables until we lose too much of the pop
+    prop_pop_dropped = 0
+    n_vars = 2
+    # implicit tolerance threshold for dropped strata
+    while(prop_pop_dropped < 0.01){
+        # get strat vars
+        strat_vars = names(ps_vars[1:n_vars])
+
+        # calculate number in sample and number in populatioin
+        drop_pop = merge(data[, .(prop_pop = .N/nrow(data)), by = strat_vars]
+            , sample[, .(n_samp = .N, prop_samp = .N/nrow(sample)), by = strat_vars], all.x = T)
+
+        # caluclate the pct of the sample that will be dropped
+        prop_pop_dropped = drop_pop[is.na(n_samp), sum(prop_pop)]
+
+        #increment number of variables
+        n_vars = n_vars + 1
+    }
+    # take one fewer than the number it took to go over the tol threshold
+    n_vars = n_vars - 1
     strat_vars = names(ps_vars[1:n_vars])
 
-    # calculate number in sample and number in populatioin
-    drop_pop = merge(ukbdata[1:5000, .(prop_pop = .N/nrow(ukbdata[1:5000])), by = strat_vars]
-        , sample[, .(n_samp = .N, prop_samp = .N/nrow(sample)), by = strat_vars], all.x = T)
+    ## DO POST STRAT
+    strat_data = doPostStrat(svydata = data[get(selected_ind) == 1,]
+            , popdata = data
+            , vars = strat_vars)
 
-    # caluclate the pct of the sample that will be dropped
-    prop_pop_dropped = drop_pop[is.na(n_samp), sum(prop_pop)]
-
-    #increment number of variables
-    n_vars = n_vars + 1
+    return(strat_data)
 }
-# take one fewer than the number it took to go over the tol threshold
-n_vars = n_vars - 1
-strat_vars = names(ps_vars[1:n_vars])
 
-## DO POST STRAT
-strat_data = doPostStrat(svydata = sample, popdata = ukbdata[1:5000,], vars = strat_vars)
+strat_data = doPostStratVarSelect(data = data, vars = vars, selected_ind = 'selected')
 
 summary(strat_data$weight)
-sum(strat_data$weight)
-
-#spot check
-strat_data[, .(.N/nrow(strat_data), sum(weight, na.rm = T)/sum(strat_data$weight, na.rm = T)), demo_hh_size]
-ukbdata[1:5000, .N/nrow(ukbdata[1:5000]), demo_hh_size]
-
-strat_data[, .(.N/nrow(strat_data), sum(weight, na.rm = T)/sum(strat_data$weight, na.rm = T)), demo_age_bucket]
-ukbdata[1:5000, .N/nrow(ukbdata[1:5000]), demo_age_bucket]
-
 
 
 ####### CALIBRATE
@@ -224,11 +229,8 @@ summary(calibrated_data$weight)
 
 
 ###### LASSO RAKE
-data = cbind(ukbdata[1:5000], selected = samples[,1])
 
-selected_ind = 'selected'
-
-lassorake_data = doLassoRake(data  = data
+lassorake_data = doLassoRake(data = data
     , vars = vars
     , selected_ind = 'selected'
     , outcome = 'MRI_brain_vol'
@@ -242,49 +244,26 @@ sum(lassorake_data$weight)
 ###### LOGIT
 
 vars_logit = c(vars, 'age', 'age_sq')
-selected_id = 'selected'
+selected_ind = 'selected'
 pop_weight_col = NULL
-
-doLogitWeight = function(data, vars, selected_ind, pop_weight_col = NULL){
-
-	# set pop weight col if it's null
-    if(is.null(pop_weight_col)){
-        data[, pop_weight := 1]
-    }else{
-        data[, pop_weight := get(pop_weight_col)]
-    }
-
-    # create modmat for modeling
-    formula_logit = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^2'))
-    logit_modmat = modmat_all_levs(formula = formula_logit, data = data, sparse = T)
-    colnames(logit_modmat)
-
-    # fiit logit model
-    fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
-            , x = logit_modmat
-            , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
-            , family = 'binomial'
-            , nfolds = 5)
-
-    coef_logit = data.table(rownames(coef(fit_logit, lambda = 'lambda.1se')), coef = as.numeric(coef(fit_logit, lambda = 'lambda.1se')))
-    coef_logit = coef_logit[coef != 0,]
-
-    # calculate weights
-    lp = predict(fit_logit, newx = logit_modmat[data$selected == 1, ], s = 'lambda.1se')
-    probs = 1/(1+exp(lp))
-    weighted = data[selected == 1,]
-    weighted[, prob := probs]
-    weighted[, weight := (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T)]
-
-    return(weighted[, -prob])
-}
 
 logit_weighted = doLogitWeight(data = data
 	, vars = vars_logit
 	, selected_ind = 'selected')
 
+summary(logit_weighted$weight)
 
-summary(weighted$weight)
+
+
+####### BART + rake
+
+
+bart_weighted = doBARTweight(data = data
+    , vars = vars_logit
+    , selected_ind = 'selected'
+    , rake_vars = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket'))
+
+summary(bart_weighted$weight)
 
 
 
@@ -304,6 +283,8 @@ rbindlist(lapply(c('has_t1_MRI', vars), function(v){
         ), by = v]
     cbind(v, merge(pop, samp, all = T, by = v))
     }))
+
+
 
 
 

@@ -415,3 +415,76 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
 
     return(weighted)
 }
+
+# Function for weighting with logit weights
+# would be easy to compare to linear here
+doLogitWeight = function(data, vars, selected_ind, pop_weight_col = NULL){
+
+    # set pop weight col if it's null
+    if(is.null(pop_weight_col)){
+        data[, pop_weight := 1]
+    }else{
+        data[, pop_weight := get(pop_weight_col)]
+    }
+
+    # create modmat for modeling
+    formula_logit = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^2'))
+    logit_modmat = modmat_all_levs(formula = formula_logit, data = data, sparse = T)
+    colnames(logit_modmat)
+
+    # fiit logit model
+    fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
+            , x = logit_modmat
+            , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
+            , family = 'binomial'
+            , nfolds = 5)
+
+    coef_logit = data.table(rownames(coef(fit_logit, lambda = 'lambda.min')), coef = as.numeric(coef(fit_logit, lambda = 'lambda.1se')))
+    coef_logit = coef_logit[coef != 0,]
+
+    # calculate weights
+    lp = predict(fit_logit, newx = logit_modmat[data$selected == 1, ], s = 'lambda.1se')
+    probs = 1/(1+exp(lp))
+    weighted = data[selected == 1,]
+    weighted[, prob := probs]
+    weighted[, weight := (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T)]
+
+    return(weighted[, -'prob', with = F])
+}
+
+
+
+
+doBARTweight = function(data, vars, rake_vars = NULL, popdata = NULL, selected_ind, ntree = 20){
+
+    formula_bart = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^2'))
+    bart_modmat = modmat_all_levs(formula = formula_bart, data = data, sparse = T)
+    bartFit = bart(x.train = as.matrix(bart_modmat)
+        , y = as.vector(data$selected)
+        , ntree = ntree)
+
+
+    bart_lp = apply(bartFit$yhat.train, 2, mean)
+    prob = 1/(1+exp(bart_lp))
+
+    weighted = cbind(data, bart_weight = 1/prob)
+    weighted = weighted[get(selected_ind) == 1, ]
+    weighted = weighted[, bart_weight := (1/(bart_weight + 0.00000001))/mean(1/(bart_weight + 0.00000001), na.rm = T)]
+
+    if(!is.null(rake_vars)){
+        if(is.null(popdata)){
+            popdata = data
+        }
+
+        weighted = doRaking(svydata = weighted
+                , popdata = popdata
+                , vars = rake_vars
+                , prior_weight_col = 'bart_weight'
+                )
+    }else{
+        weighted[, weight := bart_weight]
+        weighted = weighted[, -'bart_weight', with = F]
+    }
+
+    return(weighted)
+}
