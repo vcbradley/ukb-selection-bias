@@ -199,6 +199,46 @@ doRaking = function(svydata
     return(weighted)
 }
 
+## Wrapper for stratification that adds in a variable select function based on importance from a random forest
+doPostStratVarSelect = function(data, vars, selected_ind){
+    # make model matrix with categorical vars for random forest
+    ps_modmat = data[, vars, with = F]
+    ps_modmat[,(vars):=lapply(.SD, as.factor), .SDcols=vars]
+
+    # fit random forest and calc variable importance
+    ps_fit = randomForest(y = data[, get(selected_ind)], x = ps_modmat, importance = T, ntree = 100)
+    ps_vars = sort(ps_fit$importance[, 1], decreasing = T)
+
+    ### Increase number of stratification variables until we lose too much of the pop
+    prop_pop_dropped = 0
+    n_vars = 2
+    # implicit tolerance threshold for dropped strata
+    while(prop_pop_dropped < 0.01){
+        # get strat vars
+        strat_vars = names(ps_vars[1:n_vars])
+
+        # calculate number in sample and number in populatioin
+        drop_pop = merge(data[, .(prop_pop = .N/nrow(data)), by = strat_vars]
+            , sample[, .(n_samp = .N, prop_samp = .N/nrow(sample)), by = strat_vars], all.x = T)
+
+        # caluclate the pct of the sample that will be dropped
+        prop_pop_dropped = drop_pop[is.na(n_samp), sum(prop_pop)]
+
+        #increment number of variables
+        n_vars = n_vars + 1
+    }
+    # take one fewer than the number it took to go over the tol threshold
+    n_vars = n_vars - 1
+    strat_vars = names(ps_vars[1:n_vars])
+
+    ## DO POST STRAT
+    strat_data = doPostStrat(svydata = data[get(selected_ind) == 1,]
+            , popdata = data
+            , vars = strat_vars)
+
+    return(strat_data)
+}
+
 
 ## LAsso rake function
 doLassoRake = function(

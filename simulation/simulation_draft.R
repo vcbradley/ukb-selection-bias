@@ -152,73 +152,35 @@ vars = c('demo_sex'
         , 'demo_hh_ownrent'
         , 'demo_hh_accom_type'
         )
+vars_cal = c(vars, 'age', 'age_sq')
 
 data = cbind(ukbdata[1:5000], selected = samples[,1])
 
 selected_ind = 'selected'
 
+pop_weight_col = NULL
+
 
 ###### RAKING
 raked_data = doRaking(svydata = sample
-    , popdata = ukbdata[1:5000,]
+    , popdata = data
     , vars = vars
     )
 
 summary(raked_data$weight)
-sum(raked_data$weight)
 
 
 ####### POST STRAT WITH variable selection
-
-doPostStratVarSelect = function(data, vars, selected_ind){
-    # make model matrix with categorical vars for random forest
-    ps_modmat = data[, vars, with = F]
-    ps_modmat[,(vars):=lapply(.SD, as.factor), .SDcols=vars]
-
-    # fit random forest and calc variable importance
-    ps_fit = randomForest(y = data[, get(selected_ind)], x = ps_modmat, importance = T, ntree = 100)
-    ps_vars = sort(ps_fit$importance[, 1], decreasing = T)
-
-    ### Increase number of stratification variables until we lose too much of the pop
-    prop_pop_dropped = 0
-    n_vars = 2
-    # implicit tolerance threshold for dropped strata
-    while(prop_pop_dropped < 0.01){
-        # get strat vars
-        strat_vars = names(ps_vars[1:n_vars])
-
-        # calculate number in sample and number in populatioin
-        drop_pop = merge(data[, .(prop_pop = .N/nrow(data)), by = strat_vars]
-            , sample[, .(n_samp = .N, prop_samp = .N/nrow(sample)), by = strat_vars], all.x = T)
-
-        # caluclate the pct of the sample that will be dropped
-        prop_pop_dropped = drop_pop[is.na(n_samp), sum(prop_pop)]
-
-        #increment number of variables
-        n_vars = n_vars + 1
-    }
-    # take one fewer than the number it took to go over the tol threshold
-    n_vars = n_vars - 1
-    strat_vars = names(ps_vars[1:n_vars])
-
-    ## DO POST STRAT
-    strat_data = doPostStrat(svydata = data[get(selected_ind) == 1,]
-            , popdata = data
-            , vars = strat_vars)
-
-    return(strat_data)
-}
-
-strat_data = doPostStratVarSelect(data = data, vars = vars, selected_ind = 'selected')
+strat_data = doPostStratVarSelect(data = data
+    , vars = vars
+    , selected_ind = 'selected')
 
 summary(strat_data$weight)
 
 
 ####### CALIBRATE
-vars_cal = c(vars, 'age', 'age_sq')
-
 calibrated_data = doCalibration(svydata = sample
-    , popdata = ukbdata[1:5000,]
+    , popdata = data
     , vars = vars_cal
     , epsilon = 1
     , calfun = 'raking')
@@ -226,10 +188,7 @@ calibrated_data = doCalibration(svydata = sample
 summary(calibrated_data$weight)
 
 
-
-
 ###### LASSO RAKE
-
 lassorake_data = doLassoRake(data = data
     , vars = vars
     , selected_ind = 'selected'
@@ -238,28 +197,19 @@ lassorake_data = doLassoRake(data = data
     , n_interactions = 2)
 
 summary(lassorake_data$weight)
-sum(lassorake_data$weight)
 
 
 ###### LOGIT
-
-vars_logit = c(vars, 'age', 'age_sq')
-selected_ind = 'selected'
-pop_weight_col = NULL
-
 logit_weighted = doLogitWeight(data = data
-	, vars = vars_logit
+	, vars = vars_cal
 	, selected_ind = 'selected')
 
 summary(logit_weighted$weight)
 
 
-
 ####### BART + rake
-
-
 bart_weighted = doBARTweight(data = data
-    , vars = vars_logit
+    , vars = vars_cal
     , selected_ind = 'selected'
     , rake_vars = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket'))
 
