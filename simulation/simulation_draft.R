@@ -138,7 +138,7 @@ summary
 
 
 
-##### DO WEIGHTING
+####### DO WEIGHTING  #######
 vars = c('demo_sex'
         , 'demo_age_bucket'
         , 'demo_ethnicity_4way'
@@ -152,68 +152,110 @@ vars = c('demo_sex'
         , 'demo_hh_ownrent'
         , 'demo_hh_accom_type'
         )
-vars_cal = c(vars, 'age', 'age_sq')
+vars_add = c('age', 'age_sq')
+vars_rake = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket')
 
-data = cbind(ukbdata[1:5000], selected = samples[,1])
-
-selected_ind = 'selected'
-
+data = cbind(ukbdata[1:5000,], selected = samples[,1])
 pop_weight_col = NULL
+epsilon = 1
+calfun = 'raking'
+outcome = 'MRI_brain_vol'
 
 
-###### RAKING
-raked_data = doRaking(svydata = sample
-    , popdata = data
-    , vars = vars
-    )
-
-summary(raked_data$weight)
-
-
-####### POST STRAT WITH variable selection
-strat_data = doPostStratVarSelect(data = data
-    , vars = vars
-    , selected_ind = 'selected')
-
-summary(strat_data$weight)
-
-
-####### CALIBRATE
-calibrated_data = doCalibration(svydata = sample
-    , popdata = data
-    , vars = vars_cal
+runSim = function(data
+    , vars
+    , selected_ind = 'selected'
+    , vars_add = NULL
+    , vars_rake = NULL
     , epsilon = 1
-    , calfun = 'raking')
-
-summary(calibrated_data$weight)
-
-
-###### LASSO RAKE
-lassorake_data = doLassoRake(data = data
-    , vars = vars
-    , selected_ind = 'selected'
-    , outcome = 'MRI_brain_vol'
+    , outcome = NULL
     , pop_weight_col = NULL
-    , n_interactions = 2)
+    , n_interactions = 2){
 
-summary(lassorake_data$weight)
+    sample = data[get(selected_ind) == 1, ]
+
+    ###### RAKING
+    cat(paste0(Sys.time(), '\t', "Running raking...\n"))
+    raked_data = doRaking(svydata = sample
+        , popdata = data
+        , vars = vars
+        )
+
+    print(summary(raked_data$weight))
+
+    ####### POST STRAT WITH variable selection
+    cat(paste0(Sys.time(), '\t', "Running post strat...\n"))
+    strat_data = doPostStratVarSelect(data = data
+        , vars = vars
+        , selected_ind = selected_ind)
+
+    print(summary(strat_data$weight))
 
 
-###### LOGIT
-logit_weighted = doLogitWeight(data = data
-	, vars = vars_cal
-	, selected_ind = 'selected')
+    ####### CALIBRATE
+    cat(paste0(Sys.time(), '\t', "Running calibration...\n"))
+    calibrated_data = doCalibration(svydata = sample
+        , popdata = data
+        , vars = c(vars, vars_add)
+        , epsilon = epsilon
+        , calfun = calfun)
 
-summary(logit_weighted$weight)
+    print(summary(calibrated_data$weight))
 
 
-####### BART + rake
-bart_weighted = doBARTweight(data = data
-    , vars = vars_cal
-    , selected_ind = 'selected'
-    , rake_vars = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket'))
+    ###### LASSO RAKE
+    cat(paste0(Sys.time(), '\t', "Running lasso rake...\n"))
+    lassorake_data = doLassoRake(data = data
+        , vars = vars
+        , selected_ind = selected_ind
+        , outcome = outcome
+        , pop_weight_col = pop_weight_col
+        , n_interactions = n_interactions)
 
-summary(bart_weighted$weight)
+    print(summary(lassorake_data$weight))
+
+
+    ###### LOGIT
+    cat(paste0(Sys.time(), '\t', "Running logit weighting...\n"))
+    logit_weighted = doLogitWeight(data = data
+        , vars = c(vars, vars_add)
+        , selected_ind = selected_ind)
+
+    print(summary(logit_weighted$weight))
+
+
+    ####### BART + rake
+    cat(paste0(Sys.time(), '\t', "Running BART...\n"))
+    bart_weighted = doBARTweight(data = data
+        , vars = c(vars, vars_add)
+        , selected_ind = selected_ind
+        , rake_vars = vars_rake)
+
+    print(summary(bart_weighted$weight))
+
+
+    weighted_list = list(
+        raked_data[, .(eid, rake_weight = weight)]
+        , strat_data[, .(eid, strat_weight = weight)]
+        , calibrated_data[, .(eid, calib_weight = weight)]
+        , lassorake_data[, .(eid, lasso_weight = weight)]
+        , logit_weighted[, .(eid, logit_weight = weight)]
+        , bart_weighted[, .(eid, bart_weight = weight)]
+        )
+
+    all_weights = Reduce(function(x,y) merge(x,y, by = 'eid', all = T) , weighted_list)
+
+    return(all_weights)
+}
+
+
+all_weights = runSim(data = data
+        , vars = vars
+        , vars_rake = vars_rake
+        , vars_add = vars_add
+        , selected_ind = 'selected'
+        , pop_weight_col = pop_weight_col)
+
 
 
 
