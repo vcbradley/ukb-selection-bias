@@ -318,8 +318,8 @@ doLassoRake = function(
         , x = outdata_modmat
         , nfolds = 5)
 
-    coef_nr = data.table(var_code = rownames(coef(fit_nr, lambda = 'lambda.1se')), coef_nr = coef(fit_nr, lambda = 'lambda.1se')[,1])[-1,]
-    coef_out = data.table(var_code = rownames(coef(fit_out, lambda = 'lambda.1se')), coef_out = coef(fit_out, lambda = 'lambda.1se')[,1])[-1,]
+    coef_nr = data.table(var_code = rownames(coef(fit_nr, lambda = 'lambda.min')), coef_nr = coef(fit_nr, lambda = 'lambda.min')[,1])[-1,]
+    coef_out = data.table(var_code = rownames(coef(fit_out, lambda = 'lambda.min')), coef_out = coef(fit_out, lambda = 'lambda.min')[,1])[-1,]
 
     lasso_vars[coef_nr, on = 'var_code', coef_nr := i.coef_nr]
     lasso_vars[coef_out, on = 'var_code', coef_out := i.coef_out]
@@ -337,7 +337,7 @@ doLassoRake = function(
     lasso_vars[rank_total < 15, ]
 
     #create data table for weighting
-    data = cbind(data, as.matrix(data_modmat))
+    data_modmat_allvars = cbind(data, as.matrix(data_modmat))
 
     # get variable subsets for raking
     lasso_vars = lasso_vars[!is.na(rank_nr) | !is.na(rank_out)]
@@ -345,8 +345,8 @@ doLassoRake = function(
     lasso_vars[, subset := floor(rank_total/20)]
     lasso_vars[, subset := (max(subset) + 1)- subset]
 
-    svydata = data[get(selected_ind) == 1, ]
-    popdata = data[get(selected_ind) == 0, ]
+    svydata = data_modmat_allvars[get(selected_ind) == 1, ]
+    popdata = data_modmat_allvars[get(selected_ind) == 0, ]
 
 
 
@@ -374,9 +374,10 @@ doLassoRake = function(
     }
 
     #set final weight
-    svydata$weight = svydata$prior_weight
+    weighted = data[get(selected_ind) == 1, ]
+    weighted$weight = svydata$prior_weight
 
-    return(svydata)
+    return(weighted)
 }
 
 
@@ -437,13 +438,13 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
     pop_totals = apply(pop_modmat, 2, sum)
 
     ## make survey data
-    svydata = svydesign(id = ~1, data = data.frame(as.matrix(samp_modmat)))
+    samp_modmat = svydesign(id = ~1, data = data.frame(as.matrix(samp_modmat)))
 
     ## make formula
     formula_cal = as.formula(paste0('~ -1 +', paste(names(pop_totals), collapse = '+')))
 
     ## DO calibration
-    weighted = calibrate(design = svydata
+    weighted = calibrate(design = samp_modmat
             , formula = formula_cal
             , population = pop_totals
             , calfun = calfun #'raking' #'logit', 'linear'
@@ -451,7 +452,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
             , epsilon = epsilon #THIS IS KEY
             )
 
-    weighted = cbind(weighted$variables, weight = (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T))
+    weighted = data.table(cbind(svydata, weight = (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T)))
 
     return(weighted)
 }
@@ -479,11 +480,11 @@ doLogitWeight = function(data, vars, selected_ind, pop_weight_col = NULL){
             , family = 'binomial'
             , nfolds = 5)
 
-    coef_logit = data.table(rownames(coef(fit_logit, lambda = 'lambda.min')), coef = as.numeric(coef(fit_logit, lambda = 'lambda.1se')))
+    coef_logit = data.table(rownames(coef(fit_logit, lambda = 'lambda.min')), coef = as.numeric(coef(fit_logit, lambda = 'lambda.min')))
     coef_logit = coef_logit[coef != 0,]
 
     # calculate weights
-    lp = predict(fit_logit, newx = logit_modmat[data$selected == 1, ], s = 'lambda.1se')
+    lp = predict(fit_logit, newx = logit_modmat[data$selected == 1, ], s = 'lambda.min')
     probs = 1/(1+exp(lp))
     weighted = data[selected == 1,]
     weighted[, prob := probs]
