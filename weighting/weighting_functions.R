@@ -529,3 +529,93 @@ doBARTweight = function(data, vars, rake_vars = NULL, popdata = NULL, selected_i
 
     return(weighted)
 }
+
+
+
+###### RUN ONE ITERATION of the simulation
+runSim = function(data
+    , vars
+    , selected_ind = 'selected'
+    , vars_add = NULL
+    , vars_rake = NULL
+    , epsilon = 1
+    , outcome
+    , pop_weight_col = NULL
+    , n_interactions = 2){
+
+    sample = data[get(selected_ind) == 1, ]
+
+    ###### RAKING
+    cat(paste0(Sys.time(), '\t', "Running raking...\n"))
+    raked_data = doRaking(svydata = sample
+        , popdata = data
+        , vars = vars
+        )
+
+    print(summary(raked_data$weight))
+
+    ####### POST STRAT WITH variable selection
+    cat(paste0(Sys.time(), '\t', "Running post strat...\n"))
+    strat_data = doPostStratVarSelect(data = data
+        , vars = vars
+        , selected_ind = selected_ind)
+
+    print(summary(strat_data$weight))
+
+
+    ####### CALIBRATE
+    cat(paste0(Sys.time(), '\t', "Running calibration...\n"))
+    calibrated_data = doCalibration(svydata = sample
+        , popdata = data
+        , vars = c(vars, vars_add)
+        , epsilon = epsilon
+        , calfun = calfun)
+
+    print(summary(calibrated_data$weight))
+
+
+    ###### LASSO RAKE
+    cat(paste0(Sys.time(), '\t', "Running lasso rake...\n"))
+    lassorake_data = doLassoRake(data = data
+        , vars = vars
+        , selected_ind = selected_ind
+        , outcome = outcome
+        , pop_weight_col = pop_weight_col
+        , n_interactions = n_interactions)
+
+    print(summary(lassorake_data$weight))
+
+
+    ###### LOGIT
+    cat(paste0(Sys.time(), '\t', "Running logit weighting...\n"))
+    logit_weighted = doLogitWeight(data = data
+        , vars = c(vars, vars_add)
+        , selected_ind = selected_ind)
+
+    print(summary(logit_weighted$weight))
+
+
+    ####### BART + rake
+    cat(paste0(Sys.time(), '\t', "Running BART...\n"))
+    bart_weighted = doBARTweight(data = data
+        , vars = c(vars, vars_add)
+        , selected_ind = selected_ind
+        , rake_vars = vars_rake
+        , verbose = F)
+
+    print(summary(bart_weighted$weight))
+
+
+    weighted_list = list(
+        raked_data[, .(eid, rake_weight = weight)]
+        , strat_data[, .(eid, strat_weight = weight)]
+        , calibrated_data[, .(eid, calib_weight = weight)]
+        , lassorake_data[, .(eid, lasso_weight = weight)]
+        , logit_weighted[, .(eid, logit_weight = weight)]
+        , bart_weighted[, .(eid, bart_weight = weight)]
+        )
+
+    all_weights = Reduce(function(x,y) merge(x,y, by = 'eid', all = T) , weighted_list)
+
+    return(all_weights)
+}
