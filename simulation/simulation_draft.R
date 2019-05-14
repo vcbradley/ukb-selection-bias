@@ -36,6 +36,19 @@ nas = apply(ukbdata, 2, function(x) sum(is.na(x)))
 nas[nas > 0]
 
 
+
+
+
+#### Probability of missingness
+
+### TO DO: ADD IN INTERACTIONS
+vars_to_consider = names(ukbdata)[-grep('^MRI|eid|has|assessment|demo_ethnicity_4way|demo_white|demo_educ_highest$', names(ukbdata))]
+formula = paste("~-1+(", paste0(vars_to_consider, collapse = " + "), ")")
+ukbdata_modmat = modmat_all_levs(as.formula(formula), data = ukbdata[1:5000,])
+
+colnames(ukbdata_modmat)
+
+
 #summarize vars
 varsum = apply(ukbdata[, vars_to_consider, with = F], 2, function(x) {
     if(length(unique(x)) < 20) {
@@ -49,16 +62,6 @@ varsum = data.frame(variable = names(varsum), levels = varsum)
 rownames(varsum) = NULL
 kable(varsum, format = 'latex')
 
-
-
-#### Probability of missingness
-
-### TO DO: ADD IN INTERACTIONS
-vars_to_consider = names(ukbdata)[-grep('^MRI|eid|has|assessment|demo_ethnicity_4way|demo_white|demo_educ_highest$', names(ukbdata))]
-formula = paste("~-1+(", paste0(vars_to_consider, collapse = " + "), ")")
-ukbdata_modmat = modmat_all_levs(as.formula(formula), data = ukbdata[1:5000,])
-
-colnames(ukbdata_modmat)
 
 
 missingness_covars = data.table(var_name = colnames(ukbdata_modmat))
@@ -80,25 +83,26 @@ apply(ukbdata_modmat[, which(missingness_covars$data_type == 'int')], 2, sd)
 ## SPIKE AND SLAB PRIOR
 ## different probs for different types of vars - want to make sure we have a nonlinear var in there
 # might want to think about controlling the level of noise
+n_equations = 1
 n_samples = 15
 prop_sampled = 0.2
 
-coeff_samples = rbindlist(lapply(missingness_covars$data_type, function(t, n_samples){
+coeff_samples = rbindlist(lapply(missingness_covars$data_type, function(t, n_equations){
     
     # always include noise
     if(t == 'noise'){
-        spike = rep(1, n_samples)
+        spike = rep(1, n_equations)
         slab_sd = 0.25
     }else{
         spike_prob = ifelse(t == 'int', 0.5, 0.1)
-        spike = rbinom(n = n_samples, size = 1, prob = spike_prob)
+        spike = rbinom(n = n_equations, size = 1, prob = spike_prob)
         slab_sd = ifelse(t == 'int', 1.5, 2)
     }  
     
-    slab = rnorm(n = n_samples, 0, slab_sd)
+    slab = rnorm(n = n_equations, 0, slab_sd)
 
     data.frame(t(spike * slab))
-    }, n_samples))
+    }, n_equations))
 
 apply(coeff_samples, 2, function(x) sum(x > 0))
 
@@ -106,26 +110,34 @@ lps = ukbdata_modmat %*% as.matrix(coeff_samples)
 probs = exp(lps)/(1+exp(lps))
 
 
-samples = apply(probs, 2, function(p, prop_sampled){
-    sampled_int = sample.int(n = length(p), size = length(p) * prop_sampled, prob = p)
-    sampled = seq(from = 1, to = length(p), by = 1)
-    sampled = ifelse(sampled %in% sampled_int, 1, 0)
-    sampled
-    }, prop_sampled)
+samples = lapply(1:ncol(probs), function(i, probs, prop_sampled, n_samples){
+    p = probs[,i]
+    temp = matrix(1, nrow = length(p), ncol = n_samples)
 
-dim(samples)
-head(samples)
+    temp = apply(temp, 2, function(p, prop_sampled){
+        sampled_int = sample.int(n = length(p), size = length(p) * prop_sampled, prob = p)
+        sampled = seq(from = 1, to = length(p), by = 1)
+        sampled = ifelse(sampled %in% sampled_int, 1, 0)
+        }, prop_sampled)
+
+    return(data.table(temp))
+    
+    }, probs, prop_sampled, n_samples)
+
+length(samples)
+dim(samples[[1]])
+head(samples[[1]])
 
 #check that we sampled the right number
-apply(samples, 2, sum)
+apply(samples[[1]], 2, sum)
 
 #how'd we do on sampling different peeps?
-apply(samples, 1, sum)
+summary(apply(samples[[1]], 1, sum))
 
 # number of vars used on avg
 apply(coeff_samples, 2, function(x) sum(x != 0))
 
-cbind(missingness_covars, coeff_samples$X1)[coeff_samples[, X1!= 0],]
+cbind(missingness_covars, coeff_samples[,1])[as.vector(coeff_samples[, 1] != 0),]
 
 
 sample = ukbdata[1:5000,][samples[,1] == 1,]
