@@ -8,11 +8,11 @@
 library(data.table)
 
 
-#JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-JobId = 1
+JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
+#JobId = 1
 
 # load sample
-sample = read.csv(sprintf("samples/sample_%05d.csv",JobId))
+sample = read.csv(sprintf("samples/sample_%05d.csv",JobId))[,1]
 
 # load data
 load(file = 'data.rda')
@@ -23,6 +23,7 @@ rm(ukbdata)
 # run simulation draft
 source('/well/nichols/users/bwj567/mini-project-1/simulation/simulation_draft.R')
 
+write.csv(sprintf("results/weights_%05d.csv", JobId))
 
 # resulting object is all_weights
 

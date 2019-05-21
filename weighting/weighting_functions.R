@@ -201,6 +201,9 @@ doRaking = function(svydata
 
 ## Wrapper for stratification that adds in a variable select function based on importance from a random forest
 doPostStratVarSelect = function(data, vars, selected_ind){
+
+    sample = data[get(selected_ind) == 1, ]
+
     # make model matrix with categorical vars for random forest
     ps_modmat = data[, vars, with = F]
     ps_modmat[,(vars):=lapply(.SD, as.factor), .SDcols=vars]
