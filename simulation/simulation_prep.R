@@ -167,3 +167,6 @@ list.files(paste0(sample_dir, '/samples'))
 list.files(paste0(sample_dir, '/samples'))
 
 
+save(ukbdata, file = paste0('/well/nichols/users/bwj567/simulation/samples_1_5000_0.2_2019-05-21 22:10:38', '/data.rda'))
+
+

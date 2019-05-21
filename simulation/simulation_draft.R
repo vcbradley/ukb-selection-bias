@@ -36,7 +36,7 @@ outcome = 'MRI_brain_vol'
 
 ###### RUN ONE ITERATION
 all_weights = runSim(data = data
-        , sample_ind = sample
+        , sample = sample
         , vars = vars
         , vars_rake = vars_rake
         , vars_add = vars_add

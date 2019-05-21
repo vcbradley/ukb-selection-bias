@@ -543,9 +543,10 @@ runSim = function(data
     , pop_weight_col = NULL
     , n_interactions = 2){
 
-    data = cbind(ukbdata[1:5000,], selected = sample)
+    selected_ind = 'selected'
+    data = cbind(data, selected = sample)
 
-    sample = data[sample == 1, ]
+    sample = data[selected == 1, ]
 
     ###### RAKING
     cat(paste0(Sys.time(), '\t', "Running raking...\n"))
