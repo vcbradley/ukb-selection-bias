@@ -534,8 +534,8 @@ doBARTweight = function(data, vars, rake_vars = NULL, popdata = NULL, selected_i
 
 ###### RUN ONE ITERATION of the simulation
 runSim = function(data
+    , sample
     , vars
-    , selected_ind = 'selected'
     , vars_add = NULL
     , vars_rake = NULL
     , epsilon = 1
@@ -543,7 +543,9 @@ runSim = function(data
     , pop_weight_col = NULL
     , n_interactions = 2){
 
-    sample = data[get(selected_ind) == 1, ]
+    data = cbind(ukbdata[1:5000,], selected = sample)
+
+    sample = data[sample == 1, ]
 
     ###### RAKING
     cat(paste0(Sys.time(), '\t', "Running raking...\n"))

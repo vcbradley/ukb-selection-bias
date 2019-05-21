@@ -137,6 +137,7 @@ summary(apply(samples[[1]], 1, sum))
 # number of vars used on avg
 apply(coeff_samples, 2, function(x) sum(x != 0))
 
+# which coefs did we select
 cbind(missingness_covars, coeff_samples[,1])[as.vector(coeff_samples[, 1] != 0),]
 
 
@@ -171,15 +172,15 @@ epsilon = 1
 calfun = 'raking'
 outcome = 'MRI_brain_vol'
 
-data = cbind(ukbdata[1:5000,], selected = samples[,1])
+
 
 
 ###### RUN ONE ITERATION
 all_weights = runSim(data = data
+        , sample = sample
         , vars = vars
         , vars_rake = vars_rake
         , vars_add = vars_add
-        , selected_ind = 'selected'
         , outcome = 'MRI_brain_vol'
         , pop_weight_col = pop_weight_col)
 
