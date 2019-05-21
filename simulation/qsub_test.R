@@ -1,12 +1,13 @@
-#!/usr/bin/env Rscript
-#$ -S /usr/local/packages/R-3.5.1/bin/Rscript
-#$ -t 1:10
-#$ -cwd   # this is so that you stay in the directory that you launched from
-#$ -o $HOME/logs   #redirecting std out and std error
-#$ -e $HOME/logs
+#!/apps/well/R/3.4.3/bin/Rscript                                                                                                                                                               
+#$ -t 1:10                                                                                                                                                                                     
+#$ -cwd                                                                                                                                                                                        
+#$ -o $HOME/logs                                                                                                                                                                               
+#$ -e $HOME/logs   
+
 
 JobId=as.numeric(Sys.getenv("SGE_TASK_ID"))
 
 print(sprintf("Run%03d.txt",JobId))
+
 write(JobId,file=sprintf("Run%03d.txt",JobId))
 
