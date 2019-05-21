@@ -23,7 +23,7 @@ rm(ukbdata)
 # run simulation draft
 source('/well/nichols/users/bwj567/mini-project-1/simulation/simulation_draft.R')
 
-write.csv(sprintf("results/weights_%05d.csv", JobId))
+write.csv(all_weights, file = sprintf("results/weights_%05d.csv", JobId), row.names = F)
 
 # resulting object is all_weights
 
