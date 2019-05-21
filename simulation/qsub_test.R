@@ -7,5 +7,6 @@
 
 JobId=as.numeric(Sys.getenv("SGE_TASK_ID"))
 
-write(JobId,file=sprintf("Run%03d.dat",JobId))
+mkdir('test')
+write(JobId,file=sprintf("test/Run%03d.txt",JobId))
 
