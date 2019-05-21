@@ -5,7 +5,7 @@ library(knitr)
 library(randomForest)
 library(BayesTree)
 
-source('/well/nichols/users/bwj567mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
+source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
 
 
 
