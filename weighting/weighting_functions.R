@@ -520,7 +520,7 @@ doLogitWeight = function(data, vars, selected_ind, pop_weight_col = NULL){
 
 
 
-doBARTweight = function(data, vars, rake_vars = NULL, popdata = NULL, selected_ind, ntree = 20){
+doBARTweight = function(data, vars, rake_vars = NULL, popdata = NULL, selected_ind, ntree = 20, verbose = FALSE){
 
     cat(paste0(Sys.time(), "\t\t Creating model matricies....\n"))
     formula_bart = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^2'))
@@ -529,7 +529,8 @@ doBARTweight = function(data, vars, rake_vars = NULL, popdata = NULL, selected_i
     cat(paste0(Sys.time(), "\t\t Fitting model....\n"))
     bartFit = bart(x.train = as.matrix(bart_modmat)
         , y = as.vector(data$selected)
-        , ntree = ntree)
+        , ntree = ntree
+        , verbose = verbose)
 
 
     bart_lp = apply(bartFit$yhat.train, 2, mean)
@@ -569,7 +570,8 @@ runSim = function(data
     , epsilon = 1
     , outcome
     , pop_weight_col = NULL
-    , n_interactions = 2){
+    , n_interactions = 2
+    , verbose = FALSE){
 
     selected_ind = 'selected'
     data = cbind(data, selected = sample)
@@ -628,7 +630,8 @@ runSim = function(data
     bart_weighted = doBARTweight(data = data
         , vars = c(vars, vars_add)
         , selected_ind = selected_ind
-        , rake_vars = vars_rake)
+        , rake_vars = vars_rake
+        , verbose = verbose)
 
     print(summary(bart_weighted$weight))
 
