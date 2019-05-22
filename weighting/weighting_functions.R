@@ -328,11 +328,15 @@ doLassoRake = function(
         , family = 'binomial'
         , nfolds = 5)
 
+    print(summary(fit_nr))
+
     
     cat(paste0(Sys.time(), "\t\t Fitting outcome model....\n"))
     fit_out = cv.glmnet(y = as.numeric(data[get(selected_ind) == 1, get(outcome)])
         , x = outdata_modmat
         , nfolds = 5)
+
+    print(summary(fit_nr))
 
     ##### RANK COEFS #####
     coef_nr = data.table(var_code = rownames(coef(fit_nr, lambda = 'lambda.min')), coef_nr = coef(fit_nr, lambda = 'lambda.min')[,1])[-1,]
@@ -351,7 +355,7 @@ doLassoRake = function(
     lasso_vars[,as.numeric(!is.na(rank_nr)) + as.numeric(!is.na(rank_out))]
     lasso_vars[order(as.numeric(is.na(rank_nr)) + as.numeric(is.na(rank_out)), as.numeric(rank_nr + rank_out)), rank_total := .I]
 
-    lasso_vars[rank_total < 15, ]
+    print(lasso_vars[rank_total < 15, ])
 
     #create data table for weighting
     data_modmat_allvars = cbind(data, as.matrix(data_modmat))
