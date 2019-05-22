@@ -595,6 +595,15 @@ runSim = function(data
     # cat('\n')
     # cat(names(sample))
 
+    ###### LOGIT
+    cat(paste0(Sys.time(), '\t', "Running logit weighting...\n"))
+    logit_weighted = doLogitWeight(data = data
+        , vars = c(vars, vars_add)
+        , n_interactions = n_interactions
+        , selected_ind = selected_ind)
+
+    print(summary(logit_weighted$weight))
+
     ####### POST STRAT WITH variable selection
     cat(paste0(Sys.time(), '\t', "Running post strat...\n"))
     strat_data = doPostStratVarSelect(data = data
@@ -625,16 +634,6 @@ runSim = function(data
         , n_interactions = n_interactions)
 
     print(summary(lassorake_data$weight))
-
-
-    ###### LOGIT
-    cat(paste0(Sys.time(), '\t', "Running logit weighting...\n"))
-    logit_weighted = doLogitWeight(data = data
-        , vars = c(vars, vars_add)
-        , n_interactions = n_interactions
-        , selected_ind = selected_ind)
-
-    print(summary(logit_weighted$weight))
 
 
     ####### BART + rake
