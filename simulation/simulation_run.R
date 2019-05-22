@@ -12,8 +12,8 @@ library(randomForest)
 library(BayesTree)
 
 
-JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-#JobId = 1
+#JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
+JobId = 1
 
 # load sample
 sample = read.csv(sprintf("samples/sample_%05d.csv",JobId))[,1]

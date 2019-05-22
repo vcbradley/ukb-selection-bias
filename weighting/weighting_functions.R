@@ -282,7 +282,7 @@ doLassoRake = function(
     }
     lasso_vars = lasso_vars[order(var_code)]
 
-    print(paste0(Sys.time(), "\t\t Creating modmat...."))
+    cat(paste0(Sys.time(), "\t\t Creating modmat...."))
     data_modmat = data_modmat[, which(colnames(data_modmat) %in% lasso_vars$var_name)]
     outdata_modmat = outdata_modmat[, which(colnames(outdata_modmat) %in% lasso_vars$var_name)]
 
@@ -314,7 +314,7 @@ doLassoRake = function(
     	data[, pop_weight := get(pop_weight_col)]
     }
 
-    print(paste0(Sys.time(), "\t\t Fitting NR model...."))
+    cat(paste0(Sys.time(), "\t\t Fitting NR model...."))
     fit_nr = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
         , x = data_modmat
         , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
@@ -322,7 +322,7 @@ doLassoRake = function(
         , nfolds = 5)
 
     
-    print(paste0(Sys.time(), "\t\t Fitting outcome model...."))
+    cat(paste0(Sys.time(), "\t\t Fitting outcome model...."))
     fit_out = cv.glmnet(y = as.numeric(data[get(selected_ind) == 1, get(outcome)])
         , x = outdata_modmat
         , nfolds = 5)
@@ -361,7 +361,7 @@ doLassoRake = function(
 
 
     ##### DO RAKING THROUGH SUBSETS #####
-    print(paste0(Sys.time(), "\t\t Weighting...."))
+    cat(paste0(Sys.time(), "\t\t Weighting...."))
     for(s in 1:max(lasso_vars$subset)){
         vars_for_raking <- lasso_vars[subset == s, var_code]
 
@@ -559,14 +559,6 @@ runSim = function(data
 
     sample = data[selected == 1, ]
 
-    ###### RAKING
-    cat(paste0(Sys.time(), '\t', "Running raking...\n"))
-    raked_data = doRaking(svydata = sample
-        , popdata = data
-        , vars = vars
-        )
-
-    print(summary(raked_data$weight))
 
     ####### POST STRAT WITH variable selection
     cat(paste0(Sys.time(), '\t', "Running post strat...\n"))
@@ -614,10 +606,18 @@ runSim = function(data
     bart_weighted = doBARTweight(data = data
         , vars = c(vars, vars_add)
         , selected_ind = selected_ind
-        , rake_vars = vars_rake
-        , verbose = F)
+        , rake_vars = vars_rake)
 
     print(summary(bart_weighted$weight))
+
+     ##### RAKING
+    cat(paste0(Sys.time(), '\t', "Running raking...\n"))
+    raked_data = doRaking(svydata = sample
+        , popdata = data
+        , vars = vars
+        )
+
+    print(summary(raked_data$weight))
 
 
     weighted_list = list(
