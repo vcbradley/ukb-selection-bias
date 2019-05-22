@@ -497,7 +497,6 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     # create modmat for modeling
     formula_logit = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^', n_interactions))
     logit_modmat = modmat_all_levs(formula = formula_logit, data = data, sparse = T)
-    colnames(logit_modmat)
 
     cat(paste0(Sys.time(), "\t\t Fitting nonresponse model....\n"))
     # fiit logit model
@@ -507,6 +506,8 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
             , family = 'binomial'
             , nfolds = 5)
     , error = function(e) print(e))
+
+    print(summary(fit_logit))
 
     coef_logit = data.table(rownames(coef(fit_logit, lambda = 'lambda.min')), coef = as.numeric(coef(fit_logit, lambda = 'lambda.min')))
     coef_logit = coef_logit[coef != 0,]
