@@ -1,11 +1,12 @@
 #!/apps/well/R/3.4.3/bin/Rscript                                                                                                                                                               
-#$ -t 1:5000                                                                                                                                                                      
+#$ -t 1:1000                                                                                                                                                                
 #$ -cwd
 #$ -o ./logs                                                                                                                                                                               
 #$ -e ./logs   
-### request maximum of 24 hours of compute time
-#$ -l h_rt=24:00:00
+### request maximum of 72 hours of compute time
 #$ -l s_rt=24:00:00
+#$ -l h_rt=100:00:00
+
 
 
 library(data.table)
