@@ -3,6 +3,10 @@
 #$ -cwd
 #$ -o ./logs                                                                                                                                                                               
 #$ -e ./logs   
+### request maximum of 24 hours of compute time
+#$ -l h_rt=24:00:00
+#$ -l s_rt=24:00:00
+
 
 library(data.table)
 library(stringr)
@@ -12,7 +16,7 @@ library(BayesTree)
 
 
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-#JobId = 1
+#JobId = 3
 
 # load sample
 sample = read.csv(sprintf("samples/sample_%05d.csv",JobId))[,1]
