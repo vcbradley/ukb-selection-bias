@@ -101,7 +101,7 @@ doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weig
 
     print(head(popframe))
     
-    sampframe  = data.table(getPopframe(sample, vars = vars, weight_col = NULL))
+    sampframe  = data.table(getPopframe(svydata, vars = vars, weight_col = NULL))
     setnames(sampframe, old = 'Freq', new = 'samp_prop')
     sampframe = sampframe[, samp_N := samp_prop * nrow(svydata)]
 
