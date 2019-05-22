@@ -2,8 +2,8 @@
 #$ -t 1:5                                                                                                                                                                                   
 #$ -cwd
 ### -j option combines output and error messages
-#$ -o ~/logs                                                                                                                                                                               
-#$ -e ~/logs   
+#$ -o ./logs                                                                                                                                                                               
+#$ -e ./logs   
 
 library(data.table)
 
