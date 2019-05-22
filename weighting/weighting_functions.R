@@ -101,6 +101,9 @@ doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weig
     setnames(sampframe, old = 'Freq', new = 'samp_prop')
     sampframe = sampframe[, samp_N := samp_prop * nrow(svydata)]
 
+    print(head(popframe))
+    print(head(sampframe))
+
     # DO weighting
     weighted = merge(popframe, sampframe, by = vars)
     weighted[, weight := (pop_prop/samp_prop)]
@@ -239,7 +242,7 @@ doPostStratVarSelect = function(data, vars, selected_ind){
     strat_vars = names(ps_vars[1:n_vars])
 
     print(head(data))
-    cat(stat_vars)
+    cat(strat_vars)
     cat("\n")
 
     ## DO POST STRAT
