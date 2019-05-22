@@ -212,7 +212,7 @@ doPostStratVarSelect = function(data, vars, selected_ind){
     ps_modmat[,(vars):=lapply(.SD, as.factor), .SDcols=vars]
 
     # fit random forest and calc variable importance
-    ps_fit = randomForest(y = data[, get(selected_ind)], x = ps_modmat, importance = T, ntree = 100)
+    ps_fit = randomForest(y = as.factor(data[, get(selected_ind)]), x = ps_modmat, importance = T, ntree = 100)
     ps_vars = sort(ps_fit$importance[, 1], decreasing = T)
 
     ### Increase number of stratification variables until we lose too much of the pop
@@ -282,7 +282,7 @@ doLassoRake = function(
     }
     lasso_vars = lasso_vars[order(var_code)]
 
-    cat(paste0(Sys.time(), "\t\t Creating modmat...."))
+    cat(paste0(Sys.time(), "\t\t Creating modmat....\n"))
     data_modmat = data_modmat[, which(colnames(data_modmat) %in% lasso_vars$var_name)]
     outdata_modmat = outdata_modmat[, which(colnames(outdata_modmat) %in% lasso_vars$var_name)]
 
@@ -314,7 +314,7 @@ doLassoRake = function(
     	data[, pop_weight := get(pop_weight_col)]
     }
 
-    cat(paste0(Sys.time(), "\t\t Fitting NR model...."))
+    cat(paste0(Sys.time(), "\t\t Fitting NR model....\n"))
     fit_nr = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
         , x = data_modmat
         , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
@@ -322,7 +322,7 @@ doLassoRake = function(
         , nfolds = 5)
 
     
-    cat(paste0(Sys.time(), "\t\t Fitting outcome model...."))
+    cat(paste0(Sys.time(), "\t\t Fitting outcome model....\n"))
     fit_out = cv.glmnet(y = as.numeric(data[get(selected_ind) == 1, get(outcome)])
         , x = outdata_modmat
         , nfolds = 5)
@@ -361,7 +361,7 @@ doLassoRake = function(
 
 
     ##### DO RAKING THROUGH SUBSETS #####
-    cat(paste0(Sys.time(), "\t\t Weighting...."))
+    cat(paste0(Sys.time(), "\t\t Weighting....\n"))
     for(s in 1:max(lasso_vars$subset)){
         vars_for_raking <- lasso_vars[subset == s, var_code]
 
