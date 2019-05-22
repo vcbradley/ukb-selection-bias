@@ -55,14 +55,13 @@ outcome = 'MRI_brain_vol'
 
 
 ###### RUN ONE ITERATION
-all_weights = tryCatch(runSim(data = data
+all_weights = runSim(data = data
         , sample = sample
         , vars = vars
         , vars_rake = vars_rake
         , vars_add = vars_add
         , outcome = 'MRI_brain_vol'
-        , pop_weight_col = pop_weight_col),
-error = function(e) print(e))
+        , pop_weight_col = pop_weight_col)
 
 print(paste0(Sys.time(), '\t Weighting complete...'))
 apply(all_weights, 2, summary)
