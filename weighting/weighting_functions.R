@@ -480,7 +480,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
 
 # Function for weighting with logit weights
 # would be easy to compare to linear here
-doLogitWeight = function(data, vars, selected_ind, pop_weight_col = NULL){
+doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_col = NULL){
 
     cat(vars)
     cat('\n')
@@ -495,7 +495,7 @@ doLogitWeight = function(data, vars, selected_ind, pop_weight_col = NULL){
 
     cat(paste0(Sys.time(), "\t\t Creating mod matricies....\n"))
     # create modmat for modeling
-    formula_logit = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^2'))
+    formula_logit = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^', n_interactions))
     logit_modmat = modmat_all_levs(formula = formula_logit, data = data, sparse = T)
     colnames(logit_modmat)
 
@@ -510,6 +510,8 @@ doLogitWeight = function(data, vars, selected_ind, pop_weight_col = NULL){
 
     coef_logit = data.table(rownames(coef(fit_logit, lambda = 'lambda.min')), coef = as.numeric(coef(fit_logit, lambda = 'lambda.min')))
     coef_logit = coef_logit[coef != 0,]
+
+    print(coef_logit)
 
 
     cat(paste0(Sys.time(), "\t\t Calculate weights....\n"))
@@ -626,6 +628,7 @@ runSim = function(data
     cat(paste0(Sys.time(), '\t', "Running logit weighting...\n"))
     logit_weighted = doLogitWeight(data = data
         , vars = c(vars, vars_add)
+        , n_interactions = n_interactions
         , selected_ind = selected_ind)
 
     print(summary(logit_weighted$weight))
