@@ -559,6 +559,9 @@ runSim = function(data
 
     sample = data[selected == 1, ]
 
+    cat(names(data))
+    cat(head(data))
+    cat(names(sample))
 
     ####### POST STRAT WITH variable selection
     cat(paste0(Sys.time(), '\t', "Running post strat...\n"))
