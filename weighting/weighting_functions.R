@@ -92,16 +92,19 @@ getPopframe = function(data, vars, weight_col = NULL){
 #### Function to post-stratify survey
 doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weight_col = NULL, partial=FALSE){
     
+    cat(vars)
+    cat("\n")
 
     popframe  = getPopframe(popdata, vars = vars, weight_col = NULL)
 	setnames(popframe, old = 'Freq', new = 'pop_prop')
     popframe = popframe[, pop_N := pop_prop * nrow(popdata)]
+
+    print(head(popframe))
     
     sampframe  = data.table(getPopframe(sample, vars = vars, weight_col = NULL))
     setnames(sampframe, old = 'Freq', new = 'samp_prop')
     sampframe = sampframe[, samp_N := samp_prop * nrow(svydata)]
 
-    print(head(popframe))
     print(head(sampframe))
 
     # DO weighting
@@ -240,10 +243,6 @@ doPostStratVarSelect = function(data, vars, selected_ind){
     # take one fewer than the number it took to go over the tol threshold
     n_vars = n_vars - 1
     strat_vars = names(ps_vars[1:n_vars])
-
-    print(head(data))
-    cat(strat_vars)
-    cat("\n")
 
     ## DO POST STRAT
     strat_data = doPostStrat(svydata = data[get(selected_ind) == 1,]
