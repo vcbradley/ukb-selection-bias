@@ -92,6 +92,11 @@ getPopframe = function(data, vars, weight_col = NULL){
 #### Function to post-stratify survey
 doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weight_col = NULL, partial=FALSE){
     
+    cat(names(svydata))
+    cat('\n')
+    cat(names(popdata))
+    cat('\n')
+
     popframe  = getPopframe(popdata, vars = vars, weight_col = NULL)
 	setnames(popframe, old = 'Freq', new = 'pop_prop')
     popframe = popframe[, pop_N := pop_prop * nrow(popdata)]
@@ -559,9 +564,11 @@ runSim = function(data
 
     sample = data[selected == 1, ]
 
-    cat(names(data))
-    print(head(data))
-    cat(names(sample))
+    # cat(names(data))
+    # cat('\n')
+    # print(head(data))
+    # cat('\n')
+    # cat(names(sample))
 
     ####### POST STRAT WITH variable selection
     cat(paste0(Sys.time(), '\t', "Running post strat...\n"))
