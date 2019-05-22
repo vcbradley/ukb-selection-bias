@@ -1,4 +1,11 @@
-###### Code to generate samples from UKB data
+#!/apps/well/R/3.4.3/bin/Rscript                                                                                                                                                               
+#$ -t 1:8                                                                                                                                                                       
+#$ -cwd
+#$ -o ./logs                                                                                                                                                                               
+#$ -e ./logs   
+### request maximum of 24 hours of compute time
+#$ -l h_rt=24:00:00
+#$ -l s_rt=24:00:00
 
 library(stringr)
 library(knitr)
@@ -6,24 +13,27 @@ library(randomForest)
 library(BayesTree)
 
 
-setwd('/well/nichols/users/bwj567')
-source('mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
+source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
 
 
 ####### SET simulation parameters
+
+JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
+
+prop_sampled_options = c(0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75)
 
 ## different probs for different types of vars - want to make sure we have a nonlinear var in there
 # might want to think about controlling the level of noise
 n_equations = 1
 n_samples = 5000
-prop_sampled = 0.2
+prop_sampled = prop_sampled_options[JobId]
 
 
 
 ###### PREP DATA
 
 # Read in UKB data
-ukbdata = fread('data/ukb25120_weighting_img.csv', stringsAsFactors = F)
+ukbdata = fread('/well/nichols/users/bwj567/data/ukb25120_weighting_img.csv', stringsAsFactors = F)
 
 setnames(ukbdata
     , old = names(ukbdata)[grepl('^img', names(ukbdata))]
@@ -167,6 +177,6 @@ list.files(paste0(sample_dir, '/samples'))
 list.files(paste0(sample_dir, '/samples'))
 
 
-save(ukbdata, file = paste0('/well/nichols/users/bwj567/simulation/samples_1_5000_0.2_2019-05-21 22:10:38', '/data.rda'))
+save(ukbdata, file = paste0(sample_dir, '/data.rda'))
 
 
