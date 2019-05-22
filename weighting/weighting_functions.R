@@ -39,6 +39,9 @@ modmat_all_levs.data.table=function(formula, data, sparse = F){
 
 # function to create popframe
 getPopframe = function(data, vars, weight_col = NULL){
+
+    data = as_tibble(data)
+
     popframe = data %>% 
             group_by_at(vars(vars)) %>% 
             summarize(
