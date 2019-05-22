@@ -282,6 +282,7 @@ doLassoRake = function(
     }
     lasso_vars = lasso_vars[order(var_code)]
 
+    print(paste0(Sys.time(), "\t\t Creating modmat...."))
     data_modmat = data_modmat[, which(colnames(data_modmat) %in% lasso_vars$var_name)]
     outdata_modmat = outdata_modmat[, which(colnames(outdata_modmat) %in% lasso_vars$var_name)]
 
@@ -313,17 +314,20 @@ doLassoRake = function(
     	data[, pop_weight := get(pop_weight_col)]
     }
 
+    print(paste0(Sys.time(), "\t\t Fitting NR model...."))
     fit_nr = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
         , x = data_modmat
         , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
         , family = 'binomial'
         , nfolds = 5)
 
-    ##### RANK COEFS #####
+    
+    print(paste0(Sys.time(), "\t\t Fitting outcome model...."))
     fit_out = cv.glmnet(y = as.numeric(data[get(selected_ind) == 1, get(outcome)])
         , x = outdata_modmat
         , nfolds = 5)
 
+    ##### RANK COEFS #####
     coef_nr = data.table(var_code = rownames(coef(fit_nr, lambda = 'lambda.min')), coef_nr = coef(fit_nr, lambda = 'lambda.min')[,1])[-1,]
     coef_out = data.table(var_code = rownames(coef(fit_out, lambda = 'lambda.min')), coef_out = coef(fit_out, lambda = 'lambda.min')[,1])[-1,]
 
@@ -357,6 +361,7 @@ doLassoRake = function(
 
 
     ##### DO RAKING THROUGH SUBSETS #####
+    print(paste0(Sys.time(), "\t\t Weighting...."))
     for(s in 1:max(lasso_vars$subset)){
         vars_for_raking <- lasso_vars[subset == s, var_code]
 
