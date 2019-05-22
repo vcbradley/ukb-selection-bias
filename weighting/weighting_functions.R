@@ -507,12 +507,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
             , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
             , family = 'binomial'
             , nfolds = 5)
-
-        fit_nr = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
-        , x = data_modmat
-        , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
-        , family = 'binomial'
-        , nfolds = 5)
+    cat('here3\n')
 
     print(summary(fit_logit))
 
