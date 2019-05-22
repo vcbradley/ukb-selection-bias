@@ -21,7 +21,10 @@ rm(ukbdata)
 
 
 # run simulation draft
+print(paste0(Sys.time(), '\t Weighting starting...'))
 source('/well/nichols/users/bwj567/mini-project-1/simulation/simulation_draft.R')
+print(paste0(Sys.time(), '\t Weighting complete...'))
+
 
 write.csv(all_weights, file = sprintf("results/weights_%05d.csv", JobId), row.names = F)
 
