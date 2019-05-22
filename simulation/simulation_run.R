@@ -1,7 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript                                                                                                                                                               
 #$ -t 1:5                                                                                                                                                                                   
 #$ -cwd
-### -j option combines output and error messages
 #$ -o ./logs                                                                                                                                                                               
 #$ -e ./logs   
 
