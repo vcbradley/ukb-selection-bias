@@ -54,7 +54,7 @@ nas[nas > 0]
 ### TO DO: ADD IN INTERACTIONS
 vars_to_consider = names(ukbdata)[-grep('^MRI|eid|has|assessment|demo_ethnicity_4way|demo_white|demo_educ_highest$', names(ukbdata))]
 formula = paste("~-1+(", paste0(vars_to_consider, collapse = " + "), ")")
-ukbdata_modmat = modmat_all_levs(as.formula(formula), data = ukbdata[1:5000,])
+ukbdata_modmat = modmat_all_levs(as.formula(formula), data = ukbdata)
 
 
 missingness_covars = data.table(var_name = colnames(ukbdata_modmat))

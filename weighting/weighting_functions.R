@@ -586,7 +586,8 @@ runSim = function(data
     , outcome
     , pop_weight_col = NULL
     , n_interactions = 2
-    , verbose = FALSE){
+    , verbose = FALSE
+    , ntree = 100){
 
     selected_ind = 'selected'
     data = cbind(data, selected = sample)
@@ -646,7 +647,8 @@ runSim = function(data
         , vars = c(vars, vars_add)
         , selected_ind = selected_ind
         , rake_vars = vars_rake
-        , verbose = verbose)
+        , verbose = verbose
+        , ntree = ntree)
 
     print(summary(bart_weighted$weight))
 

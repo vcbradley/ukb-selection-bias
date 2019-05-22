@@ -23,7 +23,7 @@ sample = read.csv(sprintf("samples/sample_%05d.csv",JobId))[,1]
 
 # load data
 load(file = 'data.rda')
-data = ukbdata[1:5000,]#limit for now
+data = ukbdata[1:length(sample),]#limit for now
 rm(ukbdata)
 
 
@@ -64,7 +64,10 @@ all_weights = runSim(data = data
         , vars_rake = vars_rake
         , vars_add = vars_add
         , outcome = 'MRI_brain_vol'
-        , pop_weight_col = pop_weight_col)
+        , pop_weight_col = pop_weight_col
+        , verbose = FALSE
+        , ntree = 100
+        , epsilon = epsilon)
 
 print(paste0(Sys.time(), '\t Weighting complete...'))
 apply(all_weights, 2, summary)
