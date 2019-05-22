@@ -1,5 +1,5 @@
 #!/apps/well/R/3.4.3/bin/Rscript                                                                                                                                                               
-#$ -t 1:100       
+#$ -t 1:20  
 #$ -tc 50                                                                                                                                        
 #$ -cwd
 #$ -o ./logs                                                                                                                                                                               
