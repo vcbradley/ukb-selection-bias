@@ -501,14 +501,16 @@ doLogitWeight = function(data, vars, selected_ind, pop_weight_col = NULL){
 
     cat(paste0(Sys.time(), "\t\t Fitting nonresponse model....\n"))
     # fiit logit model
-    fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
+    fit_logit = tryCatch(cv.glmnet(y = as.numeric(data[, get(selected_ind)])
             , x = logit_modmat
             , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
             , family = 'binomial'
             , nfolds = 5)
+    , error = function(e) print(e))
 
     coef_logit = data.table(rownames(coef(fit_logit, lambda = 'lambda.min')), coef = as.numeric(coef(fit_logit, lambda = 'lambda.min')))
     coef_logit = coef_logit[coef != 0,]
+
 
     cat(paste0(Sys.time(), "\t\t Calculate weights....\n"))
     # calculate weights
