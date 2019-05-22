@@ -179,4 +179,8 @@ list.files(paste0(sample_dir, '/samples'))
 
 save(ukbdata, file = paste0(sample_dir, '/data.rda'))
 
+### make other directories
+dir.create(paste0(sample_dir, '/results'))
+dir.create(paste0(sample_dir, '/logs'))
+
 
