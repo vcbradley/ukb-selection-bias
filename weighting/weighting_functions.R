@@ -402,12 +402,14 @@ doLassoRake = function(
 doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking'){
 
     # make model matricies
+    cat(paste0(Sys.time(), "\t\t Making model matricies....\n"))
     formula_modmat = as.formula(paste0('~ ', paste(vars, collapse = '+')))
     
     # use model matrix that drops a level for each categorical var so that result is not singular
     pop_modmat = model.matrix(formula_modmat, popdata, sparse = T)
     samp_modmat = model.matrix(formula_modmat, svydata, sparse = T)
 
+    cat(paste0(Sys.time(), "\t\t Dropping levels....\n"))
     ### DROP strata that are entirely missing
     drop_pop_levels = which(!colnames(pop_modmat) %in% colnames(samp_modmat))
 
@@ -462,6 +464,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
     formula_cal = as.formula(paste0('~ -1 +', paste(names(pop_totals), collapse = '+')))
 
     ## DO calibration
+    cat(paste0(Sys.time(), "\t\t Calibrating....\n"))
     weighted = calibrate(design = samp_modmat
             , formula = formula_cal
             , population = pop_totals
@@ -486,11 +489,13 @@ doLogitWeight = function(data, vars, selected_ind, pop_weight_col = NULL){
         data[, pop_weight := get(pop_weight_col)]
     }
 
+    cat(paste0(Sys.time(), "\t\t Creating mod matricies....\n"))
     # create modmat for modeling
     formula_logit = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^2'))
     logit_modmat = modmat_all_levs(formula = formula_logit, data = data, sparse = T)
     colnames(logit_modmat)
 
+    cat(paste0(Sys.time(), "\t\t Fitting nonresponse model....\n"))
     # fiit logit model
     fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
             , x = logit_modmat
@@ -501,6 +506,7 @@ doLogitWeight = function(data, vars, selected_ind, pop_weight_col = NULL){
     coef_logit = data.table(rownames(coef(fit_logit, lambda = 'lambda.min')), coef = as.numeric(coef(fit_logit, lambda = 'lambda.min')))
     coef_logit = coef_logit[coef != 0,]
 
+    cat(paste0(Sys.time(), "\t\t Calculate weights....\n"))
     # calculate weights
     lp = predict(fit_logit, newx = logit_modmat[data$selected == 1, ], s = 'lambda.min')
     probs = 1/(1+exp(lp))
@@ -516,8 +522,11 @@ doLogitWeight = function(data, vars, selected_ind, pop_weight_col = NULL){
 
 doBARTweight = function(data, vars, rake_vars = NULL, popdata = NULL, selected_ind, ntree = 20){
 
+    cat(paste0(Sys.time(), "\t\t Creating model matricies....\n"))
     formula_bart = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^2'))
     bart_modmat = modmat_all_levs(formula = formula_bart, data = data, sparse = T)
+
+    cat(paste0(Sys.time(), "\t\t Fitting model....\n"))
     bartFit = bart(x.train = as.matrix(bart_modmat)
         , y = as.vector(data$selected)
         , ntree = ntree)
@@ -535,6 +544,7 @@ doBARTweight = function(data, vars, rake_vars = NULL, popdata = NULL, selected_i
             popdata = data
         }
 
+        cat(paste0(Sys.time(), "\t\t Raking....\n"))
         weighted = doRaking(svydata = weighted
                 , popdata = popdata
                 , vars = rake_vars
