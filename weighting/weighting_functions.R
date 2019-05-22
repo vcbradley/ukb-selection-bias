@@ -560,7 +560,7 @@ runSim = function(data
     sample = data[selected == 1, ]
 
     cat(names(data))
-    cat(head(data))
+    print(head(data))
     cat(names(sample))
 
     ####### POST STRAT WITH variable selection
