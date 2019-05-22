@@ -499,9 +499,8 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     logit_modmat = modmat_all_levs(formula = formula_logit, data = data, sparse = T)
 
     cat(paste0(Sys.time(), "\t\t Fitting nonresponse model....\n"))
-    print(names(logit_modmat))
-    print(head(data[, get(selected_ind)]))
-    print(as.numeric(data[, pop_weight]))
+    print(formula_logit)
+    print(colnames(logit_modmat))
 
     # fiit logit model
     fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
