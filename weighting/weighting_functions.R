@@ -92,10 +92,6 @@ getPopframe = function(data, vars, weight_col = NULL){
 #### Function to post-stratify survey
 doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weight_col = NULL, partial=FALSE){
     
-    cat(names(svydata))
-    cat('\n')
-    cat(names(popdata))
-    cat('\n')
 
     popframe  = getPopframe(popdata, vars = vars, weight_col = NULL)
 	setnames(popframe, old = 'Freq', new = 'pop_prop')
@@ -241,6 +237,10 @@ doPostStratVarSelect = function(data, vars, selected_ind){
     # take one fewer than the number it took to go over the tol threshold
     n_vars = n_vars - 1
     strat_vars = names(ps_vars[1:n_vars])
+
+    print(head(data))
+    cat(stat_vars)
+    cat("\n")
 
     ## DO POST STRAT
     strat_data = doPostStrat(svydata = data[get(selected_ind) == 1,]
