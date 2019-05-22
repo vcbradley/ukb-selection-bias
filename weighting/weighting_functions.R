@@ -82,7 +82,7 @@ getPopframe = function(data, vars, weight_col = NULL){
     if(!is.null(weight_col)){
         popframe = popframe %>% select(-c(n_wt, prop_wt))
     }
-    return(popframe)
+    return(data.table(popframe))
 }
 
 
@@ -92,7 +92,7 @@ getPopframe = function(data, vars, weight_col = NULL){
 #### Function to post-stratify survey
 doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weight_col = NULL, partial=FALSE){
     
-    popframe  = data.table(getPopframe(popdata, vars = vars, weight_col = NULL))
+    popframe  = getPopframe(popdata, vars = vars, weight_col = NULL)
 	setnames(popframe, old = 'Freq', new = 'pop_prop')
     popframe = popframe[, pop_N := pop_prop * nrow(popdata)]
     
