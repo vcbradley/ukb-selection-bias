@@ -482,11 +482,15 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
 # would be easy to compare to linear here
 doLogitWeight = function(data, vars, selected_ind, pop_weight_col = NULL){
 
+    cat(vars)
+    cat('\n')
     # set pop weight col if it's null
     if(is.null(pop_weight_col)){
+        cat('here\n')
         data[, pop_weight := 1]
     }else{
         data[, pop_weight := get(pop_weight_col)]
+        cat('here2\n')
     }
 
     cat(paste0(Sys.time(), "\t\t Creating mod matricies....\n"))
