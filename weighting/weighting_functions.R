@@ -638,7 +638,7 @@ runSim = function(data
         }, error = function(e) print(e))
 
     if(!'data.table' %in% class(calibrated_data)){
-        calibrated_data = data
+        calibrated_data = sample
         calibrated_data[, weight := 1]
     }
 
