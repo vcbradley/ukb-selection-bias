@@ -13,5 +13,6 @@ Files:
 2. Can run from anywhere:
 `qsub /well/nichols/users/bwj567/mini-project-1/simulation/simulation_prep.R`
 3. Must run from the directory of the specific simulation that you want to generate samples for:
-i.e. `cd /well/nichols/users/bwj567/simulation/sim_1_5000_1`
+i.e. 
+`cd /well/nichols/users/bwj567/simulation/sim_1_5000_1`
 `qsub /well/nichols/users/bwj567/mini-project-1/simulation/simulation_sample_gen.R`
