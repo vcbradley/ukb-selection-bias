@@ -16,12 +16,26 @@ library(BayesTree)
 
 source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
 
+## GET PARAMS FROM DIRECTORY NAME
+sim_name = getwd()
+sim_name = str_split(sim_name, '/')[[1]]
+sim_name = sim_name[length(sim_name)]
+
+n_samples = as.numeric(str_split(sim_name, '_')[[1]][3])
+n_equations = as.numeric(str_split(sim_name, '_')[[1]][2])
+
+
 
 ####### SET simulation parameters
-TaskId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-
 prop_sampled_options = c(0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 0.75)
+
+
+# Set specific param for this task
+TaskId = as.numeric(Sys.getenv("SGE_TASK_ID"))
 prop_sampled = prop_sampled_options[TaskId]
+
+load('data_modmat.rda')
+coeff_samples = fread('coefs.csv')
 
 
 ####### USE COEFS TO GENERATE SAMPLES
@@ -54,35 +68,21 @@ apply(samples, 2, sum)
 #how'd we do on sampling different peeps?
 summary(apply(samples, 1, sum))
 
-# number of vars used on avg
-apply(coeff_samples, 2, function(x) sum(x != 0))
-
-# which coefs did we select
-cbind(missingness_covars, coeff_samples[,1])[as.vector(coeff_samples[, 1] != 0),]
-
-
-# summary = data.frame(pop_mean = apply(ukbdata_modmat, 2, mean)
-#     , sample_mean = apply(ukbdata_modmat[samples[,1] == 1, ], 2, mean)
-#     )
-# summary$diff = summary$sample_mean - summary$pop_mean
-# summary
 
 
 ######### Write out samples to directory to run simulation
-dir.create(paste0(sim_id, '/samples'))
-
+sample_dir = paste0('samples/prop_', prop_sampled)
+dir.create(sample_dir)
 
 
 lapply(1:ncol(samples), function(s){
 	samp = samples[, s, with = F]
-	filename = paste0(sim_id, '/samples/sample_', str_pad(s, width = 5, side = 'left', pad = '0'), '.csv')
+	filename = paste0(sample_dir, '/sample_', str_pad(s, width = 5, side = 'left', pad = '0'), '.csv')
 	
 	write.csv(samp, file = filename, row.names = F)
 
 	filename
 	})
 
-list.files(paste0(sim_id, '/samples'))
-list.files(paste0(sim_id, '/samples'))
 
 
