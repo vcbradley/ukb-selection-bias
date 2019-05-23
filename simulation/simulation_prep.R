@@ -122,5 +122,6 @@ save(ukbdata_modmat, file = paste0(sim_id, '/data_modmat.rda'))
 ### make other directories
 dir.create(paste0(sim_id, '/results'))
 dir.create(paste0(sim_id, '/logs'))
+dir.create(paste0(sim_id, '/samples'))
 
 
