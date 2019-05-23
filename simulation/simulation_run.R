@@ -68,7 +68,7 @@ all_weights = tryCatch(runSim(data = data
         , outcome = 'MRI_brain_vol'
         , pop_weight_col = pop_weight_col
         , verbose = FALSE
-        , ntree = 100
+        , ntree = 50
         , epsilon = epsilon)
 , error = function(e) print(e))
 
