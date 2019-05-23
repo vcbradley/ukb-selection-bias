@@ -6,7 +6,7 @@
 #$ -e ./logs   
 ### request maximum of 72 hours of compute time
 #$ -l s_rt=24:00:00
-#$ -l h_rt=100:00:00
+#$ -l h_rt=24:00:00
 
 
 
