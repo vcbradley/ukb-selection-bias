@@ -1,6 +1,6 @@
-
-#!/apps/well/R/3.4.3/bin/Rscript                                                                                                                                                               
-#$ -t 1                                                                                                                                                                       
+#!/apps/well/R/3.4.3/bin/Rscript    
+#$ -N sample_gen    
+#$ -t 1:7                                                                                                                                                      
 #$ -cwd
 #$ -o ./logs                                                                                                                                                                               
 #$ -e ./logs   

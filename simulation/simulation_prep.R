@@ -1,5 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript                                                                                                                                                               
-#$ -t 1                                                                                                                                                                       
+#$ -N sim_prep
+#$ -t 1    
 #$ -cwd
 #$ -o ./logs                                                                                                                                                                               
 #$ -e ./logs   

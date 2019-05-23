@@ -1,4 +1,5 @@
-#!/apps/well/R/3.4.3/bin/Rscript                                                                                                                                                               
+#!/apps/well/R/3.4.3/bin/Rscript       
+#$ -N sim_run
 #$ -t 1:100    
 #$ -tc 50                                                                                                                         
 #$ -cwd
