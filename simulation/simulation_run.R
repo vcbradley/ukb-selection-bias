@@ -6,6 +6,7 @@
 ### request maximum of 72 hours of compute time
 #$ -l s_rt=24:00:00
 #$ -l h_rt=24:00:00
+#$ -l h_vmem=size
 
 
 
@@ -16,8 +17,8 @@ library(randomForest)
 library(BayesTree)
 
 
-JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-#JobId = 3
+#JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
+JobId = 3
 
 # load sample
 sample = read.csv(sprintf("samples/sample_%05d.csv",JobId))[,1]
@@ -59,7 +60,7 @@ outcome = 'MRI_brain_vol'
 
 
 ###### RUN ONE ITERATION
-all_weights = runSim(data = data
+all_weights = tryCatch(runSim(data = data
         , sample = sample
         , vars = vars
         , vars_rake = vars_rake
@@ -69,6 +70,7 @@ all_weights = runSim(data = data
         , verbose = FALSE
         , ntree = 100
         , epsilon = epsilon)
+, error = function(e) print(e))
 
 print(paste0(Sys.time(), '\t Weighting complete...'))
 apply(all_weights, 2, summary)
