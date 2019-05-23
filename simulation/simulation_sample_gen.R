@@ -71,7 +71,9 @@ summary(apply(samples, 1, sum))
 
 ######### Write out samples to directory to run simulation
 sample_dir = paste0('samples/prop_', prop_sampled)
-dir.create(sample_dir)
+if(!dir.exists(sample_dir)){
+	dir.create(sample_dir)
+}
 
 
 lapply(1:ncol(samples), function(s){
