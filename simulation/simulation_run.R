@@ -53,7 +53,7 @@ vars = c('demo_sex'
 vars_add = c('age', 'age_sq')
 vars_rake = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket')
 pop_weight_col = NULL
-epsilon = 1
+epsilon = nrow(data) * 0.001
 calfun = 'raking'
 outcome = 'MRI_brain_vol'
 
@@ -69,7 +69,8 @@ all_weights = tryCatch(runSim(data = data
         , pop_weight_col = pop_weight_col
         , verbose = FALSE
         , ntree = 50
-        , epsilon = epsilon)
+        , epsilon = epsilon
+        )
 , error = function(e) print(e))
 
 print(paste0(Sys.time(), '\t Weighting complete...'))
