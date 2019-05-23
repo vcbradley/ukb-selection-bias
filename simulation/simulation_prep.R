@@ -28,7 +28,7 @@ n_samples = 5000
 
 
 ## Get JobID and create new simulation directory
-JobId = as.numeric(Sys.getenv("JOB_ID"))
+#JobId = as.numeric(Sys.getenv("JOB_ID"))
 sim_id = paste0('sim_', n_equations, '_', n_samples, '_', JobId)
 dir.create(sim_id)
 
@@ -93,7 +93,7 @@ coeff_samples = rbindlist(lapply(missingness_covars$data_type, function(t, n_equ
         spike = rep(1, n_equations)
         slab_sd = 0.25
     }else{
-        spike_prob = ifelse(t == 'int', 0.5, 0.1)
+        spike_prob = ifelse(t == 'int', 0.75, 0.25)
         spike = rbinom(n = n_equations, size = 1, prob = spike_prob)
         slab_sd = ifelse(t == 'int', 1.5, 2)
     }  
@@ -117,6 +117,7 @@ write.csv(missingness_covars, file = paste0(sim_id, "/missingness_covars.csv"), 
 
 
 save(ukbdata, file = paste0(sim_id, '/data.rda'))
+save(ukbdata_modmat, file = paste0(sim_id, '/data_modmat.rda'))
 
 ### make other directories
 dir.create(paste0(sim_id, '/results'))
