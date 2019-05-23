@@ -629,11 +629,18 @@ runSim = function(data
 
     ####### CALIBRATE
     cat(paste0(Sys.time(), '\t', "Running calibration...\n"))
-    calibrated_data = doCalibration(svydata = sample
-        , popdata = data
-        , vars = c(vars, vars_add)
-        , epsilon = epsilon
-        , calfun = calfun)
+    calibrated_data = tryCatch({
+        doCalibration(svydata = sample
+            , popdata = data
+            , vars = c(vars, vars_add)
+            , epsilon = epsilon
+            , calfun = calfun)
+        }, error = function(e) print(e))
+
+    if(!'data.table' %in% class(calibrated_data)){
+        calibrated_data = data
+        calibrated_data[, weight := 1]
+    }
 
     print(summary(calibrated_data$weight))
 
