@@ -1,4 +1,8 @@
-####Simulation ReadMe
+---
+output: github_document
+---
+
+#### Simulation ReadMe
 
 Files:
 
@@ -7,4 +11,4 @@ Files:
 - `simulation_run.R` actually runs the simulation
 
 
-##How to run
+## How to run
