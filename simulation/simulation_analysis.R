@@ -2,8 +2,7 @@ library(data.table)
 library(stringr)
 library(knitr)
 
-which_sim = 'samples_1_5000_0.2_2019-05-21 22:10:38'
-setwd(paste0('/well/nichols/users/bwj567/simulation/', which_sim))
+getwd()
 
 
 #system('cat results/weights*.csv >> results/all_weights.csv')
@@ -35,12 +34,12 @@ all_weights_demos = merge(all_weights, ukbdata, by = 'eid', all.x = T)
 ######## ANALYSIS
 # check variance of weights
 variance = all_weights[, .(
-	var_rake = var(rake_weight)
-	, var_strat = var(strat_weight)
-	, var_calib = var(calib_weight)
-	, var_lasso = var(lasso_weight)
-	, var_logit = var(logit_weight)
-	, var_bart = var(bart_weight)
+	var_rake = var(rake_weight, na.rm = T)
+	, var_strat = var(strat_weight, na.rm = T)
+	, var_calib = var(calib_weight, na.rm = T)
+	, var_lasso = var(lasso_weight, na.rm = T)
+	, var_logit = var(logit_weight, na.rm = T)
+	, var_bart = var(bart_weight, na.rm = T)
 	), by = sim_id]
 variance
 
@@ -73,23 +72,23 @@ accuracy = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
         samp_count = .N
         , samp_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
 
-        , rake_prop = sum(rake_weight)/sum(n_samp)
-        , rake_brainvol = sum(as.numeric(MRI_brain_vol) * rake_weight, na.rm = T)/sum(rake_weight)
+        , rake_prop = sum(rake_weight, na.rm = T)/n_samp
+        , rake_brainvol = sum(as.numeric(MRI_brain_vol) * rake_weight, na.rm = T)/sum(rake_weight, na.rm = T)
 
-        , strat_prop = sum(strat_weight)/sum(n_samp)
-        , strat_brainvol = sum(as.numeric(MRI_brain_vol) * strat_weight, na.rm = T)/sum(strat_weight)
+        , strat_prop = sum(strat_weight, na.rm = T)/n_samp
+        , strat_brainvol = sum(as.numeric(MRI_brain_vol) * strat_weight, na.rm = T)/sum(strat_weight, na.rm = T)
 
-        , calib_prop = sum(calib_weight)/sum(n_samp)
-        , calib_brainvol = sum(as.numeric(MRI_brain_vol) * calib_weight, na.rm = T)/sum(calib_weight)
+        , calib_prop = sum(calib_weight, na.rm = T)/n_samp
+        , calib_brainvol = sum(as.numeric(MRI_brain_vol) * calib_weight, na.rm = T)/sum(calib_weight, na.rm = T)
 
-        , lasso_prop = sum(lasso_weight)/sum(n_samp)
-        , lasso_brainvol = sum(as.numeric(MRI_brain_vol) * lasso_weight, na.rm = T)/sum(lasso_weight)
+        , lasso_prop = sum(lasso_weight, na.rm = T)/n_samp
+        , lasso_brainvol = sum(as.numeric(MRI_brain_vol) * lasso_weight, na.rm = T)/sum(lasso_weight, na.rm = T)
 
-        , logit_prop = sum(logit_weight)/sum(n_samp)
-        , logit_brainvol = sum(as.numeric(MRI_brain_vol) * logit_weight, na.rm = T)/sum(logit_weight)
+        , logit_prop = sum(logit_weight, na.rm = T)/n_samp
+        , logit_brainvol = sum(as.numeric(MRI_brain_vol) * logit_weight, na.rm = T)/sum(logit_weight, na.rm = T)
 
-        , bart_prop = sum(bart_weight)/sum(n_samp)
-        , bart_brainvol = sum(as.numeric(MRI_brain_vol) * bart_weight, na.rm = T)/sum(bart_weight)
+        , bart_prop = sum(bart_weight, na.rm = T)/n_samp
+        , bart_brainvol = sum(as.numeric(MRI_brain_vol) * bart_weight, na.rm = T)/sum(bart_weight, na.rm = T)
 
         ), by = c('sim_id', v)]
 
@@ -97,6 +96,7 @@ accuracy = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
     }))
 
 setnames(accuracy, old = 'has_t1_MRI', new = 'level')
+accuracy
 
 
 mse = accuracy[, .(
