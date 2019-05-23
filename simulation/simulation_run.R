@@ -1,6 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript       
 #$ -N sim_run
-#$ -t 1:1000    
+#$ -t 1:10
 #$ -tc 50                                                                                                                         
 #$ -cwd
 #$ -o ./logs                                                                                                                                                                               
@@ -22,11 +22,16 @@ library(BayesTree)
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
 #JobId = 3
 
+dir = getwd()
+prop = str_split(dir, '/')[[1]]
+prop = prop[grepl('prop', prop)]
+prop = gsub('prop_', '', prop)
+
 # load sample
-sample = read.csv(sprintf("samples/sample_%05d.csv",JobId))[,1]
+sample = read.csv(sprintf("sample_%05d.csv",JobId))[,1]
 
 # load data
-load(file = 'data.rda')
+load(file = '../../data.rda')
 data = ukbdata[1:length(sample),]#limit for now
 rm(ukbdata)
 
@@ -80,7 +85,11 @@ apply(all_weights, 2, summary)
 
 
 #write out results
-write.csv(all_weights, file = sprintf("results/weights_%05d.csv", JobId), row.names = F)
+reasults_dir = paste0('../results/prop', prop)
+if(!dir.exists(reasults_dir)){
+	dir.create(reasults_dir)
+}
+write.csv(all_weights, file = paste0(reasults_dir, sprintf("/weights_%05d.csv", JobId)), row.names = F)
 
 
 
