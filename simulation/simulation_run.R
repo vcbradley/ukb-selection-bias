@@ -23,15 +23,18 @@ JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
 #JobId = 3
 
 dir = getwd()
+
 prop = str_split(dir, '/')[[1]]
 prop = prop[grepl('prop', prop)]
 prop = gsub('prop_', '', prop)
+
+sim_dir = str_split(dir, '/samples/')[[1]][1]
 
 # load sample
 sample = read.csv(sprintf("sample_%05d.csv",JobId))[,1]
 
 # load data
-load(file = '../../data.rda')
+load(file = paste0(sim_dir,'/data.rda'))
 data = ukbdata[1:length(sample),]#limit for now
 rm(ukbdata)
 
@@ -85,11 +88,11 @@ apply(all_weights, 2, summary)
 
 
 #write out results
-reasults_dir = paste0('../results/prop_', prop)
-if(!dir.exists(reasults_dir)){
-	dir.create(reasults_dir)
+results_dir = paste0(sim_dir,'/results/prop_', prop)
+if(!dir.exists(results_dir)){
+	dir.create(results_dir)
 }
-write.csv(all_weights, file = paste0(reasults_dir, sprintf("/weights_%05d.csv", JobId)), row.names = F)
+write.csv(all_weights, file = paste0(results_dir, sprintf("/weights_%05d.csv", JobId)), row.names = F)
 
 
 
