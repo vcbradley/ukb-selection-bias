@@ -611,18 +611,22 @@ runSim = function(data
 
     ###### LOGIT
     cat(paste0(Sys.time(), '\t', "Running logit weighting...\n"))
-    logit_weighted = doLogitWeight(data = data
+    logit_weighted = tryCatch({
+        doLogitWeight(data = data
         , vars = c(vars, vars_add)
         , n_interactions = n_interactions
         , selected_ind = selected_ind)
+        }, error = function(e) print(e))
 
     print(summary(logit_weighted$weight))
 
     ####### POST STRAT WITH variable selection
     cat(paste0(Sys.time(), '\t', "Running post strat...\n"))
-    strat_data = doPostStratVarSelect(data = data
+    strat_data = tryCatch({
+        doPostStratVarSelect(data = data
         , vars = vars
         , selected_ind = selected_ind)
+        }, error = function(e) print(e))
 
     print(summary(strat_data$weight))
 
@@ -637,46 +641,76 @@ runSim = function(data
             , calfun = calfun)
         }, error = function(e) print(e))
 
-    if(!'data.table' %in% class(calibrated_data)){
-        calibrated_data = sample
-        calibrated_data[, weight := 1]
-    }
-
     print(summary(calibrated_data$weight))
 
 
     ###### LASSO RAKE
     cat(paste0(Sys.time(), '\t', "Running lasso rake...\n"))
-    lassorake_data = doLassoRake(data = data
+    lassorake_data = tryCatch({
+        doLassoRake(data = data
         , vars = vars
         , selected_ind = selected_ind
         , outcome = outcome
         , pop_weight_col = pop_weight_col
         , n_interactions = n_interactions)
+        }, error = function(e) print(e))
 
     print(summary(lassorake_data$weight))
 
 
     ####### BART + rake
     cat(paste0(Sys.time(), '\t', "Running BART...\n"))
-    bart_weighted = doBARTweight(data = data
+    bart_weighted = tryCatch({
+        doBARTweight(data = data
         , vars = c(vars, vars_add)
         , selected_ind = selected_ind
         , rake_vars = vars_rake
         , verbose = verbose
         , ntree = ntree)
+        }, error = function(e) print(e))
 
     print(summary(bart_weighted$weight))
 
      ##### RAKING
     cat(paste0(Sys.time(), '\t', "Running raking...\n"))
-    raked_data = doRaking(svydata = sample
+    raked_data = tryCatch({
+        doRaking(svydata = sample
         , popdata = data
-        , vars = vars
-        )
+        , vars = vars)
+        }, error = function(e) print(e))
 
     print(summary(raked_data$weight))
 
+    # replace ones that failed with 1's so things still return
+    if(!'data.table' %in% class(raked_data)){
+        raked_data = sample
+        raked_data[, weight := 1]
+    }
+
+    if(!'data.table' %in% class(strat_data)){
+        strat_data = sample
+        strat_data[, weight := 1]
+    }
+
+    if(!'data.table' %in% class(calibrated_data)){
+        calibrated_data = sample
+        calibrated_data[, weight := 1]
+    }
+
+    if(!'data.table' %in% class(lassorake_data)){
+        lassorake_data = sample
+        lassorake_data[, weight := 1]
+    }
+
+    if(!'data.table' %in% class(logit_weighted)){
+        logit_weighted = sample
+        logit_weighted[, weight := 1]
+    }
+
+    if(!'data.table' %in% class(bart_weighted)){
+        bart_weighted = sample
+        bart_weighted[, weight := 1]
+    }
 
     weighted_list = list(
         raked_data[, .(eid, rake_weight = weight)]
