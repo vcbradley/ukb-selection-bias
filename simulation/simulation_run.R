@@ -3,8 +3,8 @@
 #$ -t 1:10
 #$ -tc 50                                                                                                                         
 #$ -cwd
-#$ -o ./logs                                                                                                                                                                               
-#$ -e ./logs   
+#$ -o ../../logs                                                                                                                                                                               
+#$ -e ../../logs   
 ### request maximum of 72 hours of compute time
 #$ -l s_rt=24:00:00
 #$ -l h_rt=24:00:00
@@ -85,7 +85,7 @@ apply(all_weights, 2, summary)
 
 
 #write out results
-reasults_dir = paste0('../results/prop', prop)
+reasults_dir = paste0('../results/prop_', prop)
 if(!dir.exists(reasults_dir)){
 	dir.create(reasults_dir)
 }
