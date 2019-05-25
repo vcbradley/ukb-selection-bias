@@ -551,10 +551,17 @@ doBARTweight = function(data, vars, rake_vars = NULL, popdata = NULL, selected_i
     bart_modmat = modmat_all_levs(formula = formula_bart, data = data, sparse = T)
 
     cat(paste0(Sys.time(), "\t\t Fitting model....\n"))
-    bartFit = bart(x.train = as.matrix(bart_modmat)
-        , y = as.vector(data$selected)
-        , ntree = ntree
-        , verbose = verbose)
+
+    bartfit = bartMachine(X = as.matrix(bart_modmat)
+        , Y = as.vector(data$selected)
+        , num_trees = ntree
+        , verbose = verbose
+        )
+
+    # bartFit = bart(x.train = as.matrix(bart_modmat)
+    #     , y = as.vector(data$selected)
+    #     , ntree = ntree
+    #     , verbose = verbose)
 
 
     bart_lp = apply(bartFit$yhat.train, 2, mean)
