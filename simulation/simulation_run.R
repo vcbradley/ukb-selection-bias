@@ -71,7 +71,6 @@ outcome = 'MRI_brain_vol'
 all_weights = tryCatch(runSim(data = data
         , sample = sample
         , vars = vars
-        , vars_rake = vars_rake
         , vars_add = vars_add
         , outcome = 'MRI_brain_vol'
         , pop_weight_col = pop_weight_col
