@@ -260,11 +260,11 @@ doPostStratVarSelect = function(data, vars, selected_ind){
 }
 
 
-# load('data.rda')
-# load('data_modmat.rda')
-# sample = fread('samples/prop_0.02/sample_00001.csv')
+load('data.rda')
+load('data_modmat.rda')
+sample = fread('samples/prop_0.02/sample_00001.csv')
 
-# data = ukbdata[,selected := sample$V1]
+data = ukbdata[,selected := sample$V1]
 
 ## LAsso rake function
 doLassoRake = function(
@@ -588,12 +588,12 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
 
     cat(paste0(Sys.time(), "\t\t Creating model matricies....\n"))
     formula_bart = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^2'))
-    bart_modmat = modmat_all_levs(formula = formula_bart, data = data, sparse = T)
+    bart_modmat = modmat_all_levs(formula = formula_bart, data = data)
 
     cat(paste0(Sys.time(), "\t\t Fitting model....\n"))
 
     bartfit = bartMachine(X = data.frame(bart_modmat)
-        , y = as.vector(factor(data$selected, levels = c('1', '0'), labels = c('1', '2')))
+        , y = factor(data$selected, levels = c('1', '0'), labels = c('1', '2'))
         , num_trees = ntree
         , verbose = verbose
         , run_in_sample = FALSE
