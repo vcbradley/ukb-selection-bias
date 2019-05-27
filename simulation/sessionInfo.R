@@ -36,4 +36,6 @@ load(file = paste0(sim_dir,'/data.rda'))
 data = ukbdata[1:length(sample),]#limit for now
 rm(ukbdata)
 
+library(rJava)
 sessionInfo()
+.jinit()
