@@ -8,8 +8,7 @@
 ### request maximum of 72 hours of compute time
 #$ -l s_rt=24:00:00
 #$ -l h_rt=24:00:00
-####$ -l ram_free=5G
-#$ -l mem_per_core=8G
+#$ -l h_vmem=6G
 
 
 
