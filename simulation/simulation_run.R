@@ -15,8 +15,6 @@
 library(data.table)
 library(stringr)
 library(knitr)
-library(randomForest)
-library(BayesTree)
 
 
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))

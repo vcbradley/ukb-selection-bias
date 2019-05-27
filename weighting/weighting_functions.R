@@ -6,8 +6,12 @@ library(MatrixModels)
 library(Matrix)
 library(glmnet)
 library(lazyeval)
-options(java.parameters = "-Xmx16g" ) # according to BART documentation, set this before loading bartMachine to avoid mem limit errors
+library(randomForest)
+
+# according to BART documentation, set this before loading bartMachine to avoid mem limit errors
+options(java.parameters = "-Xmx16g" ) 
 library(bartMachine)
+
 
 #Utility function for creating a design matrix with all levels of factor variables included, rather than omitting a reference level
 #as one should generally do when passing a design matrix to glmnet/cv.glmnet for a lasso (or elastic net) model
