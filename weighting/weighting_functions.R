@@ -6,6 +6,8 @@ library(MatrixModels)
 library(Matrix)
 library(glmnet)
 library(lazyeval)
+options(java.parameters = "-Xmx16g" ) # according to BART documentation, set this before loading bartMachine to avoid mem limit errors
+library(bartMachine)
 
 #Utility function for creating a design matrix with all levels of factor variables included, rather than omitting a reference level
 #as one should generally do when passing a design matrix to glmnet/cv.glmnet for a lasso (or elastic net) model
@@ -542,9 +544,34 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 }
 
 
+#### For testing BARTmachine
 
+# library(data.table)
+# options(java.parameters = "-Xmx16g" )
+# library(bartMachine)
 
-doBARTweight = function(data, vars, rake_vars = NULL, popdata = NULL, selected_ind, ntree = 20, verbose = FALSE){
+# load('data_modmat.rda')
+# selected = fread('samples/prop_0.02/sample_00001.csv')
+#  selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
+
+#     bartfit = bartMachine(X = data.frame(ukbdata_modmat)
+#         , y = selected$V2
+#         , num_trees = 50
+#         , verbose = TRUE
+#         , run_in_sample = FALSE
+#         )
+# prob_hat = predict(bartfit, new_data = data.frame(ukbdata_modmat), type = 'prob') #need this and not y_hat_train to get probs
+
+# # var_importance = investigate_var_importance(bartfit, type = "splits")
+
+# summary(prob_hat)
+# mean(prob_hat[selected$V1 == 1])
+# mean(prob_hat[selected$V1 == 0])
+# summary(selected$V2)
+# length(levels(selected$V2))
+# class(selected$V2)
+
+doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, verbose = FALSE){
 
     cat(paste0(Sys.time(), "\t\t Creating model matricies....\n"))
     formula_bart = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^2'))
@@ -552,10 +579,11 @@ doBARTweight = function(data, vars, rake_vars = NULL, popdata = NULL, selected_i
 
     cat(paste0(Sys.time(), "\t\t Fitting model....\n"))
 
-    bartfit = bartMachine(X = as.matrix(bart_modmat)
+    bartfit = bartMachine(X = data.frame(bart_modmat)
         , Y = as.vector(data$selected)
         , num_trees = ntree
         , verbose = verbose
+        , run_in_sample = FALSE
         )
 
     # bartFit = bart(x.train = as.matrix(bart_modmat)
@@ -564,14 +592,24 @@ doBARTweight = function(data, vars, rake_vars = NULL, popdata = NULL, selected_i
     #     , verbose = verbose)
 
 
-    bart_lp = apply(bartFit$yhat.train, 2, mean)
-    prob = 1/(1+exp(bart_lp))
+    # bart_lp = apply(bartFit$yhat.train, 2, mean)
+    # bart_lp = bartfit$y_hat_train
+    # prob = 1/(1+exp(bart_lp))
+
+    prob = predict(bartfit, new_data = data.frame(bart_modmat), type = 'prob')
 
     weighted = cbind(data, bart_weight = 1/prob)
     weighted = weighted[get(selected_ind) == 1, ]
     weighted = weighted[, bart_weight := (1/(bart_weight + 0.00000001))/mean(1/(bart_weight + 0.00000001), na.rm = T)]
 
-    if(!is.null(rake_vars)){
+    # get important vars for raking
+    var_importance = investigate_var_importance(bartfit, plot = FALSE)
+    imp_vars = unlist(lapply(names(var_importance$avg_var_props), function(s){
+                    which(unlist(lapply(vars, function(v) grepl(v, s))))
+                    }))
+    imp_vars = unique(vars[imp_vars[1:10]])
+
+    if(!is.null(imp_vars)){
         if(is.null(popdata)){
             popdata = data
         }
@@ -579,7 +617,7 @@ doBARTweight = function(data, vars, rake_vars = NULL, popdata = NULL, selected_i
         cat(paste0(Sys.time(), "\t\t Raking....\n"))
         weighted = doRaking(svydata = weighted
                 , popdata = popdata
-                , vars = rake_vars
+                , vars = imp_vars
                 , prior_weight_col = 'bart_weight'
                 )
     }else{
@@ -597,7 +635,6 @@ runSim = function(data
     , sample
     , vars
     , vars_add = NULL
-    , vars_rake = NULL
     , epsilon = 1
     , outcome
     , pop_weight_col = NULL
@@ -671,7 +708,6 @@ runSim = function(data
         doBARTweight(data = data
         , vars = c(vars, vars_add)
         , selected_ind = selected_ind
-        , rake_vars = vars_rake
         , verbose = verbose
         , ntree = ntree)
         }, error = function(e) print(e))
