@@ -39,8 +39,12 @@ rm(ukbdata)
 library(rJava)
 
 sessionInfo()
+print('here1')
 
 print(.jinit())
 
 options(java.parameters = "-Xmx5g" ) 
 library(bartMachine)
+
+print(.jinit())
+print('here2')
