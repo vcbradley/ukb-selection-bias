@@ -3,6 +3,7 @@
 #$ -t 1:10
 #$ -tc 50                                                                                                                         
 #$ -cwd
+#$ -q short.qc
 #$ -o ../../logs                                                                                                                                                                               
 #$ -e ../../logs   
 #$ -l s_rt=24:00:00
