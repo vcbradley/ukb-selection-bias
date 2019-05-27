@@ -37,5 +37,7 @@ data = ukbdata[1:length(sample),]#limit for now
 rm(ukbdata)
 
 library(rJava)
+
 sessionInfo()
-.jinit()
+
+print(.jinit())
