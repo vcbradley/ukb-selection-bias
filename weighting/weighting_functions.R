@@ -508,15 +508,11 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
 # would be easy to compare to linear here
 doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_col = NULL){
 
-    cat(vars)
-    cat('\n')
     # set pop weight col if it's null
     if(is.null(pop_weight_col)){
-        cat('here\n')
         data[, pop_weight := 1]
     }else{
         data[, pop_weight := get(pop_weight_col)]
-        cat('here2\n')
     }
 
     cat(paste0(Sys.time(), "\t\t Creating mod matricies....\n"))
@@ -527,11 +523,14 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     cat(paste0(Sys.time(), "\t\t Fitting nonresponse model....\n"))
     print(formula_logit)
 
+    
     # fiit logit model
+    weight = 1/as.numeric(data[, sum(get(selected_ind))/.N])
+
     lambda <- exp(seq(log(0.001), log(5), length.out=15)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
     fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
             , x = logit_modmat
-            , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
+            , weights = as.numeric(data[, pop_weight * ifelse(selected == 1, weight, 1)])  #because the population data is weighted, include this
             , family = 'binomial'
             , nfolds = 5
             , lambda=lambda)
