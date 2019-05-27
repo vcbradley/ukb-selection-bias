@@ -260,11 +260,11 @@ doPostStratVarSelect = function(data, vars, selected_ind){
 }
 
 
-load('data.rda')
-load('data_modmat.rda')
-sample = fread('samples/prop_0.02/sample_00001.csv')
+# load('data.rda')
+# load('data_modmat.rda')
+# sample = fread('samples/prop_0.02/sample_00001.csv')
 
-data = ukbdata[,selected := sample$V1]
+# data = ukbdata[,selected := sample$V1]
 
 ## LAsso rake function
 doLassoRake = function(
