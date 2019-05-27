@@ -593,7 +593,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     cat(paste0(Sys.time(), "\t\t Fitting model....\n"))
 
     bartfit = bartMachine(X = data.frame(bart_modmat)
-        , Y = as.vector(data$selected)
+        , y = as.vector(factor(data$selected, levels = c('1', '0'), labels = c('1', '2')))
         , num_trees = ntree
         , verbose = verbose
         , run_in_sample = FALSE
