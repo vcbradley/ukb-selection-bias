@@ -41,3 +41,6 @@ library(rJava)
 sessionInfo()
 
 print(.jinit())
+
+options(java.parameters = "-Xmx5g" ) 
+library(bartMachine)
