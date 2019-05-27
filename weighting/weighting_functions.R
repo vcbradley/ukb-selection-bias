@@ -10,7 +10,7 @@ library(randomForest)
 library(stringr)
 
 # according to BART documentation, set this before loading bartMachine to avoid mem limit errors
-#options(java.parameters = "-Xmx5g" ) 
+options(java.parameters = "-Xmx5g" ) 
 library(bartMachine)
 
 
