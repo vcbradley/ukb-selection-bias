@@ -7,6 +7,7 @@ library(Matrix)
 library(glmnet)
 library(lazyeval)
 library(randomForest)
+library(stringr)
 
 # according to BART documentation, set this before loading bartMachine to avoid mem limit errors
 #options(java.parameters = "-Xmx5g" ) 
@@ -259,6 +260,12 @@ doPostStratVarSelect = function(data, vars, selected_ind){
 }
 
 
+load('data.rda')
+load('data_modmat.rda')
+sample = fread('samples/prop_0.02/sample_00001.csv')
+
+data = ukbdata[,selected := sample$V1]
+
 ## LAsso rake function
 doLassoRake = function(
     data
@@ -361,14 +368,16 @@ doLassoRake = function(
 
     ##### RANK VARIABLES BY IMPORTANCE -- SHOULD REEVALUATE
     lasso_vars[order(abs(coef_nr), decreasing = T), rank_nr := .I]
-    lasso_vars[coef_nr == 0, rank_nr := NA]
+    lasso_vars[coef_nr == 0, rank_nr := 9999]
     lasso_vars[order(abs(coef_out), decreasing = T), rank_out := .I]
-    lasso_vars[coef_out == 0, rank_out := NA]
+    lasso_vars[coef_out == 0, rank_out := 9999]
 
-    lasso_vars[,as.numeric(!is.na(rank_nr)) + as.numeric(!is.na(rank_out))]
-    lasso_vars[order(as.numeric(is.na(rank_nr)) + as.numeric(is.na(rank_out)), as.numeric(rank_nr + rank_out)), rank_total := .I]
+    #lasso_vars[,as.numeric(!is.na(rank_nr)) + as.numeric(!is.na(rank_out))]
+    lasso_vars[, has_nr_coef := as.numeric(rank_nr < 9999)]
+    lasso_vars[, has_out_coef := as.numeric(rank_out < 9999)]
+    lasso_vars[order(2 - has_out_coef + has_nr_coef, as.numeric(rank_nr + rank_out)), rank_total := .I]
 
-    print(lasso_vars[rank_total < 15, ])
+    print(lasso_vars[rank_total < 15, ][order(rank_total)])
 
     #create data table for weighting
     data_modmat_allvars = cbind(data, as.matrix(data_modmat))
