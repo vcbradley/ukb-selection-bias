@@ -679,7 +679,7 @@ runSim = function(data
     # cat(names(sample))
 
     ###### LOGIT
-    cat(paste0(Sys.time(), '\t', "Running logit weighting...\n"))
+    cat(paste0(Sys.time(), '\t', "Running logit weighting...\n\n\n"))
     logit_weighted = tryCatch({
         doLogitWeight(data = data
         , vars = c(vars, vars_add)
@@ -692,7 +692,7 @@ runSim = function(data
     print(gc())
 
     ####### POST STRAT WITH variable selection
-    cat(paste0(Sys.time(), '\t', "Running post strat...\n"))
+    cat(paste0(Sys.time(), '\t', "Running post strat...\n\n\n"))
     strat_data = tryCatch({
         doPostStratVarSelect(data = data
         , vars = vars
@@ -705,7 +705,7 @@ runSim = function(data
 
 
     ####### CALIBRATE
-    cat(paste0(Sys.time(), '\t', "Running calibration...\n"))
+    cat(paste0(Sys.time(), '\t', "Running calibration...\n\n\n"))
     calibrated_data = tryCatch({
         doCalibration(svydata = sample
             , popdata = data
@@ -720,7 +720,7 @@ runSim = function(data
 
 
     ###### LASSO RAKE
-    cat(paste0(Sys.time(), '\t', "Running lasso rake...\n"))
+    cat(paste0(Sys.time(), '\t', "Running lasso rake...\n\n\n"))
     lassorake_data = tryCatch({
         doLassoRake(data = data
         , vars = vars
@@ -736,7 +736,7 @@ runSim = function(data
 
 
     ####### BART + rake
-    cat(paste0(Sys.time(), '\t', "Running BART...\n"))
+    cat(paste0(Sys.time(), '\t', "Running BART...\n\n\n"))
     bart_weighted = tryCatch({
         doBARTweight(data = data
         , vars = c(vars, vars_add)
@@ -750,7 +750,7 @@ runSim = function(data
     print(gc())
 
      ##### RAKING
-    cat(paste0(Sys.time(), '\t', "Running raking...\n"))
+    cat(paste0(Sys.time(), '\t', "Running raking...\n\n\n"))
     raked_data = tryCatch({
         doRaking(svydata = sample
         , popdata = data
