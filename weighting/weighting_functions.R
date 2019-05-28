@@ -622,10 +622,10 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     # prob = predict(bartfit, new_data = bart_modmat, type = 'prob')
 
     # bump up predicted yhats so they're greater than 0
+    cat(paste0(Sys.time(), "\t\t Getting probs....\n"))
     prob = bartfit$y_hat_train + max(1, abs(min(bartfit$y_hat_train)) + 0.1)
 
     rm(bart_modmat)
-    rm(bartfit)
     gc()
 
     weighted = cbind(data[get(selected_ind) == 1, ], bart_weight = 1/prob)
