@@ -533,9 +533,6 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
             , family = 'binomial'
             , nfolds = 5
             , lambda=lambda)
-    
-    rm(logit_modmat)
-    gc()
 
     print(summary(fit_logit))
 
