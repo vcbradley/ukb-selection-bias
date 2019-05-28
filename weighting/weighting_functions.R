@@ -630,7 +630,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     cat(paste0(Sys.time(), "\t\t Predicting model....\n"))
 
     z = apply(bartFit$yhat.train, 2, mean)
-    prob = pnorm(x = z) #according to the documentatiion, we need to apply normal cdf to get actual prob values
+    prob = pnorm(z) #according to the documentatiion, we need to apply normal cdf to get actual prob values
     
 
     # # only predict on selected data
