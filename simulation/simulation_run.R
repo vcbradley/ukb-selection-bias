@@ -9,12 +9,12 @@
 #$ -l s_rt=24:00:00
 #$ -l h_rt=24:00:00
 
-
+gc()
 
 library(data.table)
 library(stringr)
 library(knitr)
-options(java.parameters = "-Xmx14g" ) 
+options(java.parameters = "-Xmx12g" ) 
 library(bartMachine)
 
 
