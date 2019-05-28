@@ -652,7 +652,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     # get important vars for raking
     cat(paste0(Sys.time(), "\t\t Getting var importance....\n"))
     
-    imp_fit = randomForest(y = as.factor(selected$V1), x = ukbdata_modmat, importance = T, ntree = 100)
+    imp_fit = randomForest(y = as.factor(data[get(selected_ind) == 1, ]), x = bart_modmat, importance = T, ntree = 100)
     imp_vars = sort(imp_fit$importance[, 1], decreasing = T)
     imp_vars = unlist(lapply(names(imp_vars), function(s){
                     which(unlist(lapply(vars, function(v) grepl(v, s))))
