@@ -557,53 +557,53 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
 #### For testing BARTmachine
 
-library(data.table)
-options(java.parameters = "-Xmx16g" )
-library(bartMachine)
-library(BayesTree)
+# library(data.table)
+# options(java.parameters = "-Xmx16g" )
+# library(bartMachine)
+# library(BayesTree)
 
-load('data_modmat.rda')
-load('data.rda')
-selected = fread('samples/prop_0.02/sample_00001.csv')
-selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
-
-
+# load('data_modmat.rda')
+# load('data.rda')
+# selected = fread('samples/prop_0.02/sample_00001.csv')
+# selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
 
 
-    bartFit = bart(x.train = as.matrix(ukbdata_modmat)
-        , y.train = as.vector(selected$V1)
-        , verbose = TRUE
-        , ntree = 50)
 
-    cat(paste0(Sys.time(), "\t\t Predicting model....\n"))
 
-    z = apply(bartFit$yhat.train, 2, mean)
-    prob = pnorm(z) #according to the documentatiion, we need to apply normal cdf to get actual prob values
+#     bartFit = bart(x.train = as.matrix(ukbdata_modmat)
+#         , y.train = as.vector(selected$V1)
+#         , verbose = TRUE
+#         , ntree = 50)
+
+#     cat(paste0(Sys.time(), "\t\t Predicting model....\n"))
+
+#     z = apply(bartFit$yhat.train, 2, mean)
+#     prob = pnorm(z) #according to the documentatiion, we need to apply normal cdf to get actual prob values
    
 
 
 
-    bartfit = bartMachine(X = data.frame(ukbdata_modmat)
-        , y = selected$V1
-        , num_trees = 50
-        , verbose = TRUE
-        , run_in_sample = TRUE
-        )
+#     bartfit = bartMachine(X = data.frame(ukbdata_modmat)
+#         , y = selected$V1
+#         , num_trees = 50
+#         , verbose = TRUE
+#         , run_in_sample = TRUE
+#         )
 
-    summary(bartfit$y_hat_train)
-    probs = bartfit$y_hat_train + max(1, abs(min(bartfit$y_hat_train)) + 0.1)
-    summary(probs)
-    summary(1/probs)
-    probs = predict(bartfit, new_data = data.frame(ukbdata_modmat), type = 'prob') #need this and not y_hat_train to get probs
+#     summary(bartfit$y_hat_train)
+#     probs = bartfit$y_hat_train + max(1, abs(min(bartfit$y_hat_train)) + 0.1)
+#     summary(probs)
+#     summary(1/probs)
+#     probs = predict(bartfit, new_data = data.frame(ukbdata_modmat), type = 'prob') #need this and not y_hat_train to get probs
 
-# var_importance = investigate_var_importance(bartfit, type = "splits")
+# # var_importance = investigate_var_importance(bartfit, type = "splits")
 
-summary(probs)
-mean(probs[selected$V1 == 1])
-mean(probs[selected$V1 == 0])
-summary(selected$V2)
-length(levels(selected$V2))
-class(selected$V2)
+# summary(probs)
+# mean(probs[selected$V1 == 1])
+# mean(probs[selected$V1 == 0])
+# summary(selected$V2)
+# length(levels(selected$V2))
+# class(selected$V2)
 
 doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, verbose = FALSE){
 
