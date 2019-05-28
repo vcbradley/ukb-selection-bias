@@ -594,7 +594,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     gc()
 
     bartfit = bartMachine(X = bart_modmat
-        , y = factor(data$selected, levels = c('1', '0'), labels = c('1', '2'))
+        , y = factor(data[, get(selected_ind)], levels = c('1', '0'), labels = c('1', '2'))
         , num_trees = ntree
         , verbose = verbose
         , run_in_sample = FALSE
@@ -610,6 +610,8 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     # bart_lp = bartfit$y_hat_train
     # prob = 1/(1+exp(bart_lp))
 
+    # only predict on selected data
+    bart_modmat = bart_modmat[data[, get(selected_ind)] == 1, ]
     gc()
 
     cat(paste0(Sys.time(), "\t\t Predicting model....\n"))
@@ -619,8 +621,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     rm(bartfit)
     gc()
 
-    weighted = cbind(data, bart_weight = 1/prob)
-    weighted = weighted[get(selected_ind) == 1, ]
+    weighted = cbind(data[get(selected_ind) == 1, ], bart_weight = 1/prob)
     weighted = weighted[, bart_weight := (1/(bart_weight + 0.00000001))/mean(1/(bart_weight + 0.00000001), na.rm = T)]
 
     # get important vars for raking
