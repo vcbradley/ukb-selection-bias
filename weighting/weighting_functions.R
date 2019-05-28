@@ -642,6 +642,9 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
                     }))
     imp_vars = unique(vars[imp_vars[1:10]])
 
+    rm(bartfit)
+    gc()
+
     if(!is.null(imp_vars)){
         if(is.null(popdata)){
             popdata = data
