@@ -341,7 +341,7 @@ doLassoRake = function(
     weight = 1/as.numeric(data[, sum(get(selected_ind))/.N])
     fit_nr = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
         , x = data_modmat
-        , weights = as.numeric(data[, pop_weight * ifelse(selected == 1, weight, 1)])  #because the population data is weighted, include this
+        , weights = as.numeric(data[, pop_weight * ifelse(get(selected_ind) == 1, weight, 1)])  #because the population data is weighted, include this
         , family = 'binomial'
         , nfolds = 5
         , lambda = lambda)
@@ -529,7 +529,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     lambda <- exp(seq(log(0.001), log(5), length.out=15)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
     fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
             , x = logit_modmat
-            , weights = as.numeric(data[, pop_weight * ifelse(selected == 1, weight, 1)])  #because the population data is weighted, include this
+            , weights = as.numeric(data[, pop_weight * ifelse(get(selected_ind) == 1, weight, 1)])  #because the population data is weighted, include this
             , family = 'binomial'
             , nfolds = 5
             , lambda=lambda)
