@@ -334,15 +334,14 @@ doLassoRake = function(
     	data[, pop_weight := get(pop_weight_col)]
     }
 
-    # select a sample of 
-    model_sample = sample(nrow(data), sum(data[, get(selected_ind)]))
 
     cat(paste0(Sys.time(), "\t\t Fitting NR model....\n"))
     lambda <- exp(seq(log(0.001), log(5), length.out=15)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
 
+    weight = 1/as.numeric(data[, sum(get(selected_ind))/.N])
     fit_nr = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
         , x = data_modmat
-        , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
+        , weights = as.numeric(data[, pop_weight * ifelse(selected == 1, weight, 1)])  #because the population data is weighted, include this
         , family = 'binomial'
         , nfolds = 5
         , lambda = lambda)
