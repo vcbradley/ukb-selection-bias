@@ -14,8 +14,8 @@ gc()
 library(data.table)
 library(stringr)
 library(knitr)
-options(java.parameters = "-Xmx10g" ) 
-library(bartMachine)
+# options(java.parameters = "-Xmx10g" ) 
+# library(bartMachine)
 
 
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))

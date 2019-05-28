@@ -8,6 +8,7 @@ library(glmnet)
 library(lazyeval)
 library(randomForest)
 library(stringr)
+library(BayesTree)
 
 # according to BART documentation, set this before loading bartMachine to avoid mem limit errors
 #options(java.parameters = "-Xmx5g" ) 
@@ -556,74 +557,91 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
 #### For testing BARTmachine
 
-# library(data.table)
-# options(java.parameters = "-Xmx16g" )
-# library(bartMachine)
+library(data.table)
+options(java.parameters = "-Xmx16g" )
+library(bartMachine)
+library(BayesTree)
 
-# load('data_modmat.rda')
-# selected = fread('samples/prop_0.02/sample_00001.csv')
-# selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
+load('data_modmat.rda')
+load('data.rda')
+selected = fread('samples/prop_0.02/sample_00001.csv')
+selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
 
-#     bartfit = bartMachine(X = data.frame(ukbdata_modmat)
-#         , y = selected$V1
-#         , num_trees = 50
-#         , verbose = TRUE
-#         , run_in_sample = TRUE
-#         )
 
-#     summary(bartfit$y_hat_train)
-#     probs = bartfit$y_hat_train + max(1, abs(min(bartfit$y_hat_train)) + 0.1)
-#     summary(probs)
-#     summary(1/probs)
-#     probs = predict(bartfit, new_data = data.frame(ukbdata_modmat), type = 'prob') #need this and not y_hat_train to get probs
 
-# # var_importance = investigate_var_importance(bartfit, type = "splits")
 
-# summary(probs)
-# mean(probs[selected$V1 == 1])
-# mean(probs[selected$V1 == 0])
-# summary(selected$V2)
-# length(levels(selected$V2))
-# class(selected$V2)
+    bartFit = bart(x.train = as.matrix(ukbdata_modmat)
+        , y.train = as.vector(selected$V1)
+        , verbose = TRUE
+        , ntree = 50)
+
+    cat(paste0(Sys.time(), "\t\t Predicting model....\n"))
+
+    z = apply(bartFit$yhat.train, 2, mean)
+    prob = pnorm(z) #according to the documentatiion, we need to apply normal cdf to get actual prob values
+   
+
+
+
+    bartfit = bartMachine(X = data.frame(ukbdata_modmat)
+        , y = selected$V1
+        , num_trees = 50
+        , verbose = TRUE
+        , run_in_sample = TRUE
+        )
+
+    summary(bartfit$y_hat_train)
+    probs = bartfit$y_hat_train + max(1, abs(min(bartfit$y_hat_train)) + 0.1)
+    summary(probs)
+    summary(1/probs)
+    probs = predict(bartfit, new_data = data.frame(ukbdata_modmat), type = 'prob') #need this and not y_hat_train to get probs
+
+# var_importance = investigate_var_importance(bartfit, type = "splits")
+
+summary(probs)
+mean(probs[selected$V1 == 1])
+mean(probs[selected$V1 == 0])
+summary(selected$V2)
+length(levels(selected$V2))
+class(selected$V2)
 
 doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, verbose = FALSE){
 
     cat(paste0(Sys.time(), "\t\t Creating model matricies....\n"))
     formula_bart = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^2'))
-    bart_modmat = data.frame(modmat_all_levs(formula = formula_bart, data = data))
+    bart_modmat = modmat_all_levs(formula = formula_bart, data = data, sparse= T)
 
     cat(paste0(Sys.time(), "\t\t Fitting model....\n"))
     gc()
 
-    bartfit = bartMachine(X = bart_modmat
-        #, y = factor(data[, get(selected_ind)], levels = c('1', '0'), labels = c('1', '2'))
-        , y = data[, get(selected_ind)]
-        , num_trees = ntree
-        , verbose = verbose
-        , run_in_sample = TRUE
-        )
+    # bartfit = bartMachine(X = bart_modmat
+    #     #, y = factor(data[, get(selected_ind)], levels = c('1', '0'), labels = c('1', '2'))
+    #     , y = data[, get(selected_ind)]
+    #     , num_trees = ntree
+    #     , verbose = verbose
+    #     , run_in_sample = TRUE
+    #     )
 
-    # bartFit = bart(x.train = as.matrix(bart_modmat)
-    #     , y = as.vector(data$selected)
-    #     , ntree = ntree
-    #     , verbose = verbose)
+    bartFit = bart(x.train = as.matrix(bart_modmat)
+        , y.train = as.vector(data$selected)
+        , ntree = ntree
+        , verbose = verbose)
 
+    cat(paste0(Sys.time(), "\t\t Predicting model....\n"))
 
-    # bart_lp = apply(bartFit$yhat.train, 2, mean)
-    # bart_lp = bartfit$y_hat_train
-    # prob = 1/(1+exp(bart_lp))
+    z = apply(bartFit$yhat.train, 2, mean)
+    prob = pnorm(x = z) #according to the documentatiion, we need to apply normal cdf to get actual prob values
+    
 
-    # only predict on selected data
+    # # only predict on selected data
     # bart_modmat = bart_modmat[data[, get(selected_ind)] == 1, ]
-    # print(dim(bart_modmat))
-    # gc()
 
-    # cat(paste0(Sys.time(), "\t\t Predicting model....\n"))
-    # prob = predict(bartfit, new_data = bart_modmat, type = 'prob')
+    
+    #prob = predict(bartfit, new_data = bart_modmat, type = 'prob')
 
     # bump up predicted yhats so they're greater than 0
-    cat(paste0(Sys.time(), "\t\t Getting probs....\n"))
-    prob = bartfit$y_hat_train + max(1, abs(min(bartfit$y_hat_train)) + 0.1)
+    #cat(paste0(Sys.time(), "\t\t Getting probs....\n"))
+    #prob = bartfit$y_hat_train + max(1, abs(min(bartfit$y_hat_train)) + 0.1)
 
     rm(bart_modmat)
     gc()
@@ -634,15 +652,16 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     # get important vars for raking
     cat(paste0(Sys.time(), "\t\t Getting var importance....\n"))
     
-
-    gc()
-    var_importance = investigate_var_importance(bartfit, plot = FALSE)
-    imp_vars = unlist(lapply(names(var_importance$avg_var_props), function(s){
+    imp_fit = randomForest(y = as.factor(selected$V1), x = ukbdata_modmat, importance = T, ntree = 100)
+    imp_vars = sort(imp_fit$importance[, 1], decreasing = T)
+    imp_vars = unlist(lapply(names(imp_vars), function(s){
                     which(unlist(lapply(vars, function(v) grepl(v, s))))
                     }))
     imp_vars = unique(vars[imp_vars[1:10]])
 
-    rm(bartfit)
+
+    rm(imp_fit)
+    rm(bartFit)
     gc()
 
     if(!is.null(imp_vars)){
@@ -752,7 +771,7 @@ runSim = function(data
         doBARTweight(data = data
         , vars = c(vars, vars_add)
         , selected_ind = selected_ind
-        , verbose = verbose
+        , verbose = TRUE 
         , ntree = ntree)
         }, error = function(e) print(e))
 
