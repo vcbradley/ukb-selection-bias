@@ -565,21 +565,26 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
 # load('data_modmat.rda')
 # selected = fread('samples/prop_0.02/sample_00001.csv')
-#  selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
+# selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
 
 #     bartfit = bartMachine(X = data.frame(ukbdata_modmat)
-#         , y = selected$V2
+#         , y = selected$V1
 #         , num_trees = 50
 #         , verbose = TRUE
-#         , run_in_sample = FALSE
+#         , run_in_sample = TRUE
 #         )
-# prob_hat = predict(bartfit, new_data = data.frame(ukbdata_modmat), type = 'prob') #need this and not y_hat_train to get probs
+
+#     summary(bartfit$y_hat_train)
+#     probs = bartfit$y_hat_train + max(1, abs(min(bartfit$y_hat_train)) + 0.1)
+#     summary(probs)
+#     summary(1/probs)
+#     probs = predict(bartfit, new_data = data.frame(ukbdata_modmat), type = 'prob') #need this and not y_hat_train to get probs
 
 # # var_importance = investigate_var_importance(bartfit, type = "splits")
 
-# summary(prob_hat)
-# mean(prob_hat[selected$V1 == 1])
-# mean(prob_hat[selected$V1 == 0])
+# summary(probs)
+# mean(probs[selected$V1 == 1])
+# mean(probs[selected$V1 == 0])
 # summary(selected$V2)
 # length(levels(selected$V2))
 # class(selected$V2)
@@ -594,10 +599,11 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     gc()
 
     bartfit = bartMachine(X = bart_modmat
-        , y = factor(data[, get(selected_ind)], levels = c('1', '0'), labels = c('1', '2'))
+        #, y = factor(data[, get(selected_ind)], levels = c('1', '0'), labels = c('1', '2'))
+        , y = data[, get(selected_ind)]
         , num_trees = ntree
         , verbose = verbose
-        , run_in_sample = FALSE
+        , run_in_sample = TRUE
         )
 
     # bartFit = bart(x.train = as.matrix(bart_modmat)
@@ -611,11 +617,15 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     # prob = 1/(1+exp(bart_lp))
 
     # only predict on selected data
-    bart_modmat = bart_modmat[data[, get(selected_ind)] == 1, ]
-    gc()
+    # bart_modmat = bart_modmat[data[, get(selected_ind)] == 1, ]
+    # print(dim(bart_modmat))
+    # gc()
 
-    cat(paste0(Sys.time(), "\t\t Predicting model....\n"))
-    prob = predict(bartfit, new_data = bart_modmat, type = 'prob')
+    # cat(paste0(Sys.time(), "\t\t Predicting model....\n"))
+    # prob = predict(bartfit, new_data = bart_modmat, type = 'prob')
+
+    # bump up predicted yhats so they're greater than 0
+    prob = bartfit$y_hat_train + max(1, abs(min(bartfit$y_hat_train)) + 0.1)
 
     rm(bart_modmat)
     rm(bartfit)
