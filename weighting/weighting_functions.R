@@ -586,9 +586,10 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
 
     cat(paste0(Sys.time(), "\t\t Creating model matricies....\n"))
     formula_bart = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^2'))
-    bart_modmat = modmat_all_levs(formula = formula_bart, data = data)
+    bart_modmat = modmat_all_levs(formula = formula_bart, data = data, sparse = T)
 
     cat(paste0(Sys.time(), "\t\t Fitting model....\n"))
+    gc()
 
     bartfit = bartMachine(X = data.frame(bart_modmat)
         , y = factor(data$selected, levels = c('1', '0'), labels = c('1', '2'))
@@ -619,7 +620,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     # get important vars for raking
     cat(paste0(Sys.time(), "\t\t Getting var importance....\n"))
     rm(bart_modmat)
-    
+
     gc()
     var_importance = investigate_var_importance(bartfit, plot = FALSE)
     imp_vars = unlist(lapply(names(var_importance$avg_var_props), function(s){
