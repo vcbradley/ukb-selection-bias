@@ -533,7 +533,9 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
             , family = 'binomial'
             , nfolds = 5
             , lambda=lambda)
-    cat('here3\n')
+    
+    rm(logit_modmat)
+    gc()
 
     print(summary(fit_logit))
 
@@ -612,7 +614,9 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
 
     cat(paste0(Sys.time(), "\t\t Predicting model....\n"))
     prob = predict(bartfit, new_data = bart_modmat, type = 'prob')
+
     rm(bart_modmat)
+    rm(bartfit)
     gc()
 
     weighted = cbind(data, bart_weight = 1/prob)
