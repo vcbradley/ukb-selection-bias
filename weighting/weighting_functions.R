@@ -683,6 +683,8 @@ runSim = function(data
 
     print(summary(logit_weighted$weight))
 
+    print(gc())
+
     ####### POST STRAT WITH variable selection
     cat(paste0(Sys.time(), '\t', "Running post strat...\n"))
     strat_data = tryCatch({
@@ -692,6 +694,8 @@ runSim = function(data
         }, error = function(e) print(e))
 
     print(summary(strat_data$weight))
+
+    print(gc())
 
 
     ####### CALIBRATE
@@ -705,6 +709,8 @@ runSim = function(data
         }, error = function(e) print(e))
 
     print(summary(calibrated_data$weight))
+
+    print(gc())
 
 
     ###### LASSO RAKE
@@ -720,10 +726,11 @@ runSim = function(data
 
     print(summary(lassorake_data$weight))
 
+    print(gc())
+
 
     ####### BART + rake
     cat(paste0(Sys.time(), '\t', "Running BART...\n"))
-    print(gc())
     bart_weighted = tryCatch({
         doBARTweight(data = data
         , vars = c(vars, vars_add)
@@ -734,6 +741,8 @@ runSim = function(data
 
     print(summary(bart_weighted$weight))
 
+    print(gc())
+    
      ##### RAKING
     cat(paste0(Sys.time(), '\t', "Running raking...\n"))
     raked_data = tryCatch({
