@@ -643,7 +643,6 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     #cat(paste0(Sys.time(), "\t\t Getting probs....\n"))
     #prob = bartfit$y_hat_train + max(1, abs(min(bartfit$y_hat_train)) + 0.1)
 
-    rm(bart_modmat)
     gc()
 
     weighted = cbind(data[get(selected_ind) == 1, ], bart_weight = 1/prob)
@@ -662,6 +661,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
 
     rm(imp_fit)
     rm(bartFit)
+    rm(bart_modmat)
     gc()
 
     if(!is.null(imp_vars)){
