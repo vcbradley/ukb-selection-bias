@@ -590,8 +590,6 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
 
     cat(paste0(Sys.time(), "\t\t Fitting model....\n"))
 
-    gc() 
-    
     bartfit = bartMachine(X = data.frame(bart_modmat)
         , y = factor(data$selected, levels = c('1', '0'), labels = c('1', '2'))
         , num_trees = ntree
@@ -609,6 +607,9 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     # bart_lp = bartfit$y_hat_train
     # prob = 1/(1+exp(bart_lp))
 
+    gc()
+
+    cat(paste0(Sys.time(), "\t\t Predicting model....\n"))
     prob = predict(bartfit, new_data = data.frame(bart_modmat), type = 'prob')
 
     weighted = cbind(data, bart_weight = 1/prob)
@@ -616,6 +617,10 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     weighted = weighted[, bart_weight := (1/(bart_weight + 0.00000001))/mean(1/(bart_weight + 0.00000001), na.rm = T)]
 
     # get important vars for raking
+    cat(paste0(Sys.time(), "\t\t Getting var importance....\n"))
+    rm(bart_modmat)
+    
+    gc()
     var_importance = investigate_var_importance(bartfit, plot = FALSE)
     imp_vars = unlist(lapply(names(var_importance$avg_var_props), function(s){
                     which(unlist(lapply(vars, function(v) grepl(v, s))))
@@ -717,6 +722,7 @@ runSim = function(data
 
     ####### BART + rake
     cat(paste0(Sys.time(), '\t', "Running BART...\n"))
+    print(gc())
     bart_weighted = tryCatch({
         doBARTweight(data = data
         , vars = c(vars, vars_add)
