@@ -14,7 +14,7 @@ gc()
 library(data.table)
 library(stringr)
 library(knitr)
-options(java.parameters = "-Xmx12g" ) 
+options(java.parameters = "-Xmx10g" ) 
 library(bartMachine)
 
 
