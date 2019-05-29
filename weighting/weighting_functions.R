@@ -568,6 +568,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 # selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
 
 
+# data[, selected := selected$V1]
 
 
 #     bartFit = bart(x.train = as.matrix(ukbdata_modmat)
@@ -623,7 +624,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     #     )
 
     bartFit = bart(x.train = as.matrix(bart_modmat)
-        , y.train = as.vector(data$selected)
+        , y.train = as.vector(data[, get(selected_ind)])
         , ntree = ntree
         , verbose = verbose)
 
@@ -645,13 +646,13 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
 
     gc()
 
-    weighted = cbind(data[get(selected_ind) == 1, ], bart_weight = 1/prob)
+    weighted = cbind(data, bart_weight = 1/prob)
     weighted = weighted[, bart_weight := (1/(bart_weight + 0.00000001))/mean(1/(bart_weight + 0.00000001), na.rm = T)]
 
     # get important vars for raking
     cat(paste0(Sys.time(), "\t\t Getting var importance....\n"))
     
-    imp_fit = randomForest(y = as.factor(data[get(selected_ind) == 1, ]), x = bart_modmat, importance = T, ntree = 100)
+    imp_fit = randomForest(y = as.factor(data[, get(selected_ind)]), x = as.matrix(bart_modmat), importance = T, ntree = 50)
     imp_vars = sort(imp_fit$importance[, 1], decreasing = T)
     imp_vars = unlist(lapply(names(imp_vars), function(s){
                     which(unlist(lapply(vars, function(v) grepl(v, s))))
