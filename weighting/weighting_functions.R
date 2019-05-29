@@ -567,7 +567,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 # selected = fread('samples/prop_0.02/sample_00001.csv')
 # selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
 
-
+# data = ukbdata
 # data[, selected := selected$V1]
 
 
@@ -650,15 +650,18 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     weighted = weighted[data[, get(selected_ind)] == 1, ] #limit to selected units
     weighted = weighted[, bart_weight := (1/(bart_weight + 0.00000001))/mean(1/(bart_weight + 0.00000001), na.rm = T)]
 
+    rm(bart_modmat)
+    gc()
+
     # get important vars for raking
     cat(paste0(Sys.time(), "\t\t Getting var importance....\n"))
     
-    imp_fit = randomForest(y = as.factor(data[, get(selected_ind)]), x = as.matrix(bart_modmat), importance = T, ntree = 50)
-    imp_vars = sort(imp_fit$importance[, 1], decreasing = T)
-    imp_vars = unlist(lapply(names(imp_vars), function(s){
-                    which(unlist(lapply(vars, function(v) grepl(v, s))))
-                    }))
-    imp_vars = unique(vars[imp_vars[1:10]])
+    # new modmat with categorical vars
+    imp_modmat = data[, vars, with = F]
+    imp_modmat[,(vars):=lapply(.SD, as.factor), .SDcols=vars]
+
+    imp_fit = randomForest(y = as.factor(data[, get(selected_ind)]), x = imp_modmat, importance = T, ntree = 50)
+    imp_vars = names(sort(imp_fit$importance[, 1], decreasing = T)[1:5])
 
 
     rm(imp_fit)
