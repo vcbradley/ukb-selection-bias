@@ -657,6 +657,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     cat(paste0(Sys.time(), "\t\t Getting var importance....\n"))
     
     # new modmat with categorical vars
+    vars = vars[!grepl('^age$|age_sq')]
     imp_modmat = data[, vars, with = F]
     imp_modmat[,(vars):=lapply(.SD, as.factor), .SDcols=vars]
 
