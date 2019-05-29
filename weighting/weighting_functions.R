@@ -647,7 +647,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     gc()
 
     weighted = cbind(data, bart_weight = 1/prob)
-    weighted = weighted[data[, get(selected_ind)] == 1, ]
+    weighted = weighted[data[, get(selected_ind)] == 1, ] #limit to selected units
     weighted = weighted[, bart_weight := (1/(bart_weight + 0.00000001))/mean(1/(bart_weight + 0.00000001), na.rm = T)]
 
     # get important vars for raking
