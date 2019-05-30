@@ -90,6 +90,9 @@ results_dir = paste0(sim_dir,'/results/prop_', prop)
 if(!dir.exists(results_dir)){
 	dir.create(results_dir)
 }
+
+# add sim num
+all_weights[, sim_num := JobId]
 write.csv(all_weights, file = paste0(results_dir, sprintf("/weights_%05d.csv", JobId)), row.names = F)
 
 
