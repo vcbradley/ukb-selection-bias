@@ -542,11 +542,23 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
     print(coef_logit)
 
-
     cat(paste0(Sys.time(), "\t\t Calculate weights....\n"))
-    # calculate weights
-    lp = predict(fit_logit, newx = logit_modmat[data$selected == 1, ], s = 'lambda.min')
-    probs = exp(lp)/(1+exp(lp))
+
+    # if the lasso didn't select any vars then just fit a logit with all vars
+    if(nrow(coef_logit) == 1){
+        fit_logit = glm(as.formula(paste0(selected_ind, "~", paste(vars, collapse = '+')))
+            , data = data
+            , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
+            , family = 'binomial'
+            )
+        probs = fit_logit$fitted.values[data[,get(selected_ind)] == 1]
+
+    }else{
+        # calculate weights
+        lp = predict(fit_logit, newx = logit_modmat[data$selected == 1, ], s = 'lambda.min')
+        probs = exp(lp)/(1+exp(lp))        
+    }
+
     weighted = data[selected == 1,]
     weighted[, prob := probs]
     weighted[, weight := (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T)]
@@ -564,11 +576,12 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
 # load('data_modmat.rda')
 # load('data.rda')
-# selected = fread('samples/prop_0.02/sample_00010.csv')
+# selected = fread('samples/prop_0.02/sample_00016.csv')
 # selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
 
 # data = ukbdata
-# data[, selected := selected$V1]
+# data[, selected := selected$V16]
+# data$selected <- selected$V16
 
 
 #     bartFit = bart(x.train = as.matrix(ukbdata_modmat)
