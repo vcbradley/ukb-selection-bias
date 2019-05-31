@@ -25,7 +25,7 @@ accuracy[, .N, prop_sampled]
 ##############################
 
 plotError = function(data, methods, plot_style = 'overlap', x_var = 'samp_error', extra_title = NULL){
-  plot = ggplot(data, aes(x = get(x_var)))
+  plot = ggplot(data, aes(x = get(x_var))) + theme_light()
   
   if(plot_style == 'tiled'){
     
@@ -71,6 +71,11 @@ for(p in all_props){
   
 }
 
+
+#############################
+# PLOT Error by sample size #
+#############################
+
 error_melted = melt(accuracy, id.vars = c('prop_sampled', 'var', 'level', 'sim_num'), measure.vars = names(accuracy)[grepl('error', names(accuracy))])
 outcome_melted = melt(accuracy, id.vars = c('prop_sampled', 'var', 'level', 'sim_num'), measure.vars = names(accuracy)[grepl('brainvol', names(accuracy))])
 
@@ -81,7 +86,8 @@ plot_error_by_sampsize = ggplot(error_melted[var == 'has_t1_MRI' & variable != '
   facet_grid(. ~ gsub("_error","",variable)) +
   xlab('Sample size') + ylab('Weighted error') + ggtitle('Error by sample size') + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  labs(color = "N")
+  theme_light() +
+  labs(color = "N") 
 ggsave(filename = paste0(plot_dir, '/error_by_sample_size_method.pdf'), plot = plot_error_by_sampsize, device = 'pdf', width = 10, height = 5)
 
 
@@ -93,7 +99,7 @@ plotMSE = function(data, methods, x_axis = 'pop_prop'){
   plot = ggplot(data, aes(x = get(x_axis)))
   
   plot = plot + unlist(lapply(methods, function(m){
-    geom_line(aes(y = get(paste0(m, '_brainvol_mse')), color = m))
+    geom_point(aes(y = get(paste0(m, '_brainvol_mse')), color = m))
   }))
   
   plot = plot + ylab('Weighted error') + ggtitle('Weighted error')
@@ -105,6 +111,12 @@ plotMSE = function(data, methods, x_axis = 'pop_prop'){
 
 print(plotMSE(mse[prop_sampled == 0.02], methods = methods, x_axis = 'samp_prop'))
 
+plots = lapply(methods, function(m){
+  plot = 
+})
+
+ggplot(mse[prop_sampled == 0.02,], aes(x = samp_brainvol_error, y = get(paste0(m, '_brainvol_mse')), size = pop_prop)) + 
+  geom_point() + facet_grid(.~)
 
 
 total_error = merge(accuracy[var == 'has_t1_MRI'], variance, by = c('sim_num', 'prop_sampled'))
