@@ -546,7 +546,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     cat(paste0(Sys.time(), "\t\t Calculate weights....\n"))
     # calculate weights
     lp = predict(fit_logit, newx = logit_modmat[data$selected == 1, ], s = 'lambda.min')
-    probs = 1/(1+exp(lp))
+    probs = exp(lp)/(1+exp(lp))
     weighted = data[selected == 1,]
     weighted[, prob := probs]
     weighted[, weight := (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T)]
@@ -564,7 +564,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
 # load('data_modmat.rda')
 # load('data.rda')
-# selected = fread('samples/prop_0.02/sample_00001.csv')
+# selected = fread('samples/prop_0.02/sample_00010.csv')
 # selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
 
 # data = ukbdata
