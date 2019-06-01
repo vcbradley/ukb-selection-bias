@@ -24,14 +24,17 @@ source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.
 # might want to think about controlling the level of noise
 
 ####### SET simulation parameters
-n_equations = 1
-n_samples = 5000
+n_equations = 5000
+n_samples = 1
 
 
 ## Get JobID and create new simulation directory
 #JobId = as.numeric(Sys.getenv("JOB_ID"))
-sim_id = paste0('sim_', n_equations, '_', n_samples, '_', JobId)
-dir.create(sim_id)
+sim_id = paste0('sim_', n_equations, '_', n_samples)
+if(!dir.exists(sim_id)){
+	dir.create(sim_id)
+}
+
 
 
 
