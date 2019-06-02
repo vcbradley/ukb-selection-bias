@@ -44,7 +44,7 @@ plotError = function(data, methods, plot_style = 'overlap', x_var = 'samp_error'
     
     ncol = ceiling(sqrt(length(methods)))
     nrow = ceiling(length(methods)/ncol)
-    plot = marrangeGrob(subplots, ncol = ncol, nrow = nrow, top=paste0('Weighted error by raw sample error', ifelse(!is.null(extra_title), extra_title, '')))
+    plot = marrangeGrob(subplots, ncol = ncol, nrow = nrow, top=paste0('Weighted by raw brain volume error', ifelse(!is.null(extra_title), extra_title, '')))
     
   }else{
     
@@ -109,14 +109,57 @@ plotMSE = function(data, methods, x_axis = 'pop_prop'){
 }
 
 
-print(plotMSE(mse[prop_sampled == 0.02], methods = methods, x_axis = 'samp_prop'))
+print(plotMSE(mse[prop_sampled == 0.02 & samp_prop < 0.2], methods = methods, x_axis = 'samp_prop'))
 
-plots = lapply(methods, function(m){
-  plot = 
-})
 
-ggplot(mse[prop_sampled == 0.02,], aes(x = samp_brainvol_error, y = get(paste0(m, '_brainvol_mse')), size = pop_prop)) + 
-  geom_point() + facet_grid(.~)
+
+#######################
+# PLOT Subgroup error #
+#######################
+
+plotSubgroupError = function(data, methods, p, extra_title){
+  subplots = lapply(methods, function(m){
+    plot = ggplot(data, aes(x = samp_brainvol_error, y = get(paste0(m, '_brainvol_mse')), size = pop_prop)) + 
+      geom_point() + 
+      xlab('Sample error') + ylab('Weighted log(MSE)') +
+      ggtitle(m)
+  })
+  
+  ncol = ceiling(sqrt(length(methods)))
+  nrow = ceiling(length(methods)/ncol)
+  plot = marrangeGrob(subplots, ncol = ncol, nrow = nrow, top=paste0('Subgroup brain volume error', ifelse(!is.null(extra_title), extra_title, '')))
+  
+  return(plot)
+}
+
+
+for(p in all_props){
+  plot_subgroup_err = plotSubgroupError(data = mse[prop_sampled == p & pop_prop < 0.25,], methods = methods, extra_title = paste0('\nprop sampled = ', p))
+  ggsave(filename = paste0(plot_dir, '/plot_subgroup_err_', p, '.pdf'), plot = plot_subgroup_err, device = 'pdf', width = 10, height = 6, units = 'in')
+}
+
+
+ggplot(accuracy[prop_sampled == 0.02, .(pop_prop = min(pop_prop)
+                                        , rake_error = log(sum(rake_error ^ 2))
+                      , strat_error = log(sum(strat_error ^ 2))
+                      , calib_error = log(sum(calib_error ^ 2))
+                      , lasso_error = log(sum(lasso_error ^ 2))
+                      , logit_error = log(sum(logit_error ^ 2))
+                      , bart_error = log(sum(bart_error ^ 2))
+                      )
+                , by = .(var, level, prop_sampled)]) + 
+  geom_point(aes(x = pop_prop, y = rake_error)) +
+  geom_point(aes(x = pop_prop, y = strat_error)) +
+  geom_point(aes(x = pop_prop, y = calib_error)) +
+  geom_point(aes(x = pop_prop, y = lasso_error)) +
+  geom_point(aes(x = pop_prop, y = logit_error)) +
+  geom_point(aes(x = pop_prop, y = bart_error))
+
+
+
+
+
+
 
 
 total_error = merge(accuracy[var == 'has_t1_MRI'], variance, by = c('sim_num', 'prop_sampled'))
