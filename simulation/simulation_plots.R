@@ -81,7 +81,8 @@ outcome_melted = melt(accuracy, id.vars = c('prop_sampled', 'var', 'level', 'sim
 
 
 plot_error_by_sampsize = ggplot(error_melted[var == 'has_t1_MRI' & variable != 'samp_error']
-                                , aes(x = factor(round(prop_sampled * max(accuracy$pop_count))), y = value, color = factor(round(prop_sampled * max(accuracy$pop_count))))) + 
+                                , aes(x = factor(round(prop_sampled * max(accuracy$pop_count)))
+                                      , y = value, color = factor(round(prop_sampled * max(accuracy$pop_count))))) + 
   geom_boxplot() +
   facet_grid(. ~ gsub("_error","",variable)) +
   xlab('Sample size') + ylab('Weighted error') + ggtitle('Error by sample size') + 
@@ -99,7 +100,7 @@ plotMSE = function(data, methods, x_axis = 'pop_prop'){
   plot = ggplot(data, aes(x = get(x_axis)))
   
   plot = plot + unlist(lapply(methods, function(m){
-    geom_point(aes(y = get(paste0(m, '_brainvol_mse')), color = m))
+    geom_point(aes(y = get(paste0(m, '_brainvol_mse')), color = m, group = prop_sampled))
   }))
   
   plot = plot + ylab('Weighted error') + ggtitle('Weighted error')
@@ -109,7 +110,11 @@ plotMSE = function(data, methods, x_axis = 'pop_prop'){
 }
 
 
-print(plotMSE(mse[prop_sampled == 0.02 & samp_prop < 0.2], methods = methods, x_axis = 'samp_prop'))
+print(plotMSE(mse, methods = methods, x_axis = 'samp_prop'))
+
+
+
+accuracy[var == 'has_t1_MRI', ]
 
 
 
@@ -120,7 +125,7 @@ print(plotMSE(mse[prop_sampled == 0.02 & samp_prop < 0.2], methods = methods, x_
 plotSubgroupError = function(data, methods, p, extra_title){
   subplots = lapply(methods, function(m){
     plot = ggplot(data, aes(x = samp_brainvol_error, y = get(paste0(m, '_brainvol_mse')), size = pop_prop)) + 
-      geom_point() + 
+      stat_density_2d(aes(fill = ..level..), geom = "polygon") +
       xlab('Sample error') + ylab('Weighted log(MSE)') +
       ggtitle(m)
   })
@@ -131,6 +136,7 @@ plotSubgroupError = function(data, methods, p, extra_title){
   
   return(plot)
 }
+
 
 
 for(p in all_props){
@@ -191,4 +197,37 @@ plot = plot + unlist(lapply(methods[-which(methods == 'logit')], function(m){
 }))
 
 print(plot)
+
+
+
+
+mse[var == 'has_t1_MRI', .(prop_sampled
+                           , rake_brainvol_mse
+                           , strat_brainvol_mse
+                           , calib_brainvol_mse
+                           , lasso_brainvol_mse
+                           , logit_brainvol_mse
+                           , bart_brainvol_mse
+)]
+
+ggplot(mse[var == 'has_t1_MRI']) + 
+  geom_line(aes(x = prop_sampled, y = rake_brainvol_mse, color = 'rake')) +
+  geom_line(aes(x = prop_sampled, y = strat_brainvol_mse, color = 'strat')) +
+  geom_line(aes(x = prop_sampled, y = calib_brainvol_mse, color = 'calib')) +
+  geom_line(aes(x = prop_sampled, y = lasso_brainvol_mse, color = 'lassp')) +
+  geom_line(aes(x = prop_sampled, y = logit_brainvol_mse, color = 'logit')) +
+  geom_line(aes(x = prop_sampled, y = bart_brainvol_mse, color = 'bart'))
+
+
+
+
+ggplot(variance[, lapply(.SD, mean), .SDcols = grepl('var', names(variance)), by = prop_sampled]) + 
+  geom_line(aes(x = prop_sampled, y = var_rake, color = 'rake')) +
+  geom_line(aes(x = prop_sampled, y = var_strat, color = 'strat')) +
+  #geom_line(aes(x = prop_sampled, y = var_calib, color = 'calib')) +
+  #geom_line(aes(x = prop_sampled, y = var_lasso, color = 'lasso')) +
+  geom_line(aes(x = prop_sampled, y = var_logit, color = 'logit')) +
+  geom_line(aes(x = prop_sampled, y = var_bart, color = 'bart'))
+
+
 
