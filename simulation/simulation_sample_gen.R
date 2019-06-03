@@ -1,6 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript    
 #$ -N sample_gen    
-#$ -t 1:7
+#$ -t 1:2
 #$ -cwd
 #$ -o ./logs                                                                                                                                                                               
 #$ -e ./logs   
@@ -27,8 +27,8 @@ n_equations = as.numeric(str_split(sim_name, '_')[[1]][2])
 
 
 ####### SET simulation parameters
-prop_sampled_options = c(0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 0.75)
-
+#prop_sampled_options = c(0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 0.75)
+prop_sampled_options = c(0.04, 0.075)
 
 # Set specific param for this task
 TaskId = as.numeric(Sys.getenv("SGE_TASK_ID"))
