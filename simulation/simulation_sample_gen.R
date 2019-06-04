@@ -1,6 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript    
 #$ -N sample_gen    
-#$ -t 1:9
+#$ -t 4:9
 #$ -cwd
 #$ -o ./logs                                                                                                                                                                               
 #$ -e ./logs   
@@ -33,7 +33,7 @@ prop_sampled_options = c(0.01, 0.02, 0.04, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75)
 
 # Set specific param for this task
 TaskId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-#TaskId = 1
+#TaskId = 3
 prop_sampled = prop_sampled_options[TaskId]
 
 load('data_modmat.rda')
@@ -85,7 +85,7 @@ if(!dir.exists(sample_dir)){
 
 
 files = lapply(1:ncol(samples), function(s){
-	samp = samples[, s, with = F]
+	samp = samples[, s]
 	filename = paste0(sample_dir, '/sample_', str_pad(s, width = 5, side = 'left', pad = '0'), '.csv')
 	
 	write.csv(samp, file = filename, row.names = F)

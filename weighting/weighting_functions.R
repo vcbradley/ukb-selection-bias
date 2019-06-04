@@ -253,11 +253,11 @@ doPostStratVarSelect = function(data, vars, selected_ind){
     strat_vars = names(ps_vars[1:n_vars])
 
     ## DO POST STRAT
-    strat_data = doPostStrat(svydata = data[get(selected_ind) == 1,]
+    weighted = doPostStrat(svydata = data[get(selected_ind) == 1,]
             , popdata = data
             , vars = strat_vars)
 
-    return(strat_data)
+    return(weighted, strat_vars)
 }
 
 
@@ -421,7 +421,7 @@ doLassoRake = function(
     weighted = data[get(selected_ind) == 1, ]
     weighted$weight = svydata$prior_weight
 
-    return(weighted)
+    return(weighted, lasso_vars)
 }
 
 
@@ -546,6 +546,8 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
     # if the lasso didn't select any vars then just fit a logit with all vars
     if(nrow(coef_logit) == 1){
+        logit_vars = 'all'
+
         fit_logit = glm(as.formula(paste0(selected_ind, "~", paste(vars, collapse = '+')))
             , data = data
             , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
@@ -554,6 +556,8 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
         probs = fit_logit$fitted.values[data[,get(selected_ind)] == 1]
 
     }else{
+        logit_vars = names(coef_logit)
+
         # calculate weights
         lp = predict(fit_logit, newx = logit_modmat[data$selected == 1, ], s = 'lambda.min')
         probs = exp(lp)/(1+exp(lp))        
@@ -563,7 +567,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     weighted[, prob := probs]
     weighted[, weight := (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T)]
 
-    return(weighted[, -'prob', with = F])
+    return(weighted[, -'prob', with = F], logit_vars)
 }
 
 
@@ -699,7 +703,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
         weighted = weighted[, -'bart_weight', with = F]
     }
 
-    return(weighted)
+    return(weighted, imp_vars)
 }
 
 
