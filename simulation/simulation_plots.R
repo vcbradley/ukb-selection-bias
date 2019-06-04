@@ -5,7 +5,7 @@ library(gridExtra)
 setwd('~/github/mini-project-1/simulation/')
 list.files('results')
 
-which_sim = 'sim_1_5000_1'
+which_sim = 'sim_5000_1'
 
 load(paste0('results/', which_sim, '/results_summary.rda'))
 
@@ -220,14 +220,47 @@ ggplot(mse[var == 'has_t1_MRI']) +
 
 
 
+###########################
+# PLOT var x prop sampled #
+###########################
 
-ggplot(variance[, lapply(.SD, mean), .SDcols = grepl('var', names(variance)), by = prop_sampled]) + 
+plot_var_x_prop_sampled = ggplot(variance[, lapply(.SD, mean), .SDcols = grepl('var', names(variance)), by = prop_sampled]) + 
+  xlab('Proportion sampled') +
+  ylab('Weight variance') +
+  ggtitle("Variance by proportion sampled")+
+  theme_classic() +
   geom_line(aes(x = prop_sampled, y = var_rake, color = 'rake')) +
   geom_line(aes(x = prop_sampled, y = var_strat, color = 'strat')) +
-  #geom_line(aes(x = prop_sampled, y = var_calib, color = 'calib')) +
-  #geom_line(aes(x = prop_sampled, y = var_lasso, color = 'lasso')) +
+  geom_line(aes(x = prop_sampled, y = var_calib, color = 'calib')) +
+  geom_line(aes(x = prop_sampled, y = var_lasso, color = 'lasso')) +
   geom_line(aes(x = prop_sampled, y = var_logit, color = 'logit')) +
-  geom_line(aes(x = prop_sampled, y = var_bart, color = 'bart'))
+  geom_line(aes(x = prop_sampled, y = var_bart, color = 'bart')) 
+
+ggsave(filename = paste0(plot_dir, '/plot_var_x_prop_sampled.pdf'), plot = plot_var_x_prop_sampled, device = 'pdf', width = 10, height = 6, units = 'in')
 
 
+
+###################
+# PLOT var by MSE #
+###################
+
+variance_melted = melt(variance, id.vars = c('prop_sampled', 'sim_num'))
+variance_melted = variance_melted[value > 0, .(Var = mean(value)), by = .(prop_sampled, variable)]
+variance_melted[, variable := gsub('var_', '', variable)]
+
+mse_melted = melt(mse[var == 'has_t1_MRI', grepl('prop_sampled|mse', names(mse)), with = F], id.vars = c('prop_sampled'), value.name = 'MSE')
+mse_melted[, variable := gsub('_brainvol_mse', '', variable)]
+
+var_and_mse = merge(mse_melted, variance_melted, by = c('prop_sampled', 'variable'))
+
+
+plot_var_by_MSE = ggplot(var_and_mse, aes(x = MSE, y = Var, color = variable)) + 
+  geom_line() + theme_classic() + 
+  xlab('Log(MSE)') + ylab('Weight variance') +
+  ggtitle('Variance by MSE')
+
+ggsave(filename = paste0(plot_dir, '/plot_var_by_MSE.pdf'), plot = plot_var_by_MSE, device = 'pdf', width = 10, height = 6, units = 'in')
+
+
+var_and_mse[order(variable)]
 
