@@ -32,35 +32,42 @@ n_equations = as.numeric(str_split(sim_name, '_')[[1]][2])
 prop_sampled_options = c(0.01, 0.02, 0.04, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75)
 
 # Set specific param for this task
-TaskId = as.numeric(Sys.getenv("SGE_TASK_ID"))
+#TaskId = as.numeric(Sys.getenv("SGE_TASK_ID"))
+TaskId = 1
 prop_sampled = prop_sampled_options[TaskId]
 
 load('data_modmat.rda')
 coeff_samples = fread('coefs.csv')
 
+### hard set age
+#coeff_samples[which(colnames(ukbdata_modmat) == 'age'), X1 := -5]
+#ukbdata_modmat[, which(colnames(ukbdata_modmat) == 'age')]
+
 ####### USE COEFS TO GENERATE SAMPLES
 lps = ukbdata_modmat %*% as.matrix(coeff_samples)
 probs = exp(lps)/(1+exp(lps))
 
+#check 
+cat('Dist of probs\n')
+summary(probs)
 
-samples = lapply(1:ncol(probs), function(i, probs, prop_sampled, n_samples){
-    p = probs[,i]
-    temp = matrix(1, nrow = length(p), ncol = n_samples)
 
-    temp = apply(temp, 2, function(p, prop_sampled){
-        sampled_int = sample.int(n = length(p), size = length(p) * prop_sampled, prob = p)
-        sampled = seq(from = 1, to = length(p), by = 1)
-        sampled = ifelse(sampled %in% sampled_int, 1, 0)
-        }, prop_sampled)
+prob_mat = matrix(apply(probs, 2, rep, n_samples), ncol = ncol(probs)*n_samples)
 
-    return(data.table(temp))
-    
-    }, probs, prop_sampled, n_samples)
-samples = do.call(cbind, samples)
+samples = apply(prob_mat, 2, function(p, prop_sampled){
+	sampled_int = sample(x = 1:length(p), size = (length(p) * prop_sampled), prob = p)
+    sampled = rep(0, length(p))
+    sampled[sampled_int] = 1
+    sampled
+	}, prop_sampled)
 
 length(samples)
 dim(samples)
 head(samples)
+
+#check that the missingness worked
+mean(probs[samples[,1] == 1])
+mean(probs[samples[,1] == 0])
 
 #check that we sampled the right number
 apply(samples, 2, sum)
@@ -77,7 +84,7 @@ if(!dir.exists(sample_dir)){
 }
 
 
-lapply(1:ncol(samples), function(s){
+files = lapply(1:ncol(samples), function(s){
 	samp = samples[, s, with = F]
 	filename = paste0(sample_dir, '/sample_', str_pad(s, width = 5, side = 'left', pad = '0'), '.csv')
 	
@@ -89,14 +96,16 @@ lapply(1:ncol(samples), function(s){
 
 
 
-############ QC ING ###########
-# samp = fread('samples/prop_0.02/sample_00001.csv')
-# samp = fread('samples/prop_0.02/sample_00002.csv')
+########### QC ING ###########
+covars = fread('missingness_covars.csv')
+load('data.rda')
 
 
+
+# read in first 1000 samples
 # samps = NULL
-# for(i in 1:100){
-# 	temp = fread(paste0('samples/prop_0.02/sample_',str_pad(i, width = 5, side = 'left', pad = '0'),'.csv'))
+# for(i in 1:1000){
+# 	temp = fread(paste0('samples/prop_0.01/sample_',str_pad(i, width = 5, side = 'left', pad = '0'),'.csv'))
 
 # 	if(is.null(samps)){
 # 		samps = temp
@@ -105,28 +114,29 @@ lapply(1:ncol(samples), function(s){
 # 	}
 # }
 
-# apply(samps * probs, 2, sum)/sum(samps$V1)
-# apply((1-samps) * probs, 2, sum)/sum(1-samps$V1)
+
+# any bias in age?
+bias = unlist(lapply(1:1000, function(s){
+	samp = unlist(samples[, s])
+	#samp = unlist(samps[, s, with = F])
+	ukbdata[samp == 1, mean(MRI_brain_vol)] - ukbdata[samp == 0, mean(MRI_brain_vol)]
+	}))
+
+summary(bias)
+
+ukbdata[samp == 1, mean(age)] - ukbdata[samp == 0, mean(age)]
+
+# bias in brain vol by prob?
+ukbdata[, .(mean(MRI_brain_vol/1000), .N), cut(probs, breaks = quantile(probs, probs = seq(0,1,0.2)))][order(cut)]
+
+cbind(ukbdata, probs)[, .(mean(X1), .N), cut(age, breaks = quantile(age, probs = seq(0,1,0.1)))][order(cut)]
 
 
-# summary(probs)
+mean(sample(probs, size = 1000, prob = probs))
+mean(probs)
 
 
-# sampled_int = sample.int(nrow(probs),size = 200, prob = probs[,1])
-
-# cbind(sampled = summary(probs[sampled_int,])
-# ,not_sampled = summary(probs[-sampled_int,]))
-
-
-
-# head(ukbdata_modmat[, coeff_samples != 0])
-
-# covars = fread('missingness_covars.csv')
-# load('data.rda')
-
-# cbind(covars, coeff_samples)[as.vector(coeff_samples != 0),]
-
-
-# cbind(ukbdata, probs)[, .(mean(X1)), demo_age_bucket][order(demo_age_bucket)]
+cbind(covars, coeff_samples)[as.vector(coeff_samples != 0),]
+cbind(ukbdata, probs)[, .(mean(X1)), demo_age_bucket][order(demo_age_bucket)]
 
 

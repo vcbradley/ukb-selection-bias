@@ -58,8 +58,6 @@ ukbdata[, age_sq := age^2]
 ukbdata[, bmi_sq := bmi^2]
 ukbdata[, health_alc_weekly_total_sq := health_alc_weekly_total^2]
 
-ukbdata$noise <- rnorm(nrow(ukbdata),0,1)
-
 # check NAs
 nas = apply(ukbdata, 2, function(x) sum(is.na(x)))
 nas[nas > 0]
@@ -91,6 +89,13 @@ ukbdata_modmat[, which(missingness_covars$data_type == 'int')] <- scale(ukbdata_
 apply(ukbdata_modmat[, which(missingness_covars$data_type == 'int')], 2, mean)
 apply(ukbdata_modmat[, which(missingness_covars$data_type == 'int')], 2, sd)
 
+# drop interactions with NaNs
+nans = apply(ukbdata_modmat, 2, function(x) sum(is.nan(x)))
+nans[nans > 0]
+
+ukbdata_modmat = ukbdata_modmat[, -which(nans > 0)]
+missingness_covars = missingness_covars[-which(nans > 0),]
+
 
 ##### GENERATE MISSINGNESS MODEL COEFS
 coeff_samples = rbindlist(lapply(1:nrow(missingness_covars), function(t, n_equations){
@@ -105,7 +110,7 @@ coeff_samples = rbindlist(lapply(1:nrow(missingness_covars), function(t, n_equat
 
     	# set prob of coef being non-zero based on type and data type
     	if(type == 'interaction'){
-    		spike_prob = 0.001
+    		spike_prob = 0.003
     	} else if (type == 'health_interaction'){
 			spike_prob = 0.0005
     	} else if(data_type == 'int'){
