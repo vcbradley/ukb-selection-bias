@@ -97,46 +97,46 @@ files = lapply(1:ncol(samples), function(s){
 
 
 ########### QC ING ###########
-covars = fread('missingness_covars.csv')
-load('data.rda')
+# covars = fread('missingness_covars.csv')
+# load('data.rda')
 
 
 
-# read in first 1000 samples
-# samps = NULL
-# for(i in 1:1000){
-# 	temp = fread(paste0('samples/prop_0.01/sample_',str_pad(i, width = 5, side = 'left', pad = '0'),'.csv'))
+# # read in first 1000 samples
+# # samps = NULL
+# # for(i in 1:1000){
+# # 	temp = fread(paste0('samples/prop_0.01/sample_',str_pad(i, width = 5, side = 'left', pad = '0'),'.csv'))
 
-# 	if(is.null(samps)){
-# 		samps = temp
-# 	}else{
-# 		samps = cbind(samps, temp)
-# 	}
-# }
-
-
-# any bias in age?
-bias = unlist(lapply(1:1000, function(s){
-	samp = unlist(samples[, s])
-	#samp = unlist(samps[, s, with = F])
-	ukbdata[samp == 1, mean(MRI_brain_vol)] - ukbdata[samp == 0, mean(MRI_brain_vol)]
-	}))
-
-summary(bias)
-
-ukbdata[samp == 1, mean(age)] - ukbdata[samp == 0, mean(age)]
-
-# bias in brain vol by prob?
-ukbdata[, .(mean(MRI_brain_vol/1000), .N), cut(probs, breaks = quantile(probs, probs = seq(0,1,0.2)))][order(cut)]
-
-cbind(ukbdata, probs)[, .(mean(X1), .N), cut(age, breaks = quantile(age, probs = seq(0,1,0.1)))][order(cut)]
+# # 	if(is.null(samps)){
+# # 		samps = temp
+# # 	}else{
+# # 		samps = cbind(samps, temp)
+# # 	}
+# # }
 
 
-mean(sample(probs, size = 1000, prob = probs))
-mean(probs)
+# # any bias in age?
+# bias = unlist(lapply(1:1000, function(s){
+# 	samp = unlist(samples[, s])
+# 	#samp = unlist(samps[, s, with = F])
+# 	ukbdata[samp == 1, mean(MRI_brain_vol)] - ukbdata[samp == 0, mean(MRI_brain_vol)]
+# 	}))
+
+# summary(bias)
+
+# ukbdata[samp == 1, mean(age)] - ukbdata[samp == 0, mean(age)]
+
+# # bias in brain vol by prob?
+# ukbdata[, .(mean(MRI_brain_vol/1000), .N), cut(probs, breaks = quantile(probs, probs = seq(0,1,0.2)))][order(cut)]
+
+# cbind(ukbdata, probs)[, .(mean(X1), .N), cut(age, breaks = quantile(age, probs = seq(0,1,0.1)))][order(cut)]
 
 
-cbind(covars, coeff_samples)[as.vector(coeff_samples != 0),]
-cbind(ukbdata, probs)[, .(mean(X1)), demo_age_bucket][order(demo_age_bucket)]
+# mean(sample(probs, size = 1000, prob = probs))
+# mean(probs)
+
+
+# cbind(covars, coeff_samples)[as.vector(coeff_samples != 0),]
+# cbind(ukbdata, probs)[, .(mean(X1)), demo_age_bucket][order(demo_age_bucket)]
 
 
