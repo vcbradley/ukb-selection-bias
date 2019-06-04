@@ -17,6 +17,10 @@ i.e.
 `cd /well/nichols/users/bwj567/simulation/sim_1_5000_1`
 `qsub /well/nichols/users/bwj567/mini-project-1/simulation/simulation_sample_gen.R`
 4. `qsub /well/nichols/users/bwj567/mini-project-1/simulation/simulation_run.R`
+5. Once results are finished, navigate to the simulation directory
+`cd /well/nichols/users/bwj567/simulation/sim_1_5000_1`
+and run the following R code:
+`/well/nichols/users/bwj567/mini-project-1/simulation/simulation_analysis.R`
 
 To check on job status, `qstat`
 To delete job, `qdel JOBID`
