@@ -24,13 +24,13 @@ source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.
 # might want to think about controlling the level of noise
 
 ####### SET simulation parameters
-n_equations = 5000
-n_samples = 1
+n_equations = 1
+n_samples = 5000
 
 
 ## Get JobID and create new simulation directory
 #JobId = as.numeric(Sys.getenv("JOB_ID"))
-sim_id = paste0('sim_', n_equations, '_', n_samples)
+sim_id = paste0('sim_', n_equations, '_', n_samples, '_v2')
 if(!dir.exists(sim_id)){
 	dir.create(sim_id)
 }
@@ -71,17 +71,20 @@ nas[nas > 0]
 
 ### TO DO: ADD IN INTERACTIONS
 vars_to_consider = names(ukbdata)[-grep('^MRI|eid|has|assessment|demo_ethnicity_4way|demo_white|demo_educ_highest$', names(ukbdata))]
-formula = paste("~-1+(", paste0(vars_to_consider, collapse = " + "), ")")
+formula = paste("~-1+(", paste0(vars_to_consider, collapse = " + "), ") ^ 2")
 ukbdata_modmat = modmat_all_levs(as.formula(formula), data = ukbdata)
 
 
 missingness_covars = data.table(var_name = colnames(ukbdata_modmat))
 missingness_covars[, data_type := ifelse(grepl('bmi|^age|health_alc_weekly_total', var_name), 'int', 'char')]
-missingness_covars[var_name == 'noise', data_type := 'noise']
 missingness_covars[, type := ifelse(grepl('health|bmi', var_name), 'health', 'demo')]
 
+#hard code exceptions
+missingness_covars[grepl(':', var_name), type := 'interaction']
+missingness_covars[type == 'interaction' & grepl('health|bmi', var_name), type := 'health_interaction']
+missingness_covars[var_name == 'age', type := 'age']
 
-#normalize continuous variables
+#normalize continuous variables EXCEPT AGE
 ukbdata_modmat[, which(missingness_covars$data_type == 'int')] <- scale(ukbdata_modmat[, which(missingness_covars$data_type == 'int')])
 
 #check that it looks ok
@@ -90,25 +93,44 @@ apply(ukbdata_modmat[, which(missingness_covars$data_type == 'int')], 2, sd)
 
 
 ##### GENERATE MISSINGNESS MODEL COEFS
-coeff_samples = rbindlist(lapply(missingness_covars$data_type, function(t, n_equations){
+coeff_samples = rbindlist(lapply(1:nrow(missingness_covars), function(t, n_equations){
+	data_type = missingness_covars[t,2]
+	type = missingness_covars[t,3]
     
-    # always include noise
-    if(t == 'noise'){
+    # always include age
+    if(type == 'age'){
         spike = rep(1, n_equations)
-        slab_sd = 0.25
+        slab_sd = 4
     }else{
-        spike_prob = ifelse(t == 'int', 0.75, 0.25)
+
+    	# set prob of coef being non-zero based on type and data type
+    	if(type == 'interaction'){
+    		spike_prob = 0.001
+    	} else if (type == 'health_interaction'){
+			spike_prob = 0.0005
+    	} else if(data_type == 'int'){
+    		spike_prob = 0.75
+    	} else{
+    		spike_prob = 0.25
+    	}
+
         spike = rbinom(n = n_equations, size = 1, prob = spike_prob)
-        slab_sd = ifelse(t == 'int', 1.5, 2)
+        slab_sd = 1.5
     }  
     
     slab = rnorm(n = n_equations, 0, slab_sd)
 
-    data.frame(t(spike * slab))
+    data.frame(coef = t(spike * slab))
     }, n_equations))
 
 #rename coeff_samples columns
 setnames(coeff_samples, old = names(coeff_samples), new = paste0('X', 1:ncol(coeff_samples)))
+
+
+# check that things are behaving well
+cbind(missingness_covars, coeff_samples)[type == 'interaction' & as.vector(coeff_samples$X1) != 0,]
+cbind(missingness_covars, coeff_samples)[type == 'age' & as.vector(coeff_samples$X1) != 0,]
+cbind(missingness_covars, coeff_samples)[data_type == 'int' & as.vector(coeff_samples$X1) != 0,]
 
 # check how many are non-zero
 apply(coeff_samples, 2, function(x) sum(x > 0))
