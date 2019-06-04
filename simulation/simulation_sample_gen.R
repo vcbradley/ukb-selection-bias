@@ -1,6 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript    
 #$ -N sample_gen    
-#$ -t 1:2
+#$ -t 1:9
 #$ -cwd
 #$ -o ./logs                                                                                                                                                                               
 #$ -e ./logs   
@@ -28,7 +28,8 @@ n_equations = as.numeric(str_split(sim_name, '_')[[1]][2])
 
 ####### SET simulation parameters
 #prop_sampled_options = c(0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 0.75)
-prop_sampled_options = c(0.04, 0.075)
+#prop_sampled_options = c(0.04, 0.075)
+prop_sampled_options = c(0.01, 0.02, 0.04, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75)
 
 # Set specific param for this task
 TaskId = as.numeric(Sys.getenv("SGE_TASK_ID"))
@@ -85,5 +86,47 @@ lapply(1:ncol(samples), function(s){
 	filename
 	})
 
+
+
+
+############ QC ING ###########
+# samp = fread('samples/prop_0.02/sample_00001.csv')
+# samp = fread('samples/prop_0.02/sample_00002.csv')
+
+
+# samps = NULL
+# for(i in 1:100){
+# 	temp = fread(paste0('samples/prop_0.02/sample_',str_pad(i, width = 5, side = 'left', pad = '0'),'.csv'))
+
+# 	if(is.null(samps)){
+# 		samps = temp
+# 	}else{
+# 		samps = cbind(samps, temp)
+# 	}
+# }
+
+# apply(samps * probs, 2, sum)/sum(samps$V1)
+# apply((1-samps) * probs, 2, sum)/sum(1-samps$V1)
+
+
+# summary(probs)
+
+
+# sampled_int = sample.int(nrow(probs),size = 200, prob = probs[,1])
+
+# cbind(sampled = summary(probs[sampled_int,])
+# ,not_sampled = summary(probs[-sampled_int,]))
+
+
+
+# head(ukbdata_modmat[, coeff_samples != 0])
+
+# covars = fread('missingness_covars.csv')
+# load('data.rda')
+
+# cbind(covars, coeff_samples)[as.vector(coeff_samples != 0),]
+
+
+# cbind(ukbdata, probs)[, .(mean(X1)), demo_age_bucket][order(demo_age_bucket)]
 
 
