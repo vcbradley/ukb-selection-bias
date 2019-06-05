@@ -14,10 +14,9 @@ source('/well/nichols/users/bwj567/mini-project-1/prep_ukb/recode_functions.R')
 full_baseline_file = 'ukb25120_raw_baseline.tsv'
 full_imaging_file = 'ukb25120_raw_imaging.tsv'
 all_UKB_vars_file = 'ukb25120_allvars.csv'
+apoe_file = 'ApoE.dat'
 var_codings_file = '/well/nichols/users/bwj567/mini-project-1/variable_codings.csv'
 new_file_prefix = 'ukb25120_weighting'
-
-
 
 ####################
 # SET UP VARIABLES #
@@ -65,6 +64,11 @@ variables_all[is.na(imaging),var]
 # DO RECODES #
 ##############
 
+# Read in Apoe data
+apoe = data.table(read.table(apoe_file, header = T))
+setnames(apoe, old = names(apoe), new = c('e3', 'e4', 'eid'))
+
+
 
 #### BASELINE ####
 
@@ -75,6 +79,10 @@ data_base = fread(full_baseline_file
     , col.names = c('eid', variables_all[!is.na(baseline),]$var)
     , na.strings = ''
     )
+
+# merge in ApoE data
+data_base = merge(data_base, apoe, by = 'eid')
+
 data_base <- as_tibble(data_base)
 
 ### IMPUTE DOB
@@ -83,6 +91,7 @@ data_base <- data_base %>% mutate(dob_imputed = as.Date(paste0(yob,'-',mob,'-','
 
 #check error
 data_base %>% mutate(age_same = (age(dob_imputed, assessment_date) - age)) %>% group_by(age_same) %>% tally()
+
 
 
 
