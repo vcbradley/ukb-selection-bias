@@ -507,6 +507,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
     
     ## re-calc pop totals
     pop_totals = apply(pop_modmat, 2, sum)
+    print(pop_totals)
 
     ## make survey data
     samp_modmat = svydesign(id = ~1, data = data.frame(as.matrix(samp_modmat)))
@@ -972,14 +973,18 @@ runSim = function(data
 
 # #### For testing
 
-# library(data.table)
+# sample = read.csv(sprintf("sample_%05d.csv",2))[,1]
 
-# load('../../data.rda')
-# data = ukbdata
-# sample = read.csv('sample_00003.csv')[,1]
+# # load data
+# load(file = paste0('../../data.rda'))
+# data = ukbdata[1:length(sample),]#limit for now
 
-# #selected = read.csv('sample_00001.csv')
-# #data[, selected := selected]
+
+# # run simulation draft
+# print(paste0(Sys.time(), '\t Weighting starting...'))
+
+# source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
+
 
 
 # ####### DO WEIGHTING  #######
@@ -1002,6 +1007,7 @@ runSim = function(data
 # epsilon = nrow(data) * 0.0001
 # calfun = 'raking'
 # outcome = 'MRI_brain_vol'
+
 
 
 # all_weights = tryCatch(runSim(data = data
