@@ -447,13 +447,14 @@ doRecode <- function(data){
 
     ##### Apoe
     if(exists('e3', data)){
-        data <- data %>% mutate(
+        data_base <- data_base %>% mutate(
             health_apoe_phenotype = case_when(
                 (e4 == 1) ~ '01-e4/e4'
                 , (e3 == 1) ~ '02-e3/e4'
                 , TRUE ~ '03-other'
                 )
-            ) 
+            , health_apoe_level = e4 *2 + e3
+            )
 
         data %>% count(e3, e4, health_apoe_phenotype)
     }
