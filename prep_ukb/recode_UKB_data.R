@@ -116,6 +116,10 @@ data_imaging = fread(full_imaging_file
     , col.names = c('eid', variables_all[!is.na(imaging),]$var)
     , na.strings = ''
     )
+
+# merge in ApoE data
+data_imaging = merge(data_imaging, apoe, by = 'eid')
+
 data_imaging <- as_tibble(data_imaging)
 
 # limit to only imaging subjects
