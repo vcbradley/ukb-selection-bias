@@ -1,6 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript       
 #$ -N sim_run
-#$ -t 7
+#$ -t 1:10
 #$ -tc 50                                                                                                                         
 #$ -cwd
 #$ -q short.qc
@@ -19,7 +19,7 @@ library(knitr)
 
 
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-#JobId = 3
+#JobId = 1
 
 dir = getwd()
 
