@@ -139,6 +139,8 @@ doRaking = function(svydata
     , prior_weight_col = NULL
     , control = list(maxit = 100, epsilon = 10e-4, verbose=FALSE)
     ){
+     popdata <- copy(popdata)
+     svydata <- copy(svydata)
 
     if(is.null(pop_weight_col)){
         popdata[, pop_weight := 1]
@@ -526,7 +528,8 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
 # would be easy to compare to linear here
 doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_col = NULL){
 
-    data_scaled = data
+    data_scaled = copy(data)
+    
     if('age' %in% vars){
         data_scaled[, age := scale(age)]
     }
