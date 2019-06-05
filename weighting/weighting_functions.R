@@ -744,7 +744,7 @@ runSim = function(data
     }else{
         cat('Logit did not converge \n\n')
         logit_weighted = sample
-        logit_weighted[, weight := 1]
+        logit_weighted = list(logit_weighted[, weight := 1], vars = 'none')
     }
     
 
@@ -765,7 +765,7 @@ runSim = function(data
     }else{
         cat('PostStrat did not converge \n\n')
         strat_data = sample
-        strat_data[, weight := 1]
+        strat_data = list(strat_data[, weight := 1], vars = 'none')
     }
     
 
@@ -815,7 +815,7 @@ runSim = function(data
     }else{
         cat('LassoRake did not converge \n\n')
         lassorake_data = sample
-        lassorake_data[, weight := 1]
+        lassorake_data = list(lassorake_data[, weight := 1], vars = 'none')
     }
 
     print(gc())
@@ -825,7 +825,7 @@ runSim = function(data
     cat(paste0(Sys.time(), '\t', "Running BART...\n\n\n"))
     bart_weighted = tryCatch({
         doBARTweight(data = data
-        , vars = c(vars, vars_add)
+        #, vars = c(vars, vars_add)
         , selected_ind = selected_ind
         , verbose = TRUE 
         , ntree = ntree)
@@ -837,7 +837,7 @@ runSim = function(data
     }else{
         cat('BARTWeight did not converge \n\n')
         bart_weighted = sample
-        bart_weighted[, weight := 1]
+        bart_weighted = list(bart_weighted[, weight := 1], vars = 'none')
     }
     
 
