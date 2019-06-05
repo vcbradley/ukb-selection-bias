@@ -823,7 +823,12 @@ runSim = function(data
 
     all_weights = Reduce(function(x,y) merge(x,y, by = 'eid', all = T) , weighted_list)
 
-    return(all_weights)
+    return(list(all_weights = all_weights
+        , strat_vars = strat_data[[2]]
+        , lassorake_vars = lassorake_data[[2]]
+        , logit_vars = logit_weighted[[2]]
+        , bart_vars = bart_weighted[[2]]
+        ))
 }
 
 
