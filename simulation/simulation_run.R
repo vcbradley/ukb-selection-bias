@@ -19,7 +19,7 @@ library(knitr)
 
 
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-#JobId = 3
+JobId = 3
 
 dir = getwd()
 
@@ -76,7 +76,7 @@ all_weights = tryCatch(runSim(data = data
         , outcome = 'MRI_brain_vol'
         , pop_weight_col = pop_weight_col
         , verbose = FALSE
-        , ntree = 50
+        , ntree = 25
         , epsilon = epsilon
         )
 , error = function(e) print(e))
