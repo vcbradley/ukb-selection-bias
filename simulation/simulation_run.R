@@ -1,6 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript       
 #$ -N sim_run
-#$ -t 1:1000
+#$ -t 1:10
 #$ -tc 50                                                                                                                         
 #$ -cwd
 #$ -q short.qc
@@ -19,7 +19,7 @@ library(knitr)
 
 
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-JobId = 3
+#JobId = 3
 
 dir = getwd()
 
@@ -100,10 +100,10 @@ if(!dir.exists(paste0(results_dir, '/vars'))){
 	dir.create(paste0(results_dir, '/vars'))
 }
 
-write.csv(all_weights[['strat_vars']], file = paste0(results_dir, sprintf("vars/strat_vars_%05d.csv", JobId)), row.names = F)
-write.csv(all_weights[['lassorake_vars']], file = paste0(results_dir, sprintf("vars/lassorake_vars_%05d.csv", JobId)), row.names = F)
-write.csv(all_weights[['logit_vars']], file = paste0(results_dir, sprintf("vars/logit_vars_%05d.csv", JobId)), row.names = F)
-write.csv(all_weights[['bart_vars']], file = paste0(results_dir, sprintf("vars/bart_vars_%05d.csv", JobId)), row.names = F)
+write.csv(all_weights[['strat_vars']], file = paste0(results_dir, sprintf("/vars/strat_vars_%05d.csv", JobId)), row.names = F)
+write.csv(all_weights[['lassorake_vars']], file = paste0(results_dir, sprintf("/vars/lassorake_vars_%05d.csv", JobId)), row.names = F)
+write.csv(all_weights[['logit_vars']], file = paste0(results_dir, sprintf("/vars/logit_vars_%05d.csv", JobId)), row.names = F)
+write.csv(all_weights[['bart_vars']], file = paste0(results_dir, sprintf("/vars/bart_vars_%05d.csv", JobId)), row.names = F)
 
 # resulting object is all_weights
 
