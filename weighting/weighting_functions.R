@@ -526,13 +526,13 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     # fiit logit model
     weight = 1/as.numeric(data[, sum(get(selected_ind))/.N])
 
-    #lambda <- exp(seq(log(0.001), log(5), length.out=15)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
+    lambda <- exp(seq(log(0.001), log(5), length.out=15)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
     fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
             , x = logit_modmat
             , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
             , family = 'binomial'
             , nfolds = 5
-            #, lambda=lambda
+            , lambda=lambda
             )
 
     print(summary(fit_logit))
@@ -844,8 +844,23 @@ runSim = function(data
 # data = ukbdata
 # data[, selected := selected]
 
+# sample = read.csv('sample_00001.csv')[,1]
 
 
+# all_weights = tryCatch(runSim(data = data
+#         , sample = sample
+#         , vars = vars
+#         , vars_add = vars_add
+#         , outcome = 'MRI_brain_vol'
+#         , pop_weight_col = pop_weight_col
+#         , verbose = FALSE
+#         , ntree = 50
+#         , epsilon = epsilon
+#         )
+# , error = function(e) print(e))
+
+# all_weights
+# apply(all_weights, 2, summary)
 
 # ####### DO WEIGHTING  #######
 # vars = c('demo_sex'
