@@ -524,7 +524,6 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
     
     # fiit logit model
-    weight = 1/as.numeric(data[, sum(get(selected_ind))/.N])
 
     lambda <- exp(seq(log(0.001), log(5), length.out=15)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
     fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
