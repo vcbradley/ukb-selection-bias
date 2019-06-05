@@ -82,7 +82,7 @@ all_weights = tryCatch(runSim(data = data
 , error = function(e) print(e))
 
 print(paste0(Sys.time(), '\t Weighting complete...'))
-apply(all_weights, 2, summary)
+apply(all_weights[[1]], 2, summary)
 
 
 #write out results
@@ -92,10 +92,18 @@ if(!dir.exists(results_dir)){
 }
 
 # add sim num
-all_weights[, sim_num := JobId]
-write.csv(all_weights, file = paste0(results_dir, sprintf("/weights_%05d.csv", JobId)), row.names = F)
+all_weights[[1]][, sim_num := JobId]
+write.csv(all_weights[[1]], file = paste0(results_dir, sprintf("/weights_%05d.csv", JobId)), row.names = F)
 
 
+if(!dir.exists(paste0(results_dir, '/vars'))){
+	dir.create(paste0(results_dir, '/vars'))
+}
+
+write.csv(all_weights[['strat_vars']], file = paste0(results_dir, sprintf("vars/strat_vars_%05d.csv", JobId)), row.names = F)
+write.csv(all_weights[['lassorake_vars']], file = paste0(results_dir, sprintf("vars/lassorake_vars_%05d.csv", JobId)), row.names = F)
+write.csv(all_weights[['logit_vars']], file = paste0(results_dir, sprintf("vars/logit_vars_%05d.csv", JobId)), row.names = F)
+write.csv(all_weights[['bart_vars']], file = paste0(results_dir, sprintf("vars/bart_vars_%05d.csv", JobId)), row.names = F)
 
 # resulting object is all_weights
 
