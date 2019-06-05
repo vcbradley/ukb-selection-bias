@@ -9,7 +9,6 @@ sim_name = gsub('/gpfs2/well/nichols/users/bwj567/simulation/', '', wd)
 
 result_list = list.files('results/', pattern = 'prop')
 
-
 # FIXING ISSUES
 # r = 'prop_0.02'
 # for(w in list.files('results/prop_0.02', pattern = 'weights_', full.names = T)){
@@ -188,7 +187,7 @@ mse
 
 
 
-#save to file
+#save to filen
 git_path = '/well/nichols/users/bwj567/mini-project-1/simulation/results'
 results_path = paste0(git_path, '/', sim_name) 
 if(!dir.exists(git_path)){
