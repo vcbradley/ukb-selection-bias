@@ -27,6 +27,8 @@ source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.
 n_equations = 1
 n_samples = 5000
 
+use_health_vars = F
+
 
 ## Get JobID and create new simulation directory
 #JobId = as.numeric(Sys.getenv("JOB_ID"))
@@ -39,6 +41,7 @@ if(!dir.exists(sim_id)){
 
 
 ###### PREP DATA
+
 
 # Read in UKB data
 ukbdata = fread('/well/nichols/users/bwj567/data/ukb25120_weighting_img.csv', stringsAsFactors = F)
@@ -67,14 +70,13 @@ nas[nas > 0]
 
 #### GENERATE Probability of missingness
 
-### TO DO: ADD IN INTERACTIONS
 vars_to_consider = names(ukbdata)[-grep('^MRI|eid|has|assessment|demo_ethnicity_4way|demo_white|demo_educ_highest$', names(ukbdata))]
 formula = paste("~-1+(", paste0(vars_to_consider, collapse = " + "), ") ^ 2")
 ukbdata_modmat = modmat_all_levs(as.formula(formula), data = ukbdata)
 
 
 missingness_covars = data.table(var_name = colnames(ukbdata_modmat))
-missingness_covars[, data_type := ifelse(grepl('bmi|^age|health_alc_weekly_total', var_name), 'int', 'char')]
+missingness_covars[, data_type := ifelse(grepl('bmi|^age|apoe_level|health_alc_weekly_total', var_name), 'int', 'char')]
 missingness_covars[, type := ifelse(grepl('health|bmi', var_name), 'health', 'demo')]
 
 #hard code exceptions
@@ -82,7 +84,7 @@ missingness_covars[grepl(':', var_name), type := 'interaction']
 missingness_covars[type == 'interaction' & grepl('health|bmi', var_name), type := 'health_interaction']
 missingness_covars[var_name == 'age', type := 'age']
 
-#normalize continuous variables EXCEPT AGE
+#normalize continuous variables
 ukbdata_modmat[, which(missingness_covars$data_type == 'int')] <- scale(ukbdata_modmat[, which(missingness_covars$data_type == 'int')])
 
 #check that it looks ok
@@ -112,12 +114,17 @@ coeff_samples = rbindlist(lapply(1:nrow(missingness_covars), function(t, n_equat
     	if(type == 'interaction'){
     		spike_prob = 0.003
     	} else if (type == 'health_interaction'){
-			spike_prob = 0.0005
+			spike_prob = 0
     	} else if(data_type == 'int'){
     		spike_prob = 0.75
     	} else{
     		spike_prob = 0.25
     	}
+
+    	if(!use_health_vars & type == 'health'){
+    		spike_prob = 0
+    	}
+
 
         spike = rbinom(n = n_equations, size = 1, prob = spike_prob)
         slab_sd = 1.5
@@ -133,6 +140,7 @@ setnames(coeff_samples, old = names(coeff_samples), new = paste0('X', 1:ncol(coe
 
 
 # check that things are behaving well
+cbind(missingness_covars, coeff_samples)[X1 != 0]
 cbind(missingness_covars, coeff_samples)[type == 'interaction' & as.vector(coeff_samples$X1) != 0,]
 cbind(missingness_covars, coeff_samples)[type == 'age' & as.vector(coeff_samples$X1) != 0,]
 cbind(missingness_covars, coeff_samples)[data_type == 'int' & as.vector(coeff_samples$X1) != 0,]
