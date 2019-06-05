@@ -337,14 +337,15 @@ doLassoRake = function(
 
 
     cat(paste0(Sys.time(), "\t\t Fitting NR model....\n"))
-    lambda <- exp(seq(log(0.001), log(5), length.out=15)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
+    #lambda <- exp(seq(log(0.0001), log(5), length.out=15)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
 
     fit_nr = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
         , x = data_modmat
         , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
         , family = 'binomial'
         , nfolds = 5
-        , lambda = lambda)
+        #, lambda = lambda
+        )
 
     print(summary(fit_nr))
 
@@ -353,7 +354,8 @@ doLassoRake = function(
     fit_out = cv.glmnet(y = as.numeric(data[get(selected_ind) == 1, get(outcome)])
         , x = outdata_modmat
         , nfolds = 5
-        , lambda = lambda)
+        #, lambda = lambda
+        )
 
     print(summary(fit_nr))
 
@@ -524,45 +526,45 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
     #############
 
-    # pop = apply(logit_modmat, 2, sum)
-    # samp = apply(logit_modmat[data[, get(selected_ind)] == 1,], 2, sum)
+    pop = apply(logit_modmat, 2, sum)
+    samp = apply(logit_modmat[data[, get(selected_ind)] == 1,], 2, sum)
 
-    #  # create var data table with variable codes
-    # lasso_vars = data.table(var_name = names(pop), var_code = paste0('v', str_pad(1:length(pop), width = 4, side = 'left', pad = '0')), n_pop = pop)
-    # samp = data.table(var_name = names(samp), n_samp = samp)
-    # lasso_vars = merge(lasso_vars, samp, by = 'var_name', all = T)
+     # create var data table with variable codes
+    lasso_vars = data.table(var_name = names(pop), var_code = paste0('v', str_pad(1:length(pop), width = 4, side = 'left', pad = '0')), n_pop = pop)
+    samp = data.table(var_name = names(samp), n_samp = samp)
+    lasso_vars = merge(lasso_vars, samp, by = 'var_name', all = T)
 
-    # # drop strata that are null in the pop or the sample
-    # strata_missing = lasso_vars[(is.na(n_pop) | is.na(n_samp) | n_pop == 0 | n_samp == 0),]
-    # if(nrow(strata_missing) > 0){
-    #     print("WARNING dropping strata because missing in sample or pop")
-    #     print(strata_missing)
-    #     lasso_vars = lasso_vars[!(is.na(n_pop) | is.na(n_samp) | n_pop == 0 | n_samp == 0),]
-    # }
-    # lasso_vars = lasso_vars[order(var_code)]
+    # drop strata that are null in the pop or the sample
+    strata_missing = lasso_vars[(is.na(n_pop) | is.na(n_samp) | n_pop == 0 | n_samp == 0) & grepl(':',var_name),]
+    if(nrow(strata_missing) > 0){
+        print("WARNING dropping strata because missing in sample or pop")
+        print(strata_missing)
+        lasso_vars = lasso_vars[!(is.na(n_pop) | is.na(n_samp) | n_pop == 0 | n_samp == 0) & grepl(':',var_name),]
+    }
+    lasso_vars = lasso_vars[order(var_code)]
 
-    # cat(paste0(Sys.time(), "\t\t Creating modmat....\n"))
-    # logit_modmat = logit_modmat[, which(colnames(logit_modmat) %in% lasso_vars$var_name)]
-
-
+    cat(paste0(Sys.time(), "\t\t Creating modmat....\n"))
+    logit_modmat = logit_modmat[, which(colnames(logit_modmat) %in% lasso_vars$var_name)]
 
 
-    ### rename columns to variable codes
+
+
+    ## rename columns to variable codes
     # mean(colnames(logit_modmat) == lasso_vars[order(var_code), var_name])
     # mean(colnames(outlogit_modmat) == lasso_vars[order(var_code), var_name])
     # colnames(logit_modmat) = lasso_vars[order(var_code), var_code]
 
-    # # calc distributions
-    # lasso_vars[, dist_pop := n_pop/nrow(logit_modmat)]
-    # lasso_vars[, dist_samp := n_samp/sum(data[, get(selected_ind)])]
+    # calc distributions
+    lasso_vars[, dist_pop := n_pop/nrow(logit_modmat)]
+    lasso_vars[, dist_samp := n_samp/sum(data[, get(selected_ind)])]
 
-    # # figure out which lasso_vars to drop
-    # drop_samp = which(lasso_vars$dist_samp < 0.01 | lasso_vars$dist_samp > 0.99)
-    # drop_pop = which(lasso_vars$dist_pop < 0.01 | lasso_vars$dist_pop > 0.99)
+    # figure out which lasso_vars to drop
+    drop_samp = which(lasso_vars$dist_samp < 0.01 | lasso_vars$dist_samp > 0.99)
+    drop_pop = which(lasso_vars$dist_pop < 0.01 | lasso_vars$dist_pop > 0.99)
 
-    # # drop variables from lasso_vars and data
-    # lasso_vars = lasso_vars[-unique(drop_pop, drop_samp),]
-    # logit_modmat = logit_modmat[, colnames(logit_modmat) %in% lasso_vars$var_code]
+    # drop variables from lasso_vars and data
+    lasso_vars = lasso_vars[-unique(drop_pop, drop_samp),]
+    logit_modmat = logit_modmat[, colnames(logit_modmat) %in% lasso_vars$var_name]
     
 
     #############
@@ -570,9 +572,10 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     
     # fiit logit model
 
+    cat(paste0(Sys.time(), "\t\t Fit model....\n")) 
     #weight = 1/as.numeric(data[, sum(get(selected_ind))/.N])
 
-    lambda <- exp(seq(log(0.000001), log(0.01), length.out=30)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
+    lambda <- exp(seq(log(0.000001), log(0.1), length.out=20)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
     fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
             , x = logit_modmat
             , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
@@ -890,7 +893,6 @@ runSim = function(data
 # load('data_modmat.rda')
 # load('../../data.rda')
 # selected = read.csv('sample_00001.csv')
-# selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
 
 # data = ukbdata
 # data[, selected := selected]
