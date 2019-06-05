@@ -278,6 +278,8 @@ doLassoRake = function(
     , pop_weight_col = NULL
     , n_interactions = 2
 ){
+    # deep copy
+    data = copy(data)
 
     formula = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^', n_interactions))
 
@@ -529,7 +531,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
 doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_col = NULL){
 
     data_scaled = copy(data)
-    
+
     if('age' %in% vars){
         data_scaled[, age := scale(age)]
     }
@@ -726,7 +728,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
 
     if(!is.null(imp_vars)){
         if(is.null(popdata)){
-            popdata = data
+            popdata = copy(data)
         }
 
         cat(paste0(Sys.time(), "\t\t Raking....\n"))
