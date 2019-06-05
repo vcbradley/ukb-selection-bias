@@ -30,7 +30,7 @@ n_samples = 5000
 
 ## Get JobID and create new simulation directory
 #JobId = as.numeric(Sys.getenv("JOB_ID"))
-sim_id = paste0('sim_', n_equations, '_', n_samples, '_v2')
+sim_id = paste0('sim_', n_equations, '_', n_samples, '_v3')
 if(!dir.exists(sim_id)){
 	dir.create(sim_id)
 }
@@ -105,7 +105,7 @@ coeff_samples = rbindlist(lapply(1:nrow(missingness_covars), function(t, n_equat
     # always include age
     if(type == 'age'){
         spike = rep(1, n_equations)
-        slab_sd = 4
+        slab_sd = 2
     }else{
 
     	# set prob of coef being non-zero based on type and data type
