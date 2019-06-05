@@ -376,7 +376,7 @@ doLassoRake = function(
     #lasso_vars[,as.numeric(!is.na(rank_nr)) + as.numeric(!is.na(rank_out))]
     lasso_vars[, has_nr_coef := as.numeric(rank_nr < 9999)]
     lasso_vars[, has_out_coef := as.numeric(rank_out < 9999)]
-    lasso_vars[order(2 - has_out_coef + has_nr_coef, as.numeric(rank_nr + rank_out)), rank_total := .I]
+    lasso_vars[order(2 - (has_out_coef + has_nr_coef), as.numeric(rank_nr + rank_out)), rank_total := .I]
 
     print(lasso_vars[rank_total < 15, ][order(rank_total)])
 
