@@ -192,7 +192,7 @@ doRaking = function(svydata
                 print(drop_pop)
             }
 
-            drop = which(popdata[,get(as.character(v))] %in% drop_pop[, 2])
+            drop = which(popdata[,get(as.character(v))] %in% unlist(drop_pop[, 2]))
 
             return(drop)
             }))
@@ -613,14 +613,14 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
     # define lambda values based on largest coef
     #https://stats.stackexchange.com/questions/174897/choosing-the-range-and-grid-density-for-regularization-parameter-in-lasso
-    y_mat = matrix(as.numeric(data[, get(selected_ind)]), ncol = 1)
+    y_mat = matrix(as.numeric(data_scaled[, get(selected_ind)]), ncol = 1)
     lambda_max = max(t(y_mat) %*% logit_modmat)/nrow(logit_modmat)
     lambda <- exp(seq(log(lambda_max * 0.001), log(lambda_max), length.out=20)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
     
     # RUN LASSO
-    fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
+    fit_logit = cv.glmnet(y = as.numeric(data_scaled[, get(selected_ind)])
             , x = logit_modmat
-            , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
+            , weights = as.numeric(data_scaled[, pop_weight])  #because the population data is weighted, include this
             , family = 'binomial'
             , nfolds = 5
             , lambda=lambda
@@ -640,17 +640,17 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
         logit_vars = 'all'
 
         fit_logit = glm(as.formula(paste0(selected_ind, "~", paste(vars, collapse = '+')))
-            , data = data
-            , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
+            , data = data_scaled
+            , weights = as.numeric(data_scaled[, pop_weight])  #because the population data is weighted, include this
             , family = 'binomial'
             )
-        probs = fit_logit$fitted.values[data[,get(selected_ind)] == 1]
+        probs = fit_logit$fitted.values[data_scaled[,get(selected_ind)] == 1]
 
     }else{
         logit_vars = coef_logit$V1[-1]
 
         # calculate weights
-        lp = predict(fit_logit, newx = logit_modmat[data$selected == 1, ], s = 'lambda.min')
+        lp = predict(fit_logit, newx = logit_modmat[data_scaled$selected == 1, ], s = 'lambda.min')
         probs = exp(lp)/(1+exp(lp))        
     }
 
@@ -1001,13 +1001,13 @@ all_weights = tryCatch(runSim(data = data
         , outcome = 'MRI_brain_vol'
         , pop_weight_col = pop_weight_col
         , verbose = FALSE
-        , ntree = 25
+        , ntree = 1
         , epsilon = epsilon
         )
 , error = function(e) print(e))
 
 all_weights
-apply(all_weights, 2, summary)
+apply(all_weights[[1]], 2, summary)
 
 
 
