@@ -445,10 +445,15 @@ doLassoRake = function(
 
 doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking'){
 
+    # check levels and get rid of those vars with only 1
+    samp_levels = apply(svydata[, vars, with = F], 2, function(x) length(unique(x)))
+    vars = vars[-which(vars %in% names(samp_levels)[samp_levels < 2])]
+
     # make model matricies
     cat(paste0(Sys.time(), "\t\t Making model matricies....\n"))
     formula_modmat = as.formula(paste0('~ ', paste(vars, collapse = '+')))
-    
+
+
     # use model matrix that drops a level for each categorical var so that result is not singular
     pop_modmat = model.matrix(formula_modmat, popdata, sparse = T)
     samp_modmat = model.matrix(formula_modmat, svydata, sparse = T)
@@ -970,7 +975,7 @@ runSim = function(data
 
 # load('../../data.rda')
 # data = ukbdata
-# sample = read.csv('sample_00001.csv')[,1]
+# sample = read.csv('sample_00002.csv')[,1]
 
 # #selected = read.csv('sample_00001.csv')
 # #data[, selected := selected]
