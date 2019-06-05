@@ -99,11 +99,15 @@ write.csv(all_weights[[1]], file = paste0(results_dir, sprintf("/weights_%05d.cs
 if(!dir.exists(paste0(results_dir, '/vars'))){
 	dir.create(paste0(results_dir, '/vars'))
 }
+if(!dir.exists(paste0(results_dir, '/timing'))){
+	dir.create(paste0(results_dir, '/timing'))
+}
 
 write.csv(all_weights[['strat_vars']], file = paste0(results_dir, sprintf("/vars/strat_vars_%05d.csv", JobId)), row.names = F)
 write.csv(all_weights[['lassorake_vars']], file = paste0(results_dir, sprintf("/vars/lassorake_vars_%05d.csv", JobId)), row.names = F)
 write.csv(all_weights[['logit_vars']], file = paste0(results_dir, sprintf("/vars/logit_vars_%05d.csv", JobId)), row.names = F)
 write.csv(all_weights[['bart_vars']], file = paste0(results_dir, sprintf("/vars/bart_vars_%05d.csv", JobId)), row.names = F)
+write.csv(all_weights[['timing']], file = paste0(results_dir, sprintf("/timing/timing_%05d.csv", JobId)), row.names = F)
 
 # resulting object is all_weights
 
