@@ -444,7 +444,7 @@ doRecode <- function(data){
             has_t1_MRI = as.numeric(!is.na(MRI_t1_struct))
             )
     }
-x
+
     ##### Apoe
     if(exists('e3', data)){
         data <- data %>% mutate(
