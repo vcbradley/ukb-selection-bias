@@ -327,6 +327,21 @@ doLassoRake = function(
     outdata_modmat = outdata_modmat[, colnames(data_modmat) %in% lasso_vars$var_code]
 
 
+
+    ##### DEFINE LAMBDAS
+    #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
+
+    # nonresponse
+    y_mat_nr = matrix(as.numeric(data[, get(selected_ind)]), ncol = 1)
+    lambda_max_nr = max(t(y_mat_nr) %*% data_modmat)/nrow(data_modmat)
+    lambda_nr <- exp(seq(log(lambda_max_nr * 0.001), log(lambda_max_nr), length.out=20)) 
+
+    # outcome
+    y_mat_out = matrix(as.numeric(data[get(selected_ind) == 1, get(selected_ind)]), ncol = 1)
+    lambda_max_out = max(t(y_mat_out) %*% outdata_modmat)/nrow(outdata_modmat)
+    lambda_out <- exp(seq(log(lambda_max_out * 0.001), log(lambda_max_out), length.out=20)) 
+
+
     ###### FIT MODELS ######
     # fit nonresponse lasso
     if(is.null(pop_weight_col)){
@@ -335,22 +350,20 @@ doLassoRake = function(
     	data[, pop_weight := get(pop_weight_col)]
     }
 
-
     cat(paste0(Sys.time(), "\t\t Fitting NR model....\n"))
-    #lambda <- exp(seq(log(0.0001), log(5), length.out=15)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
-
     fit_nr = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
         , x = data_modmat
         , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
         , family = 'binomial'
         , nfolds = 5
-        #, lambda = lambda
+        , lambda = lambda_nr
         )
 
     print(summary(fit_nr))
 
     
     cat(paste0(Sys.time(), "\t\t Fitting outcome model....\n"))
+
     fit_out = cv.glmnet(y = as.numeric(data[get(selected_ind) == 1, get(outcome)])
         , x = outdata_modmat
         , nfolds = 5
@@ -461,14 +474,15 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
     ## calculate sample and population totals
     pop_totals = apply(pop_modmat, 2, sum)
     samp_totals = apply(samp_modmat, 2, sum)
+    pop_levels = apply(pop_modmat, 2, function(x) length(unique(x)))
 
     ### DROP more levels that are too small
     small_pop_strata = pop_totals/nrow(pop_modmat)
-    small_pop_strata = small_pop_strata[small_pop_strata < 0.01 | (small_pop_strata > 0.99 & small_pop_strata < 1)]
+    small_pop_strata = small_pop_strata[(small_pop_strata < 0.01 | small_pop_strata > 0.99 & small_pop_strata < 1) & pop_levels <= 2]
     small_pop_strata = data.table(var_code = names(small_pop_strata), pop_prop = small_pop_strata)
 
     small_samp_strata = samp_totals/nrow(samp_modmat)
-    small_samp_strata = small_samp_strata[small_samp_strata < 0.01 | (small_samp_strata > 0.99 & small_samp_strata < 1)]
+    small_samp_strata = small_samp_strata[(small_samp_strata < 0.01 | small_samp_strata > 0.99 & small_samp_strata < 1) & pop_levels <= 2]
     small_samp_strata = data.table(var_code = names(small_samp_strata), samp_prop = small_samp_strata)
 
     small_strata = merge(merge(cal_vars, small_pop_strata, all = T), small_samp_strata, all = T)
@@ -490,6 +504,9 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
     ## make formula
     formula_cal = as.formula(paste0('~ -1 +', paste(names(pop_totals), collapse = '+')))
 
+    print(formula_cal)
+    cat('\n')
+
     ## DO calibration
     cat(paste0(Sys.time(), "\t\t Calibrating....\n"))
     weighted = calibrate(design = samp_modmat
@@ -509,19 +526,27 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
 # would be easy to compare to linear here
 doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_col = NULL){
 
+    data_scaled = data
+    if('age' %in% vars){
+        data_scaled[, age := scale(age)]
+    }
+    if('age_sq' %in% vars){
+        data_scaled[, age_sq := scale(age_sq)]
+    }
+
     # set pop weight col if it's null
     if(is.null(pop_weight_col)){
-        data[, pop_weight := 1]
+        data_scaled[, pop_weight := 1]
     }else{
-        data[, pop_weight := get(pop_weight_col)]
+        data_scaled[, pop_weight := get(pop_weight_col)]
     }
+    
 
     cat(paste0(Sys.time(), "\t\t Creating mod matricies....\n"))
     # create modmat for modeling
     formula_logit = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^', n_interactions))
-    logit_modmat = modmat_all_levs(formula = formula_logit, data = data, sparse = T)
+    logit_modmat = modmat_all_levs(formula = formula_logit, data = data_scaled, sparse = T)
 
-    cat(paste0(Sys.time(), "\t\t Fitting nonresponse model....\n"))
     print(formula_logit)
 
     #############
@@ -529,23 +554,28 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     pop = apply(logit_modmat, 2, sum)
     samp = apply(logit_modmat[data[, get(selected_ind)] == 1,], 2, sum)
 
+    pop_levels = apply(logit_modmat, 2, function(x) length(unique(x)))
+
+
      # create var data table with variable codes
     lasso_vars = data.table(var_name = names(pop), var_code = paste0('v', str_pad(1:length(pop), width = 4, side = 'left', pad = '0')), n_pop = pop)
+    lasso_vars[, discrete := ifelse(pop_levels <= 2, 1, 0)]
+
     samp = data.table(var_name = names(samp), n_samp = samp)
     lasso_vars = merge(lasso_vars, samp, by = 'var_name', all = T)
+    
 
     # drop strata that are null in the pop or the sample
-    strata_missing = lasso_vars[(is.na(n_pop) | is.na(n_samp) | n_pop == 0 | n_samp == 0) & grepl(':',var_name),]
+    strata_missing = lasso_vars[(is.na(n_pop) | is.na(n_samp) | n_pop == 0 | n_samp == 0) & grepl(':',var_name) & discrete == 1,]
     if(nrow(strata_missing) > 0){
         print("WARNING dropping strata because missing in sample or pop")
         print(strata_missing)
-        lasso_vars = lasso_vars[!(is.na(n_pop) | is.na(n_samp) | n_pop == 0 | n_samp == 0) & grepl(':',var_name),]
+        lasso_vars = lasso_vars[!((is.na(n_pop) | is.na(n_samp) | n_pop == 0 | n_samp == 0) & grepl(':',var_name) & discrete == 1),]
     }
     lasso_vars = lasso_vars[order(var_code)]
 
     cat(paste0(Sys.time(), "\t\t Creating modmat....\n"))
     logit_modmat = logit_modmat[, which(colnames(logit_modmat) %in% lasso_vars$var_name)]
-
 
 
 
@@ -559,8 +589,8 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     lasso_vars[, dist_samp := n_samp/sum(data[, get(selected_ind)])]
 
     # figure out which lasso_vars to drop
-    drop_samp = which(lasso_vars$dist_samp < 0.01 | lasso_vars$dist_samp > 0.99)
-    drop_pop = which(lasso_vars$dist_pop < 0.01 | lasso_vars$dist_pop > 0.99)
+    drop_samp = which((lasso_vars$dist_samp < 0.01 | lasso_vars$dist_samp > 0.99) & lasso_vars$discrete == 1)
+    drop_pop = which((lasso_vars$dist_pop < 0.01 | lasso_vars$dist_pop > 0.99) & lasso_vars$discrete == 1)
 
     # drop variables from lasso_vars and data
     lasso_vars = lasso_vars[-unique(drop_pop, drop_samp),]
@@ -575,7 +605,14 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     cat(paste0(Sys.time(), "\t\t Fit model....\n")) 
     #weight = 1/as.numeric(data[, sum(get(selected_ind))/.N])
 
-    lambda <- exp(seq(log(0.000001), log(0.1), length.out=20)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
+
+    # define lambda values based on largest coef
+    #https://stats.stackexchange.com/questions/174897/choosing-the-range-and-grid-density-for-regularization-parameter-in-lasso
+    y_mat = matrix(as.numeric(data[, get(selected_ind)]), ncol = 1)
+    lambda_max = max(t(y_mat) %*% logit_modmat)/nrow(logit_modmat)
+    lambda <- exp(seq(log(lambda_max * 0.001), log(lambda_max), length.out=20)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
+    
+    # RUN LASSO
     fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
             , x = logit_modmat
             , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
@@ -682,7 +719,6 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
 
     rm(imp_fit)
     rm(bartFit)
-    rm(bart_modmat)
     gc()
 
     if(!is.null(imp_vars)){
@@ -691,14 +727,25 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
         }
 
         cat(paste0(Sys.time(), "\t\t Raking....\n"))
-        weighted = doRaking(svydata = weighted
-                , popdata = popdata
-                , vars = imp_vars
-                , prior_weight_col = 'bart_weight'
-                )
+        temp = tryCatch({doRaking(svydata = weighted
+                        , popdata = popdata
+                        , vars = imp_vars
+                        , prior_weight_col = 'bart_weight'
+                        )}, error = function(e) print(e))
+
+        # if raking fails, just use BART weights
+        if(!'data.frame' %in% class(temp)){
+            weighted[, weight := bart_weight]
+            weighted = weighted[, -'bart_weight', with = F]
+            imp_vars = 'none'
+        }else{
+            weighted = temp
+        }
+
     }else{
         weighted[, weight := bart_weight]
         weighted = weighted[, -'bart_weight', with = F]
+        imp_vars = 'none'
     }
 
     return(list(weighted, imp_vars))
@@ -729,51 +776,11 @@ runSim = function(data
     # cat('\n')
     # cat(names(sample))
 
-    ###### LOGIT
-    cat(paste0(Sys.time(), '\t', "Running logit weighting..."))
-    logit_weighted = tryCatch({
-        doLogitWeight(data = data
-        , vars = c(vars, vars_add)
-        , n_interactions = n_interactions
-        , selected_ind = selected_ind)
-        }, error = function(e) print(e))
-
-    if('list' %in% class(logit_weighted)){
-        print(summary(logit_weighted[[1]]$weight))  
-        cat('\n\n') 
-    }else{
-        cat('Logit did not converge \n\n')
-        logit_weighted = sample
-        logit_weighted = list(logit_weighted[, weight := 1], vars = 'none')
-    }
-    
-
-    print(gc())
-
-    ####### POST STRAT WITH variable selection
-    cat(paste0(Sys.time(), '\t', "Running post strat..."))
-    strat_data = tryCatch({
-        doPostStratVarSelect(data = data
-        , vars = vars
-        , selected_ind = selected_ind)
-        }, error = function(e) print(e))
-
-
-    if('list' %in% class(strat_data)){
-        print(summary(strat_data[[1]]$weight))
-        cat('\n\n') 
-    }else{
-        cat('PostStrat did not converge \n\n')
-        strat_data = sample
-        strat_data = list(strat_data[, weight := 1], vars = 'none')
-    }
-    
-
-    print(gc())
-
+    timing = list()
 
     ####### CALIBRATE
-    cat(paste0(Sys.time(), '\t', "Running calibration..."))
+    timing$calib_start <- Sys.time()
+    cat(paste0(timing$calib_start, '\t', "Running calibration..."))
     calibrated_data = tryCatch({
         doCalibration(svydata = sample
             , popdata = data
@@ -792,13 +799,64 @@ runSim = function(data
         calibrated_data = sample
         calibrated_data[, weight := 1]
     }
+    timing$calib_end <- Sys.time()
+    timing$calib_time <- timing$calib_end - timing$calib_start
+
+    print(gc())
+
+    ###### LOGIT
+    timing$logit_start <- Sys.time()
+    cat(paste0(timing$logit_start, '\t', "Running logit weighting..."))
+    logit_weighted = tryCatch({
+        doLogitWeight(data = data
+        , vars = c(vars, vars_add)
+        , n_interactions = n_interactions
+        , selected_ind = selected_ind)
+        }, error = function(e) print(e))
+
+    if('list' %in% class(logit_weighted)){
+        print(summary(logit_weighted[[1]]$weight))  
+        cat('\n\n') 
+    }else{
+        cat('Logit did not converge \n\n')
+        logit_weighted = sample
+        logit_weighted = list(logit_weighted[, weight := 1], vars = 'none')
+    }
+    
+
+    print(gc())
+    timing$logit_end <- Sys.time()
+    timing$logit_time <-  timing$logit_end - timing$logit_start
+
+    ####### POST STRAT WITH variable selection
+    timing$poststrat_start <- Sys.time()
+    cat(paste0(timing$poststrat_start, '\t', "Running post strat..."))
+    strat_data = tryCatch({
+        doPostStratVarSelect(data = data
+        , vars = vars
+        , selected_ind = selected_ind)
+        }, error = function(e) print(e))
+
+
+    if('list' %in% class(strat_data)){
+        print(summary(strat_data[[1]]$weight))
+        cat('\n\n') 
+    }else{
+        cat('PostStrat did not converge \n\n')
+        strat_data = sample
+        strat_data = list(strat_data[, weight := 1], vars = 'none')
+    }
+    timing$poststrat_end <- Sys.time()
+    timing$poststrat_time <- timing$poststrat_end - timing$poststrat_start
+    
 
 
     print(gc())
 
 
     ###### LASSO RAKE
-    cat(paste0(Sys.time(), '\t', "Running lasso rake...\n\n\n"))
+    timing$lassorake_start <- Sys.time()
+    cat(paste0(timing$lassorake_start, '\t', "Running lasso rake...\n\n\n"))
     lassorake_data = tryCatch({
         doLassoRake(data = data
         , vars = vars
@@ -818,14 +876,18 @@ runSim = function(data
         lassorake_data = list(lassorake_data[, weight := 1], vars = 'none')
     }
 
+    timing$lassorake_end <- Sys.time()
+    timing$lassorake_time <- timing$lassorake_end - timing$lassorake_start
+        
     print(gc())
 
 
     ####### BART + rake
-    cat(paste0(Sys.time(), '\t', "Running BART...\n\n\n"))
+    timing$bart_start <- Sys.time()
+    cat(paste0(timing$bart_start, '\t', "Running BART...\n\n\n"))
     bart_weighted = tryCatch({
         doBARTweight(data = data
-        #, vars = c(vars, vars_add)
+        , vars = c(vars, vars_add)
         , selected_ind = selected_ind
         , verbose = TRUE 
         , ntree = ntree)
@@ -839,12 +901,15 @@ runSim = function(data
         bart_weighted = sample
         bart_weighted = list(bart_weighted[, weight := 1], vars = 'none')
     }
+    timing$bart_end <- Sys.time()
+    timing$bart_time <- timing$bart_end - timing$bart_start
     
 
     print(gc())
 
      ##### RAKING
-    cat(paste0(Sys.time(), '\t', "Running raking...\n\n\n"))
+    timing$rake_end <- Sys.time()
+    cat(paste0(timing$rake_end, '\t', "Running raking...\n\n\n"))
     raked_data = tryCatch({
         doRaking(svydata = sample
         , popdata = data
@@ -860,6 +925,9 @@ runSim = function(data
         raked_data[, weight := 1]
     }
 
+    timing$rake_end <- Sys.time()
+    timing$rake_time <- timing$rake_end - timing$rake_start 
+    
 
     weighted_list = list(
         raked_data[, .(eid, rake_weight = weight)]
@@ -872,69 +940,69 @@ runSim = function(data
 
     all_weights = Reduce(function(x,y) merge(x,y, by = 'eid', all = T) , weighted_list)
 
+    #calc total time
+    timing$total_time = timing$rake_end - timing$calib_start
+
     return(list(all_weights = all_weights
         , strat_vars = strat_data[[2]]
         , lassorake_vars = lassorake_data[[2]]
         , logit_vars = logit_weighted[[2]]
         , bart_vars = bart_weighted[[2]]
+        , timing = do.call(cbind, timing)
         ))
 }
 
 
 
 
-#### For testing BARTmachine
+#### For testing
 
-# library(data.table)
-# options(java.parameters = "-Xmx16g" )
-# library(bartMachine)
-# library(BayesTree)
+library(data.table)
 
-# load('data_modmat.rda')
-# load('../../data.rda')
-# selected = read.csv('sample_00001.csv')
+load('../../data.rda')
+data = ukbdata
+sample = read.csv('sample_00001.csv')[,1]
 
-# data = ukbdata
-# data[, selected := selected]
-
-# sample = read.csv('sample_00001.csv')[,1]
+#selected = read.csv('sample_00001.csv')
+#data[, selected := selected]
 
 
-# all_weights = tryCatch(runSim(data = data
-#         , sample = sample
-#         , vars = vars
-#         , vars_add = vars_add
-#         , outcome = 'MRI_brain_vol'
-#         , pop_weight_col = pop_weight_col
-#         , verbose = FALSE
-#         , ntree = 50
-#         , epsilon = epsilon
-#         )
-# , error = function(e) print(e))
+####### DO WEIGHTING  #######
+vars = c('demo_sex'
+        , 'demo_age_bucket'
+        , 'demo_ethnicity_4way'
+        , 'demo_empl_employed'
+        , 'demo_empl_retired'
+        , 'demo_occupation'
+        , 'demo_educ_highest'
+        , 'demo_income_bucket'
+        #, 'demo_year_immigrated'
+        , 'demo_hh_size'
+        , 'demo_hh_ownrent'
+        , 'demo_hh_accom_type'
+        )
+vars_add = c('age', 'age_sq')
+vars_rake = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket')
+pop_weight_col = NULL
+epsilon = nrow(data) * 0.0001
+calfun = 'raking'
+outcome = 'MRI_brain_vol'
 
-# all_weights
-# apply(all_weights, 2, summary)
 
-# ####### DO WEIGHTING  #######
-# vars = c('demo_sex'
-#         , 'demo_age_bucket'
-#         , 'demo_ethnicity_4way'
-#         , 'demo_empl_employed'
-#         , 'demo_empl_retired'
-#         , 'demo_occupation'
-#         , 'demo_educ_highest'
-#         , 'demo_income_bucket'
-#         #, 'demo_year_immigrated'
-#         , 'demo_hh_size'
-#         , 'demo_hh_ownrent'
-#         , 'demo_hh_accom_type'
-#         )
-# vars_add = c('age', 'age_sq')
-# vars_rake = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket')
-# pop_weight_col = NULL
-# epsilon = nrow(data) * 0.0001
-# calfun = 'raking'
-# outcome = 'MRI_brain_vol'
+all_weights = tryCatch(runSim(data = data
+        , sample = sample
+        , vars = vars
+        , vars_add = vars_add
+        , outcome = 'MRI_brain_vol'
+        , pop_weight_col = pop_weight_col
+        , verbose = FALSE
+        , ntree = 25
+        , epsilon = epsilon
+        )
+, error = function(e) print(e))
+
+all_weights
+apply(all_weights, 2, summary)
 
 
 
