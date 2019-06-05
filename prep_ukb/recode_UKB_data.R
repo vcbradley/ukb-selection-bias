@@ -105,6 +105,7 @@ data_base_recoded %>% str(.)
 data_base_recoded <- data_base_recoded %>% select(., grep('eid|^demo_|^health_|^age|^dob|^bmi|addr_east_recent|addr_north_recent|^assessment', names(data_base_recoded)))
 
 
+data_base_recoded %>% group_by(health_apoe_phenotype, health_apoe_level) %>% tally()
 
 
 #### IMAGING ####
@@ -152,6 +153,10 @@ data_imaging_recoded <- data_imaging_recoded %>% select(., grep('eid|^demo_|^hea
 data_imaging %>% select(., MRI_t1_struct) %>% summary(.)
 
 data_imaging_recoded %>% group_by(is.na(MRI_t1_struct), has_t1_MRI) %>% tally()
+
+data_imaging_recoded %>% group_by(health_apoe_phenotype, health_apoe_level) %>% tally()
+
+
 
 #############################
 # MERGE INTO WEIGHTING FILE #
