@@ -1,6 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript    
 #$ -N sample_gen    
-#$ -t 4:9
+#$ -t 3:9
 #$ -cwd
 #$ -o ./logs                                                                                                                                                                               
 #$ -e ./logs   
@@ -12,9 +12,10 @@ library(stringr)
 library(knitr)
 library(randomForest)
 library(BayesTree)
+library(data.table)
 
 
-source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
+#source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
 
 ## GET PARAMS FROM DIRECTORY NAME
 sim_name = getwd()
@@ -33,7 +34,7 @@ prop_sampled_options = c(0.01, 0.02, 0.04, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75)
 
 # Set specific param for this task
 TaskId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-#TaskId = 3
+#TaskId = 1
 prop_sampled = prop_sampled_options[TaskId]
 
 load('data_modmat.rda')
@@ -102,17 +103,19 @@ files = lapply(1:ncol(samples), function(s){
 
 
 
-# # read in first 1000 samples
-# # samps = NULL
-# # for(i in 1:1000){
-# # 	temp = fread(paste0('samples/prop_0.01/sample_',str_pad(i, width = 5, side = 'left', pad = '0'),'.csv'))
+# #read in first 1000 samples
+# samps = NULL
+# for(i in 1:1000){
+# 	temp = fread(paste0('sample_',str_pad(i, width = 5, side = 'left', pad = '0'),'.csv'))
 
-# # 	if(is.null(samps)){
-# # 		samps = temp
-# # 	}else{
-# # 		samps = cbind(samps, temp)
-# # 	}
-# # }
+# 	if(is.null(samps)){
+# 		samps = temp
+# 	}else{
+# 		samps = cbind(samps, temp)
+# 	}
+# }
+
+
 
 
 # # any bias in age?
@@ -122,9 +125,17 @@ files = lapply(1:ncol(samples), function(s){
 # 	ukbdata[samp == 1, mean(MRI_brain_vol)] - ukbdata[samp == 0, mean(MRI_brain_vol)]
 # 	}))
 
-# summary(bias)
+#  summary(bias)
 
-# ukbdata[samp == 1, mean(age)] - ukbdata[samp == 0, mean(age)]
+# # ukbdata[samp == 1, mean(age)] - ukbdata[samp == 0, mean(age)]
+
+# age = lapply(1:1000, function(s){
+# 	samp = unlist(samples[, s])
+# 	#samp = unlist(samps[, s, with = F])
+# 	ukbdata[samp == 1, .(samp = .N), demo_age_bucket][order(demo_age_bucket)]
+# 	})
+
+# age
 
 # # bias in brain vol by prob?
 # ukbdata[, .(mean(MRI_brain_vol/1000), .N), cut(probs, breaks = quantile(probs, probs = seq(0,1,0.2)))][order(cut)]
