@@ -174,7 +174,7 @@ doRaking = function(svydata
             }))
 
         if(length(drop_samp)>0){
-            svydata = svydata[-drop_samp, ]
+            svydata = svydata[-unique(drop_samp), ]
         }
 
         drop_pop = unlist(lapply(vars, function(v){
@@ -196,7 +196,7 @@ doRaking = function(svydata
             }))
 
         if(length(drop_pop) > 0){
-            popdata = popdata[-drop_pop, ]
+            popdata = popdata[-unique(drop_pop), ]
         }
         
     }
@@ -257,15 +257,15 @@ doPostStratVarSelect = function(data, vars, selected_ind){
             , popdata = data
             , vars = strat_vars)
 
-    return(weighted, strat_vars)
+    return(list(weighted, strat_vars))
 }
 
 
 # load('data.rda')
 # load('data_modmat.rda')
-# sample = fread('samples/prop_0.02/sample_00001.csv')
+# sample = unlist(fread('sample_00001.csv')[,1])
 
-# data = ukbdata[,selected := sample$V1]
+# data = ukbdata[,selected := sample]
 
 ## LAsso rake function
 doLassoRake = function(
@@ -339,10 +339,9 @@ doLassoRake = function(
     cat(paste0(Sys.time(), "\t\t Fitting NR model....\n"))
     lambda <- exp(seq(log(0.001), log(5), length.out=15)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
 
-    weight = 1/as.numeric(data[, sum(get(selected_ind))/.N])
     fit_nr = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
         , x = data_modmat
-        , weights = as.numeric(data[, pop_weight * ifelse(get(selected_ind) == 1, weight, 1)])  #because the population data is weighted, include this
+        , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
         , family = 'binomial'
         , nfolds = 5
         , lambda = lambda)
@@ -359,8 +358,8 @@ doLassoRake = function(
     print(summary(fit_nr))
 
     ##### RANK COEFS #####
-    coef_nr = data.table(var_code = rownames(coef(fit_nr, lambda = 'lambda.min')), coef_nr = coef(fit_nr, lambda = 'lambda.min')[,1])[-1,]
-    coef_out = data.table(var_code = rownames(coef(fit_out, lambda = 'lambda.min')), coef_out = coef(fit_out, lambda = 'lambda.min')[,1])[-1,]
+    coef_nr = data.table(var_code = rownames(coef(fit_nr, lambda = 'lambda.1se')), coef_nr = coef(fit_nr, lambda = 'lambda.min')[,1])[-1,]
+    coef_out = data.table(var_code = rownames(coef(fit_out, lambda = 'lambda.1se')), coef_out = coef(fit_out, lambda = 'lambda.min')[,1])[-1,]
 
     lasso_vars[coef_nr, on = 'var_code', coef_nr := i.coef_nr]
     lasso_vars[coef_out, on = 'var_code', coef_out := i.coef_out]
@@ -421,7 +420,7 @@ doLassoRake = function(
     weighted = data[get(selected_ind) == 1, ]
     weighted$weight = svydata$prior_weight
 
-    return(weighted, lasso_vars)
+    return(list(weighted, lasso_vars$var_name))
 }
 
 
@@ -527,13 +526,14 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     # fiit logit model
     weight = 1/as.numeric(data[, sum(get(selected_ind))/.N])
 
-    lambda <- exp(seq(log(0.001), log(5), length.out=15)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
+    #lambda <- exp(seq(log(0.001), log(5), length.out=15)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
     fit_logit = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
             , x = logit_modmat
-            , weights = as.numeric(data[, pop_weight * ifelse(get(selected_ind) == 1, weight, 1)])  #because the population data is weighted, include this
+            , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
             , family = 'binomial'
             , nfolds = 5
-            , lambda=lambda)
+            #, lambda=lambda
+            )
 
     print(summary(fit_logit))
 
@@ -556,7 +556,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
         probs = fit_logit$fitted.values[data[,get(selected_ind)] == 1]
 
     }else{
-        logit_vars = names(coef_logit)
+        logit_vars = coef_logit$V1[-1]
 
         # calculate weights
         lp = predict(fit_logit, newx = logit_modmat[data$selected == 1, ], s = 'lambda.min')
@@ -567,61 +567,10 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     weighted[, prob := probs]
     weighted[, weight := (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T)]
 
-    return(weighted[, -'prob', with = F], logit_vars)
+    return(list(weighted[, -'prob', with = F], logit_vars))
 }
 
 
-#### For testing BARTmachine
-
-# library(data.table)
-# options(java.parameters = "-Xmx16g" )
-# library(bartMachine)
-# library(BayesTree)
-
-# load('data_modmat.rda')
-# load('data.rda')
-# selected = fread('samples/prop_0.02/sample_00016.csv')
-# selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
-
-# data = ukbdata
-# data[, selected := selected$V16]
-# data$selected <- selected$V16
-
-
-#     bartFit = bart(x.train = as.matrix(ukbdata_modmat)
-#         , y.train = as.vector(selected$V1)
-#         , verbose = TRUE
-#         , ntree = 50)
-
-#     cat(paste0(Sys.time(), "\t\t Predicting model....\n"))
-
-#     z = apply(bartFit$yhat.train, 2, mean)
-#     prob = pnorm(z) #according to the documentatiion, we need to apply normal cdf to get actual prob values
-   
-
-
-
-#     bartfit = bartMachine(X = data.frame(ukbdata_modmat)
-#         , y = selected$V1
-#         , num_trees = 50
-#         , verbose = TRUE
-#         , run_in_sample = TRUE
-#         )
-
-#     summary(bartfit$y_hat_train)
-#     probs = bartfit$y_hat_train + max(1, abs(min(bartfit$y_hat_train)) + 0.1)
-#     summary(probs)
-#     summary(1/probs)
-#     probs = predict(bartfit, new_data = data.frame(ukbdata_modmat), type = 'prob') #need this and not y_hat_train to get probs
-
-# # var_importance = investigate_var_importance(bartfit, type = "splits")
-
-# summary(probs)
-# mean(probs[selected$V1 == 1])
-# mean(probs[selected$V1 == 0])
-# summary(selected$V2)
-# length(levels(selected$V2))
-# class(selected$V2)
 
 doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, verbose = FALSE){
 
@@ -703,7 +652,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
         weighted = weighted[, -'bart_weight', with = F]
     }
 
-    return(weighted, imp_vars)
+    return(list(weighted, imp_vars))
 }
 
 
@@ -732,7 +681,7 @@ runSim = function(data
     # cat(names(sample))
 
     ###### LOGIT
-    cat(paste0(Sys.time(), '\t', "Running logit weighting...\n\n\n"))
+    cat(paste0(Sys.time(), '\t', "Running logit weighting..."))
     logit_weighted = tryCatch({
         doLogitWeight(data = data
         , vars = c(vars, vars_add)
@@ -740,25 +689,42 @@ runSim = function(data
         , selected_ind = selected_ind)
         }, error = function(e) print(e))
 
-    print(summary(logit_weighted$weight))
+    if('list' %in% class(logit_weighted)){
+        print(summary(logit_weighted[[1]]$weight))  
+        cat('\n\n') 
+    }else{
+        cat('Logit did not converge \n\n')
+        logit_weighted = sample
+        logit_weighted[, weight := 1]
+    }
+    
 
     print(gc())
 
     ####### POST STRAT WITH variable selection
-    cat(paste0(Sys.time(), '\t', "Running post strat...\n\n\n"))
+    cat(paste0(Sys.time(), '\t', "Running post strat..."))
     strat_data = tryCatch({
         doPostStratVarSelect(data = data
         , vars = vars
         , selected_ind = selected_ind)
         }, error = function(e) print(e))
 
-    print(summary(strat_data$weight))
+
+    if('list' %in% class(strat_data)){
+        print(summary(strat_data[[1]]$weight))
+        cat('\n\n') 
+    }else{
+        cat('PostStrat did not converge \n\n')
+        strat_data = sample
+        strat_data[, weight := 1]
+    }
+    
 
     print(gc())
 
 
     ####### CALIBRATE
-    cat(paste0(Sys.time(), '\t', "Running calibration...\n\n\n"))
+    cat(paste0(Sys.time(), '\t', "Running calibration..."))
     calibrated_data = tryCatch({
         doCalibration(svydata = sample
             , popdata = data
@@ -767,7 +733,17 @@ runSim = function(data
             , calfun = calfun)
         }, error = function(e) print(e))
 
-    print(summary(calibrated_data$weight))
+
+    if('data.table' %in% class(calibrated_data)){
+        print(summary(calibrated_data$weight))
+        cat('\n\n') 
+    }else{
+        cat('Calibration did not converge \n\n')
+
+        calibrated_data = sample
+        calibrated_data[, weight := 1]
+    }
+
 
     print(gc())
 
@@ -783,7 +759,15 @@ runSim = function(data
         , n_interactions = n_interactions)
         }, error = function(e) print(e))
 
-    print(summary(lassorake_data$weight))
+
+    if('list' %in% class(lassorake_data)){
+        print(summary(lassorake_data[[1]]$weight))
+        cat('\n\n') 
+    }else{
+        cat('LassoRake did not converge \n\n')
+        lassorake_data = sample
+        lassorake_data[, weight := 1]
+    }
 
     print(gc())
 
@@ -798,7 +782,15 @@ runSim = function(data
         , ntree = ntree)
         }, error = function(e) print(e))
 
-    print(summary(bart_weighted$weight))
+    if('list' %in% class(bart_weighted)){
+        print(summary(bart_weighted[[1]]$weight))
+        cat('\n\n') 
+    }else{
+        cat('BARTWeight did not converge \n\n')
+        bart_weighted = sample
+        bart_weighted[, weight := 1]
+    }
+    
 
     print(gc())
 
@@ -809,50 +801,106 @@ runSim = function(data
         , popdata = data
         , vars = vars)
         }, error = function(e) print(e))
-
-    print(summary(raked_data$weight))
-
-    # replace ones that failed with 1's so things still return
-    if(!'data.table' %in% class(raked_data)){
+    
+    if('data.table' %in% class(raked_data)){
+        print(summary(raked_data$weight))
+        cat('\n\n') 
+    }else{
+        cat('Raking did not converge \n\n')
         raked_data = sample
         raked_data[, weight := 1]
     }
 
-    if(!'data.table' %in% class(strat_data)){
-        strat_data = sample
-        strat_data[, weight := 1]
-    }
-
-    if(!'data.table' %in% class(calibrated_data)){
-        calibrated_data = sample
-        calibrated_data[, weight := 1]
-    }
-
-    if(!'data.table' %in% class(lassorake_data)){
-        lassorake_data = sample
-        lassorake_data[, weight := 1]
-    }
-
-    if(!'data.table' %in% class(logit_weighted)){
-        logit_weighted = sample
-        logit_weighted[, weight := 1]
-    }
-
-    if(!'data.table' %in% class(bart_weighted)){
-        bart_weighted = sample
-        bart_weighted[, weight := 1]
-    }
 
     weighted_list = list(
         raked_data[, .(eid, rake_weight = weight)]
-        , strat_data[, .(eid, strat_weight = weight)]
+        , strat_data[[1]][, .(eid, strat_weight = weight)]
         , calibrated_data[, .(eid, calib_weight = weight)]
-        , lassorake_data[, .(eid, lasso_weight = weight)]
-        , logit_weighted[, .(eid, logit_weight = weight)]
-        , bart_weighted[, .(eid, bart_weight = weight)]
+        , lassorake_data[[1]][, .(eid, lasso_weight = weight)]
+        , logit_weighted[[1]][, .(eid, logit_weight = weight)]
+        , bart_weighted[[1]][, .(eid, bart_weight = weight)]
         )
 
     all_weights = Reduce(function(x,y) merge(x,y, by = 'eid', all = T) , weighted_list)
 
     return(all_weights)
 }
+
+
+
+
+#### For testing BARTmachine
+
+# library(data.table)
+# options(java.parameters = "-Xmx16g" )
+# library(bartMachine)
+# library(BayesTree)
+
+# load('data_modmat.rda')
+# load('../../data.rda')
+# selected = read.csv('sample_00001.csv')
+# selected$V2 = factor(selected$V1, levels = c('1', '0'), labels = c('1', '2'))
+
+# data = ukbdata
+# data[, selected := selected]
+
+
+
+
+# ####### DO WEIGHTING  #######
+# vars = c('demo_sex'
+#         , 'demo_age_bucket'
+#         , 'demo_ethnicity_4way'
+#         , 'demo_empl_employed'
+#         , 'demo_empl_retired'
+#         , 'demo_occupation'
+#         , 'demo_educ_highest'
+#         , 'demo_income_bucket'
+#         #, 'demo_year_immigrated'
+#         , 'demo_hh_size'
+#         , 'demo_hh_ownrent'
+#         , 'demo_hh_accom_type'
+#         )
+# vars_add = c('age', 'age_sq')
+# vars_rake = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket')
+# pop_weight_col = NULL
+# epsilon = nrow(data) * 0.0001
+# calfun = 'raking'
+# outcome = 'MRI_brain_vol'
+
+
+
+#     bartFit = bart(x.train = as.matrix(ukbdata_modmat)
+#         , y.train = as.vector(selected$V1)
+#         , verbose = TRUE
+#         , ntree = 50)
+
+#     cat(paste0(Sys.time(), "\t\t Predicting model....\n"))
+
+#     z = apply(bartFit$yhat.train, 2, mean)
+#     prob = pnorm(z) #according to the documentatiion, we need to apply normal cdf to get actual prob values
+   
+
+
+
+#     bartfit = bartMachine(X = data.frame(ukbdata_modmat)
+#         , y = selected$V1
+#         , num_trees = 50
+#         , verbose = TRUE
+#         , run_in_sample = TRUE
+#         )
+
+#     summary(bartfit$y_hat_train)
+#     probs = bartfit$y_hat_train + max(1, abs(min(bartfit$y_hat_train)) + 0.1)
+#     summary(probs)
+#     summary(1/probs)
+#     probs = predict(bartfit, new_data = data.frame(ukbdata_modmat), type = 'prob') #need this and not y_hat_train to get probs
+
+# # var_importance = investigate_var_importance(bartfit, type = "splits")
+
+# summary(probs)
+# mean(probs[selected$V1 == 1])
+# mean(probs[selected$V1 == 0])
+# summary(selected$V2)
+# length(levels(selected$V2))
+# class(selected$V2)
