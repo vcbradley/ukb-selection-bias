@@ -1,6 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript       
 #$ -N sim_run
-#$ -t 11:20
+#$ -t 1:1000
 #$ -tc 50                                                                                                                         
 #$ -cwd
 #$ -q short.qc
