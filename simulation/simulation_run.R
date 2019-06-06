@@ -1,6 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript       
 #$ -N sim_run
-#$ -t 1:100
+#$ -t 101:1000
 #$ -tc 50                                                                                                                         
 #$ -cwd
 #$ -q short.qc
@@ -62,6 +62,7 @@ vars = c('demo_sex'
 vars_add = c('age', 'age_sq')
 vars_rake = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket')
 pop_weight_col = NULL
+
 epsilon = nrow(data) * 0.0003
 calfun = 'raking'
 outcome = 'MRI_brain_vol'

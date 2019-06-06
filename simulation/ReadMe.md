@@ -32,7 +32,7 @@ i.e.
 i.e. `/well/nichols/users/bwj567/simulation/sim_1_5000_1/samples/prop_0.02`
 and run
 ```qsub /well/nichols/users/bwj567/mini-project-1/simulation/simulation_run.R```
-
+Note that you have to do this separately for each proportion missing
 
 5. *GENERATE SUMMARY* Once results are finished, navigate to the simulation directory
 ```cd /well/nichols/users/bwj567/simulation/sim_1_5000_1```
