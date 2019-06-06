@@ -497,8 +497,8 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
         }
 
         # drop sample totals since they're implicit in the continuous vars now
-        pop_modmat = pop_modmat[, -1]
-        samp_modmat = samp_modmat[, -1]
+        #pop_modmat = pop_modmat[, -1]
+        #samp_modmat = samp_modmat[, -1]
     }
 
 
@@ -509,11 +509,11 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
 
     ### DROP more levels that are too small
     small_pop_strata = pop_totals/nrow(pop_modmat)
-    small_pop_strata = small_pop_strata[(small_pop_strata < 0.01 | small_pop_strata > 0.99 & small_pop_strata < 1) & pop_levels <= 2]
+    small_pop_strata = small_pop_strata[(small_pop_strata < 0.02 | small_pop_strata > 0.98 & small_pop_strata < 1) & pop_levels <= 2]
     small_pop_strata = data.table(var_code = names(small_pop_strata), pop_prop = small_pop_strata)
 
     small_samp_strata = samp_totals/nrow(samp_modmat)
-    small_samp_strata = small_samp_strata[(small_samp_strata < 0.01 | small_samp_strata > 0.99 & small_samp_strata < 1) & pop_levels <= 2]
+    small_samp_strata = small_samp_strata[(small_samp_strata < 0.02 | small_samp_strata > 0.98 & small_samp_strata < 1) & pop_levels <= 2]
     small_samp_strata = data.table(var_code = names(small_samp_strata), samp_prop = small_samp_strata)
 
     small_strata = merge(merge(cal_vars, small_pop_strata, all = T), small_samp_strata, all = T)
@@ -536,22 +536,33 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
     ## make survey data
     samp_modmat_design = svydesign(id = ~1, data = data.frame(as.matrix(samp_modmat)))
 
-    ## make formula
-    formula_cal = as.formula(paste0('~ -1 +', paste(names(pop_totals), collapse = '+')))
 
-    print(formula_cal)
-    cat('\n')
-
-    ## DO calibration
     cat(paste0(Sys.time(), "\t\t Calibrating....\n"))
-    weighted = calibrate(design = samp_modmat_design
-            , formula = formula_cal
-            , population = pop_totals
-            , calfun = calfun #'raking' #'logit', 'linear'
-            , maxit = 5000
-            , epsilon = epsilon #THIS IS KEY
-            #, verbose = T
-            )
+    
+    # split into subgroups for calibration so it doesn't die
+    groups = sample(1:3, length(pop_totals), replace = T)
+    for(i in 1:3){
+        cat(paste0(Sys.time(), "\t\t\t Iteration ",i ,"\n"))
+
+        ## make formula
+        formula_cal = as.formula(paste0('~ -1 +', paste(names(pop_totals)[groups == i], collapse = '+')))
+
+        print(formula_cal)
+        cat('\n')
+
+        ## DO calibration
+        weighted = calibrate(design = samp_modmat_design
+                , formula = formula_cal
+                , population = pop_totals[groups == i]
+                , calfun = calfun #'raking' #'logit', 'linear'
+                , maxit = 5000
+                , epsilon = epsilon #THIS IS KEY
+                #, verbose = T
+                )
+        samp_modmat_design = svydesign(id = ~1, data = data.frame(as.matrix(samp_modmat)), probs = weighted$prob)
+        
+    }
+
 
     weighted = data.table(cbind(svydata, weight = (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T)))
 
@@ -1000,7 +1011,7 @@ runSim = function(data
 
 # #### For testing
 
-# sample = read.csv(sprintf("sample_%05d.csv", 5))[,1]
+# sample = read.csv(sprintf("sample_%05d.csv", 1))[,1]
 
 # # load data
 # load(file = paste0('../../data.rda'))
