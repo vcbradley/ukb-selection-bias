@@ -540,12 +540,14 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
     cat(paste0(Sys.time(), "\t\t Calibrating....\n"))
     
     # split into subgroups for calibration so it doesn't die
-    groups = sample(1:3, length(pop_totals), replace = T)
+    n_vars = length(pop_totals)
+    
     for(i in 1:3){
         cat(paste0(Sys.time(), "\t\t\t Iteration ",i ,"\n"))
+        group = order(pop_totals)[ceiling((1:n_vars)/(n_vars/3)) == i]
 
         ## make formula
-        formula_cal = as.formula(paste0('~ -1 +', paste(names(pop_totals)[groups == i], collapse = '+')))
+        formula_cal = as.formula(paste0('~ -1 +', paste(names(pop_totals)[group], collapse = '+')))
 
         print(formula_cal)
         cat('\n')
@@ -553,7 +555,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
         ## DO calibration
         weighted = calibrate(design = samp_modmat_design
                 , formula = formula_cal
-                , population = pop_totals[groups == i]
+                , population = pop_totals[group]
                 , calfun = calfun #'raking' #'logit', 'linear'
                 , maxit = 5000
                 , epsilon = epsilon #THIS IS KEY
@@ -1042,7 +1044,7 @@ runSim = function(data
 # vars_add = c('age', 'age_sq')
 # vars_rake = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket')
 # pop_weight_col = NULL
-# epsilon = nrow(data) * 0.001
+# epsilon = nrow(data) * 0.0001
 # calfun = 'raking'
 # outcome = 'MRI_brain_vol'
 
