@@ -98,18 +98,6 @@ all_weights_demos = merge(all_weights, ukbdata, by = 'eid', all.x = T)
 methods = gsub('_weight','',names(all_weights)[grepl('weight', names(all_weights))])
 
 ######## ANALYSIS
-# check variance of weights
-variance = all_weights[, .(
-	var_rake = var(rake_weight, na.rm = T)
-	, var_strat = var(strat_weight, na.rm = T)
-	, var_calib = var(calib_weight, na.rm = T)
-	, var_lasso = var(lasso_weight, na.rm = T)
-	, var_logit = var(logit_weight, na.rm = T)
-	, var_bart = var(bart_weight, na.rm = T)
-	), by = .(prop_sampled, sim_num)]
-variance
-
-
 
 vars = c('demo_sex'
         , 'demo_age_bucket'
@@ -128,7 +116,7 @@ vars = c('demo_sex'
 all_weights_demos[all_weights_demos[, .(n_samp = .N/max(sim_num)), by = prop_sampled], on = 'prop_sampled', n_samp := i.n_samp]
 
 # check accuracy
-accuracy = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
+weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
 
 	pop = ukbdata[, .(
         pop_count = .N
@@ -159,20 +147,28 @@ accuracy = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
         , bart_prop = sum(bart_weight, na.rm = T)/max(n_samp)
         , bart_brainvol = sum(as.numeric(MRI_brain_vol) * bart_weight, na.rm = T)/sum(bart_weight, na.rm = T)
 
+        # all variances
+        , var_rake = var(rake_weight, na.rm = T)
+		, var_strat = var(strat_weight, na.rm = T)
+		, var_calib = var(calib_weight, na.rm = T)
+		, var_lasso = var(lasso_weight, na.rm = T)
+		, var_logit = var(logit_weight, na.rm = T)
+		, var_bart = var(bart_weight, na.rm = T)
+
         ), by = c('prop_sampled','sim_num', v)]
 
     cbind(var = v, merge(pop, samp, by = v, all = T))
     }))
 
-setnames(accuracy, old = 'has_t1_MRI', new = 'level')
-accuracy
+setnames(weight_summary, old = 'has_t1_MRI', new = 'level')
+weight_summary
 
 # calc error
-accuracy[, samp_error := samp_brainvol - pop_brainvol]
-accuracy[, paste0(methods, '_error') := lapply(.SD, function(col) col - pop_brainvol), .SDcols = paste0(methods, '_brainvol')]
+weight_summary[, samp_error := samp_brainvol - pop_brainvol]
+weight_summary[, paste0(methods, '_error') := lapply(.SD, function(col) col - pop_brainvol), .SDcols = paste0(methods, '_brainvol')]
 
 
-mse = accuracy[, .(
+mse = weight_summary[, .(
 		pop_prop = min(pop_prop)
 		, samp_prop = min(samp_prop)
 		, samp_brainvol_error = min(samp_error)
@@ -199,7 +195,7 @@ if(!dir.exists(results_path)){
 list.files(git_path)
 list.files(results_path)
 
-save(variance, accuracy, mse, file = paste0(results_path, '/results_summary.rda'))
+save(weight_summary, mse, file = paste0(results_path, '/results_summary.rda'))
 
 
 # to move to local comp

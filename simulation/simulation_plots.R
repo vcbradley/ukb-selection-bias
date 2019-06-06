@@ -1,3 +1,5 @@
+rm(list = ls())
+
 library(data.table)
 library(ggplot2)
 library(gridExtra)
@@ -5,7 +7,7 @@ library(gridExtra)
 setwd('~/github/mini-project-1/simulation/')
 list.files('results')
 
-which_sim = 'sim_5000_1'
+which_sim = 'sim_1_5000_v3'
 
 load(paste0('results/', which_sim, '/results_summary.rda'))
 
@@ -13,12 +15,12 @@ load(paste0('results/', which_sim, '/results_summary.rda'))
 plot_dir = paste0('results/', which_sim, '/plots')
 
 #get list of methods
-methods = gsub('_brainvol','',names(accuracy)[grepl('brainvol', names(accuracy))])
+methods = gsub('_brainvol','',names(weight_summary)[grepl('brainvol', names(weight_summary))])
 methods = methods[-which(methods %in% c('pop', 'samp'))]
 
-all_props = unique(accuracy[, prop_sampled])
+all_props = unique(weight_summary[, prop_sampled])
 
-accuracy[, .N, prop_sampled]
+weight_summary[, .N, prop_sampled]
 
 ##############################
 # PLOT Weighted v. raw error #
@@ -61,12 +63,12 @@ plotError = function(data, methods, plot_style = 'overlap', x_var = 'samp_error'
 }
 
 
-#print(plotError(accuracy[var == 'has_t1_MRI' & prop_sampled == '0.5',], methods = methods))
+#print(plotError(weight_summary[var == 'has_t1_MRI' & prop_sampled == '0.5',], methods = methods))
 
 
 ### Create plots
 for(p in all_props){
-  plot = plotError(accuracy[var == 'has_t1_MRI'& prop_sampled == p,], methods = methods, plot_style = 'tiled', extra_title = paste0('\nprop sampled = ', p))
+  plot = plotError(weight_summary[var == 'has_t1_MRI'& prop_sampled == p,], methods = methods, plot_style = 'tiled', extra_title = paste0('\nprop sampled = ', p))
   ggsave(paste0(plot_dir, '/plot_error_', p, '.pdf'), plot = plot, height = 6, width = 10, units = 'in', device = 'pdf')
   
 }
@@ -76,13 +78,13 @@ for(p in all_props){
 # PLOT Error by sample size #
 #############################
 
-error_melted = melt(accuracy, id.vars = c('prop_sampled', 'var', 'level', 'sim_num'), measure.vars = names(accuracy)[grepl('error', names(accuracy))])
-outcome_melted = melt(accuracy, id.vars = c('prop_sampled', 'var', 'level', 'sim_num'), measure.vars = names(accuracy)[grepl('brainvol', names(accuracy))])
+error_melted = melt(weight_summary, id.vars = c('prop_sampled', 'var', 'level', 'sim_num'), measure.vars = names(weight_summary)[grepl('error', names(weight_summary))])
+outcome_melted = melt(weight_summary, id.vars = c('prop_sampled', 'var', 'level', 'sim_num'), measure.vars = names(weight_summary)[grepl('brainvol', names(weight_summary))])
 
 
 plot_error_by_sampsize = ggplot(error_melted[var == 'has_t1_MRI' & variable != 'samp_error']
-                                , aes(x = factor(round(prop_sampled * max(accuracy$pop_count)))
-                                      , y = value, color = factor(round(prop_sampled * max(accuracy$pop_count))))) + 
+                                , aes(x = factor(round(prop_sampled * max(weight_summary$pop_count)))
+                                      , y = value, color = factor(round(prop_sampled * max(weight_summary$pop_count))))) + 
   geom_boxplot() +
   facet_grid(. ~ gsub("_error","",variable)) +
   xlab('Sample size') + ylab('Weighted error') + ggtitle('Error by sample size') + 
@@ -92,7 +94,7 @@ plot_error_by_sampsize = ggplot(error_melted[var == 'has_t1_MRI' & variable != '
 ggsave(filename = paste0(plot_dir, '/error_by_sample_size_method.pdf'), plot = plot_error_by_sampsize, device = 'pdf', width = 10, height = 5)
 
 
-summary(lm(rake_error ~ samp_error, data = accuracy))
+summary(lm(rake_error ~ samp_error, data = weight_summary))
 
 
 
@@ -114,7 +116,7 @@ print(plotMSE(mse, methods = methods, x_axis = 'samp_prop'))
 
 
 
-accuracy[var == 'has_t1_MRI', ]
+weight_summary[var == 'has_t1_MRI', ]
 
 
 
@@ -145,7 +147,7 @@ for(p in all_props){
 }
 
 
-ggplot(accuracy[prop_sampled == 0.02, .(pop_prop = min(pop_prop)
+ggplot(weight_summary[prop_sampled == 0.02, .(pop_prop = min(pop_prop)
                                         , rake_error = log(sum(rake_error ^ 2))
                       , strat_error = log(sum(strat_error ^ 2))
                       , calib_error = log(sum(calib_error ^ 2))
@@ -168,7 +170,7 @@ ggplot(accuracy[prop_sampled == 0.02, .(pop_prop = min(pop_prop)
 
 
 
-total_error = merge(accuracy[var == 'has_t1_MRI'], variance, by = c('sim_num', 'prop_sampled'))
+total_error = merge(weight_summary[var == 'has_t1_MRI'], variance, by = c('sim_num', 'prop_sampled'))
 
 
 plot_total_error = lapply(methods, function(m){
@@ -263,4 +265,22 @@ ggsave(filename = paste0(plot_dir, '/plot_var_by_MSE.pdf'), plot = plot_var_by_M
 
 
 var_and_mse[order(variable)]
+
+
+###############
+# BY DEMOS #
+
+ggplot(weight_summary[var == 'demo_age_bucket' & prop_sampled == 0.02,]) +
+  geom_boxplot(aes(x = level, y = samp_error, color = 'prop_sampled'))
+
+
+weight_summary_melted = melt(weight_summary[var == 'has_t1_MRI' & prop_sampled == 0.02,], id.vars = c('level', 'prop_sampled', 'sim_num')
+                       , measure.vars = c('pop_brainvol', 'samp_brainvol'))
+
+ggplot(weight_summary[var == 'has_t1_MRI']) +
+  geom_boxplot(aes(x = level, y = samp_error))
+
+
+weight_summary[var == 'has_t1_MRI', summary(samp_error)]
+  
 
