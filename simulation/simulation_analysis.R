@@ -81,6 +81,7 @@ for(r_ind in 1:length(result_list)){
 #### Load in summary data
 all_weights = fread(file = 'results/all_weights.csv')
 
+
 # only do this for this time
 # all_weights[, .(n_samp = .N/1000), by = prop_sampled]
 # all_weights = cbind(all_weights, sim_num = c(sort(rep(1:1000, 428)), sort(rep(1:1000, 2140)), sort(rep(1:1000, 10703))))
@@ -163,6 +164,14 @@ weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
 setnames(weight_summary, old = 'has_t1_MRI', new = 'level')
 weight_summary
 
+
+### check 
+weight_summary[var == 'has_t1_MRI', lapply(.SD, function(x) mean(x == 0)), .SDcols = names(weight_summary)[grepl('var_', names(weight_summary))], by = prop_sampled][order(prop_sampled)]
+
+weight_summary[var == 'has_t1_MRI', .N, prop_sampled]
+
+weight_summary[var == 'has_t1_MRI' & prop_sampled == 0.01,][order(sim_num)]
+
 # calc error
 weight_summary[, samp_error := samp_brainvol - pop_brainvol]
 weight_summary[, paste0(methods, '_error') := lapply(.SD, function(col) col - pop_brainvol), .SDcols = paste0(methods, '_brainvol')]
@@ -183,7 +192,7 @@ mse
 
 
 
-#save to filen
+#save to file
 git_path = '/well/nichols/users/bwj567/mini-project-1/simulation/results'
 results_path = paste0(git_path, '/', sim_name) 
 if(!dir.exists(git_path)){
