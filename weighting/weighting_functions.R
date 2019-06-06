@@ -816,6 +816,7 @@ runSim = function(data
     , ntree = 100){
 
     selected_ind = 'selected'
+    #data[, selected := NULL]
     data = cbind(data, selected = sample)
 
     sample = data[selected == 1, ]
@@ -1011,9 +1012,9 @@ runSim = function(data
 
 
 
-# #### For testing
+#### For testing
 
-# sample = read.csv(sprintf("sample_%05d.csv", 1))[,1]
+# sample = read.csv(sprintf("sample_%05d.csv", 11))[,1]
 
 # # load data
 # load(file = paste0('../../data.rda'))
