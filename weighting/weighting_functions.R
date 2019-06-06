@@ -445,7 +445,7 @@ doLassoRake = function(
 
 doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking'){
 
-    # check levels and get rid of those vars with only 1
+    # check levels and get rid of those vars with only 1 so model matrix works
     samp_levels = apply(svydata[, vars, with = F], 2, function(x) length(unique(x)))
     vars_subset = vars[!vars %in% names(samp_levels)[samp_levels < 2]]
 
@@ -453,7 +453,6 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
     cat(paste0(Sys.time(), "\t\t Making model matricies....\n"))
 
     formula_modmat = as.formula(paste0('~ ', paste(vars_subset, collapse = '+')))
-
 
     # use model matrix that drops a level for each categorical var so that result is not singular
     pop_modmat = model.matrix(formula_modmat, popdata, sparse = T)
@@ -486,6 +485,28 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
     samp_totals = apply(samp_modmat, 2, sum)
     pop_levels = apply(pop_modmat, 2, function(x) length(unique(x)))
 
+    # re-scale continuous vars
+    cols = which(pop_totals > nrow(popdata))
+    if(length(cols) > 0){
+        if(length(cols) == 1){
+            pop_modmat[,cols] <- pop_modmat[,cols] / sum(pop_modmat[,cols]) * nrow(popdata)
+            samp_modmat[,cols] <- samp_modmat[,cols] / sum(samp_modmat[,cols]) * nrow(svydata)
+        }else{
+            pop_modmat[,cols] <- apply(pop_modmat[,cols], 2, function(x) x / sum(x) * nrow(popdata))
+            samp_modmat[,cols] <- apply(samp_modmat[,cols], 2, function(x) x / sum(x) * nrow(svydata))
+        }
+
+        # drop sample totals since they're implicit in the continuous vars now
+        pop_modmat = pop_modmat[, -1]
+        samp_modmat = samp_modmat[, -1]
+    }
+
+
+    # recalc totals
+    pop_totals = apply(pop_modmat, 2, sum)
+    samp_totals = apply(samp_modmat, 2, sum)
+    pop_levels = apply(pop_modmat, 2, function(x) length(unique(x)))
+
     ### DROP more levels that are too small
     small_pop_strata = pop_totals/nrow(pop_modmat)
     small_pop_strata = small_pop_strata[(small_pop_strata < 0.01 | small_pop_strata > 0.99 & small_pop_strata < 1) & pop_levels <= 2]
@@ -504,13 +525,16 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
         pop_modmat = pop_modmat[, -which(colnames(pop_modmat) %in% small_strata$var_code)]
     	samp_modmat = samp_modmat[, -which(colnames(samp_modmat) %in% small_strata$var_code)]
     }
+
     
     ## re-calc pop totals
     pop_totals = apply(pop_modmat, 2, sum)
     print(pop_totals)
 
+    apply(samp_modmat, 2, function(x) length(unique(x)))
+
     ## make survey data
-    samp_modmat = svydesign(id = ~1, data = data.frame(as.matrix(samp_modmat)))
+    samp_modmat_design = svydesign(id = ~1, data = data.frame(as.matrix(samp_modmat)))
 
     ## make formula
     formula_cal = as.formula(paste0('~ -1 +', paste(names(pop_totals), collapse = '+')))
@@ -520,12 +544,13 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
 
     ## DO calibration
     cat(paste0(Sys.time(), "\t\t Calibrating....\n"))
-    weighted = calibrate(design = samp_modmat
+    weighted = calibrate(design = samp_modmat_design
             , formula = formula_cal
             , population = pop_totals
             , calfun = calfun #'raking' #'logit', 'linear'
-            , maxit = 1000
+            , maxit = 5000
             , epsilon = epsilon #THIS IS KEY
+            #, verbose = T
             )
 
     weighted = data.table(cbind(svydata, weight = (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T)))
@@ -796,11 +821,10 @@ runSim = function(data
     calibrated_data = tryCatch({
         doCalibration(svydata = sample
             , popdata = data
-            , vars = c(vars, vars_add)
+            , vars = c(vars, 'age')
             , epsilon = epsilon
             , calfun = calfun)
         }, error = function(e) print(e))
-
 
     if('data.table' %in% class(calibrated_data)){
         print(summary(calibrated_data$weight))
@@ -971,59 +995,59 @@ runSim = function(data
 
 
 
-# #### For testing
+#### For testing
 
-# sample = read.csv(sprintf("sample_%05d.csv",2))[,1]
+sample = read.csv(sprintf("sample_%05d.csv", 4))[,1]
 
-# # load data
-# load(file = paste0('../../data.rda'))
-# data = ukbdata[1:length(sample),]#limit for now
-
-
-# # run simulation draft
-# print(paste0(Sys.time(), '\t Weighting starting...'))
-
-# source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
+# load data
+load(file = paste0('../../data.rda'))
+data = ukbdata[1:length(sample),]#limit for now
 
 
+# run simulation draft
+print(paste0(Sys.time(), '\t Weighting starting...'))
 
-# ####### DO WEIGHTING  #######
-# vars = c('demo_sex'
-#         , 'demo_age_bucket'
-#         , 'demo_ethnicity_4way'
-#         , 'demo_empl_employed'
-#         , 'demo_empl_retired'
-#         , 'demo_occupation'
-#         , 'demo_educ_highest'
-#         , 'demo_income_bucket'
-#         #, 'demo_year_immigrated'
-#         , 'demo_hh_size'
-#         , 'demo_hh_ownrent'
-#         , 'demo_hh_accom_type'
-#         )
-# vars_add = c('age', 'age_sq')
-# vars_rake = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket')
-# pop_weight_col = NULL
-# epsilon = nrow(data) * 0.0001
-# calfun = 'raking'
-# outcome = 'MRI_brain_vol'
+source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
 
 
 
-# all_weights = tryCatch(runSim(data = data
-#         , sample = sample
-#         , vars = vars
-#         , vars_add = vars_add
-#         , outcome = 'MRI_brain_vol'
-#         , pop_weight_col = pop_weight_col
-#         , verbose = FALSE
-#         , ntree = 1
-#         , epsilon = epsilon
-#         )
-# , error = function(e) print(e))
+####### DO WEIGHTING  #######
+vars = c('demo_sex'
+        , 'demo_age_bucket'
+        , 'demo_ethnicity_4way'
+        , 'demo_empl_employed'
+        , 'demo_empl_retired'
+        , 'demo_occupation'
+        , 'demo_educ_highest'
+        , 'demo_income_bucket'
+        #, 'demo_year_immigrated'
+        , 'demo_hh_size'
+        , 'demo_hh_ownrent'
+        , 'demo_hh_accom_type'
+        )
+vars_add = c('age', 'age_sq')
+vars_rake = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket')
+pop_weight_col = NULL
+epsilon = nrow(data) * 0.01
+calfun = 'raking'
+outcome = 'MRI_brain_vol'
 
-# #all_weights
-# apply(all_weights[[1]], 2, summary)
+
+
+all_weights = tryCatch(runSim(data = data
+        , sample = sample
+        , vars = vars
+        , vars_add = vars_add
+        , outcome = 'MRI_brain_vol'
+        , pop_weight_col = pop_weight_col
+        , verbose = FALSE
+        , ntree = 1
+        , epsilon = epsilon
+        )
+, error = function(e) print(e))
+
+#all_weights
+apply(all_weights[[1]], 2, summary)
 
 
 
