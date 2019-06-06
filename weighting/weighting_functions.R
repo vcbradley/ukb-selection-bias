@@ -1000,7 +1000,7 @@ runSim = function(data
 
 #### For testing
 
-sample = read.csv(sprintf("sample_%05d.csv", 4))[,1]
+sample = read.csv(sprintf("sample_%05d.csv", 5))[,1]
 
 # load data
 load(file = paste0('../../data.rda'))
@@ -1031,7 +1031,7 @@ vars = c('demo_sex'
 vars_add = c('age', 'age_sq')
 vars_rake = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket')
 pop_weight_col = NULL
-epsilon = nrow(data) * 0.01
+epsilon = nrow(data) * 0.001
 calfun = 'raking'
 outcome = 'MRI_brain_vol'
 
