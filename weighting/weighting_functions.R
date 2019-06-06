@@ -950,10 +950,13 @@ runSim = function(data
     print(data)
     print(sample)
 
+    # calibration without continuous vars is raking
     raked_data = tryCatch({
-        doRaking(svydata = sample
-        , popdata = data
-        , vars = vars)
+        doCalibration(svydata = sample
+            , popdata = data
+            , vars = vars
+            , epsilon = epsilon
+            , calfun = calfun)
         }, error = function(e) print(e))
     
     if('data.table' %in% class(raked_data)){
