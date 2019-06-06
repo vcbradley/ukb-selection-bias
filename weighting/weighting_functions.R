@@ -998,59 +998,59 @@ runSim = function(data
 
 
 
-#### For testing
+# #### For testing
 
-sample = read.csv(sprintf("sample_%05d.csv", 5))[,1]
+# sample = read.csv(sprintf("sample_%05d.csv", 5))[,1]
 
-# load data
-load(file = paste0('../../data.rda'))
-data = ukbdata[1:length(sample),]#limit for now
-
-
-# run simulation draft
-print(paste0(Sys.time(), '\t Weighting starting...'))
-
-source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
+# # load data
+# load(file = paste0('../../data.rda'))
+# data = ukbdata[1:length(sample),]#limit for now
 
 
+# # run simulation draft
+# print(paste0(Sys.time(), '\t Weighting starting...'))
 
-####### DO WEIGHTING  #######
-vars = c('demo_sex'
-        , 'demo_age_bucket'
-        , 'demo_ethnicity_4way'
-        , 'demo_empl_employed'
-        , 'demo_empl_retired'
-        , 'demo_occupation'
-        , 'demo_educ_highest'
-        , 'demo_income_bucket'
-        #, 'demo_year_immigrated'
-        , 'demo_hh_size'
-        , 'demo_hh_ownrent'
-        , 'demo_hh_accom_type'
-        )
-vars_add = c('age', 'age_sq')
-vars_rake = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket')
-pop_weight_col = NULL
-epsilon = nrow(data) * 0.001
-calfun = 'raking'
-outcome = 'MRI_brain_vol'
+# source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
 
 
 
-all_weights = tryCatch(runSim(data = data
-        , sample = sample
-        , vars = vars
-        , vars_add = vars_add
-        , outcome = 'MRI_brain_vol'
-        , pop_weight_col = pop_weight_col
-        , verbose = FALSE
-        , ntree = 1
-        , epsilon = epsilon
-        )
-, error = function(e) print(e))
+# ####### DO WEIGHTING  #######
+# vars = c('demo_sex'
+#         , 'demo_age_bucket'
+#         , 'demo_ethnicity_4way'
+#         , 'demo_empl_employed'
+#         , 'demo_empl_retired'
+#         , 'demo_occupation'
+#         , 'demo_educ_highest'
+#         , 'demo_income_bucket'
+#         #, 'demo_year_immigrated'
+#         , 'demo_hh_size'
+#         , 'demo_hh_ownrent'
+#         , 'demo_hh_accom_type'
+#         )
+# vars_add = c('age', 'age_sq')
+# vars_rake = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket')
+# pop_weight_col = NULL
+# epsilon = nrow(data) * 0.001
+# calfun = 'raking'
+# outcome = 'MRI_brain_vol'
 
-#all_weights
-apply(all_weights[[1]], 2, summary)
+
+
+# all_weights = tryCatch(runSim(data = data
+#         , sample = sample
+#         , vars = vars
+#         , vars_add = vars_add
+#         , outcome = 'MRI_brain_vol'
+#         , pop_weight_col = pop_weight_col
+#         , verbose = FALSE
+#         , ntree = 1
+#         , epsilon = epsilon
+#         )
+# , error = function(e) print(e))
+
+# #all_weights
+# apply(all_weights[[1]], 2, summary)
 
 
 
