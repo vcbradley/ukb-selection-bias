@@ -137,7 +137,7 @@ doRaking = function(svydata
     , vars
     , pop_weight_col = NULL
     , prior_weight_col = NULL
-    , control = list(maxit = 100, epsilon = 10e-4, verbose=FALSE)
+    , control = list(maxit = 1000, epsilon = 10e-4, verbose=FALSE)
     ){
      popdata <- copy(popdata)
      svydata <- copy(svydata)
@@ -371,14 +371,14 @@ doLassoRake = function(
     fit_out = cv.glmnet(y = as.numeric(data[get(selected_ind) == 1, get(outcome)])
         , x = outdata_modmat
         , nfolds = 5
-        #, lambda = lambda
+        , lambda = lambda_out
         )
 
     print(summary(fit_nr))
 
     ##### RANK COEFS #####
-    coef_nr = data.table(var_code = rownames(coef(fit_nr, s = 'lambda.1se')), coef_nr = coef(fit_nr, s = 'lambda.min')[,1])[-1,]
-    coef_out = data.table(var_code = rownames(coef(fit_out, s = 'lambda.1se')), coef_out = coef(fit_out, s = 'lambda.min')[,1])[-1,]
+    coef_nr = data.table(var_code = rownames(coef(fit_nr, s = 'lambda.1se')), coef_nr = coef(fit_nr, s = 'lambda.1se')[,1])[-1,]
+    coef_out = data.table(var_code = rownames(coef(fit_out, s = 'lambda.1se')), coef_out = coef(fit_out, s = 'lambda.1se')[,1])[-1,]
 
     lasso_vars[coef_nr, on = 'var_code', coef_nr := i.coef_nr]
     lasso_vars[coef_out, on = 'var_code', coef_out := i.coef_out]
@@ -673,7 +673,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
     print(summary(fit_logit))
 
-    coef_logit = data.table(rownames(coef(fit_logit, s = 'lambda.min')), coef = as.numeric(coef(fit_logit, s = 'lambda.min')))
+    coef_logit = data.table(rownames(coef(fit_logit, s = 'lambda.1se')), coef = as.numeric(coef(fit_logit, s = 'lambda.1se')))
     coef_logit = coef_logit[coef != 0,]
 
     print(coef_logit)
@@ -711,7 +711,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, verbose = FALSE){
 
     cat(paste0(Sys.time(), "\t\t Creating model matricies....\n"))
-    formula_bart = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^2'))
+    formula_bart = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')'))
     bart_modmat = modmat_all_levs(formula = formula_bart, data = data, sparse= T)
 
     cat(paste0(Sys.time(), "\t\t Fitting model....\n"))
@@ -965,13 +965,20 @@ runSim = function(data
     print(sample)
 
     # calibration without continuous vars is raking
-    raked_data = tryCatch({
-        doCalibration(svydata = sample
+    # raked_data = tryCatch({
+    #     doCalibration(svydata = sample
+    #         , popdata = data
+    #         , vars = vars
+    #         , epsilon = epsilon
+    #         , calfun = calfun)
+    #     }, error = function(e) print(e))
+     raked_data = tryCatch({
+        doRaking(svydata = sample
             , popdata = data
             , vars = vars
-            , epsilon = epsilon
-            , calfun = calfun)
+            )
         }, error = function(e) print(e))
+  
     
     if('data.table' %in% class(raked_data)){
         print(summary(raked_data$weight))
@@ -1012,9 +1019,9 @@ runSim = function(data
 
 
 
-#### For testing
+# #### For testing
 
-# sample = read.csv(sprintf("sample_%05d.csv", 11))[,1]
+# sample = read.csv(sprintf("sample_%05d.csv", 1))[,1]
 
 # # load data
 # load(file = paste0('../../data.rda'))
