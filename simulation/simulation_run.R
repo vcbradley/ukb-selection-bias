@@ -1,6 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript       
 #$ -N sim_run
-#$ -t 101:1000
+#$ -t 1:100
 #$ -tc 50                                                                                                                         
 #$ -cwd
 #$ -q short.qc
@@ -22,6 +22,7 @@ JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
 #JobId = 1
 
 dir = getwd()
+cat(dir)
 
 prop = str_split(dir, '/')[[1]]
 prop = prop[grepl('prop', prop)]
