@@ -7,12 +7,15 @@ library(gridExtra)
 setwd('~/github/mini-project-1/simulation/')
 list.files('results')
 
-which_sim = 'sim_1_5000_v3'
+which_sim = 'sim_1_5000_old_v3'
 
 load(paste0('results/', which_sim, '/results_summary.rda'))
 
 #set directory for plots
 plot_dir = paste0('results/', which_sim, '/plots')
+if(!dir.exists(plot_dir)){
+  dir.create(plot_dir)
+}
 
 #get list of methods
 methods = gsub('_brainvol','',names(weight_summary)[grepl('brainvol', names(weight_summary))])
@@ -39,7 +42,7 @@ plotError = function(data, methods, plot_style = 'overlap', x_var = 'samp_error'
         ylab('Weighted error') + 
         xlab('Raw error') + 
         ggtitle(m) + 
-        ylim(ymin, ymax)
+        ylim(ymin, ymax) 
     })
     
     plot = plot + theme(legend.position = "none")
@@ -127,8 +130,9 @@ weight_summary[var == 'has_t1_MRI', ]
 plotSubgroupError = function(data, methods, p, extra_title){
   subplots = lapply(methods, function(m){
     plot = ggplot(data, aes(x = samp_brainvol_error, y = get(paste0(m, '_brainvol_mse')), size = pop_prop)) + 
-      stat_density_2d(aes(fill = ..level..), geom = "polygon") +
-      xlab('Sample error') + ylab('Weighted log(MSE)') +
+      #stat_density_2d(aes(fill = ..level..), geom = "polygon") +
+      geom_point() +
+      xlab('log(Sample error)') + ylab('Weighted log(MSE)') +
       ggtitle(m)
   })
   
@@ -142,12 +146,12 @@ plotSubgroupError = function(data, methods, p, extra_title){
 
 
 for(p in all_props){
-  plot_subgroup_err = plotSubgroupError(data = mse[prop_sampled == p & pop_prop < 0.25,], methods = methods, extra_title = paste0('\nprop sampled = ', p))
+  plot_subgroup_err = plotSubgroupError(data = mse[prop_sampled == p,], methods = methods, extra_title = paste0('\nprop sampled = ', p))
   ggsave(filename = paste0(plot_dir, '/plot_subgroup_err_', p, '.pdf'), plot = plot_subgroup_err, device = 'pdf', width = 10, height = 6, units = 'in')
 }
 
 
-ggplot(weight_summary[prop_sampled == 0.02, .(pop_prop = min(pop_prop)
+ggplot(weight_summary[prop_sampled == 0.01, .(pop_prop = min(pop_prop)
                                         , rake_error = log(sum(rake_error ^ 2))
                       , strat_error = log(sum(strat_error ^ 2))
                       , calib_error = log(sum(calib_error ^ 2))
@@ -170,15 +174,14 @@ ggplot(weight_summary[prop_sampled == 0.02, .(pop_prop = min(pop_prop)
 
 
 
-total_error = merge(weight_summary[var == 'has_t1_MRI'], variance, by = c('sim_num', 'prop_sampled'))
 
 
 plot_total_error = lapply(methods, function(m){
-  ymin = min(total_error[, lapply(.SD, min), .SDcols = paste0('var_', methods)])
+  ymin = min(weight_summary[var == 'has_t1_MRI', lapply(.SD, min), .SDcols = paste0('var_', methods)])
   #ymax = max(total_error[, lapply(.SD, max), .SDcols = paste0('var_', methods)])
   ymax = 0.5
   
-  plot = ggplot(total_error, aes(x = get(paste0(m, '_error')), y = get(paste0('var_', m)))) + 
+  plot = ggplot(weight_summary[var == 'has_t1_MRI',], aes(x = get(paste0(m, '_error')), y = get(paste0('var_', m)))) + 
     stat_density_2d(aes(fill = ..level..), geom = "polygon")
   
   plot = plot + ggtitle(m) + xlab(paste0(m, '_error')) + ylab(paste0('var_', m)) + theme(legend.title = element_blank())
@@ -226,7 +229,7 @@ ggplot(mse[var == 'has_t1_MRI']) +
 # PLOT var x prop sampled #
 ###########################
 
-plot_var_x_prop_sampled = ggplot(variance[, lapply(.SD, mean), .SDcols = grepl('var', names(variance)), by = prop_sampled]) + 
+plot_var_x_prop_sampled = ggplot(weight_summary[var == 'has_t1_MRI' & prop_sampled < 0.7, lapply(.SD, mean), .SDcols = grepl('var_', names(weight_summary)), by = prop_sampled]) + 
   xlab('Proportion sampled') +
   ylab('Weight variance') +
   ggtitle("Variance by proportion sampled")+
@@ -246,25 +249,65 @@ ggsave(filename = paste0(plot_dir, '/plot_var_x_prop_sampled.pdf'), plot = plot_
 # PLOT var by MSE #
 ###################
 
-variance_melted = melt(variance, id.vars = c('prop_sampled', 'sim_num'))
+variance_melted = melt(weight_summary[var == 'has_t1_MRI'], id.vars = c('prop_sampled', 'sim_num'), measure.vars = names(weight_summary)[grepl('var_', names(weight_summary))])
 variance_melted = variance_melted[value > 0, .(Var = mean(value)), by = .(prop_sampled, variable)]
 variance_melted[, variable := gsub('var_', '', variable)]
 
-mse_melted = melt(mse[var == 'has_t1_MRI', grepl('prop_sampled|mse', names(mse)), with = F], id.vars = c('prop_sampled'), value.name = 'MSE')
-mse_melted[, variable := gsub('_brainvol_mse', '', variable)]
+bias_melted = melt(weight_summary[var == 'has_t1_MRI'], id.vars = c('prop_sampled', 'sim_num'), measure.vars = names(weight_summary)[grepl('_error', names(weight_summary))])
+bias_melted = bias_melted[value > 0, .(Bias = mean(value)), by = .(prop_sampled, variable)]
+bias_melted[, variable := gsub('_error', '', variable)]
 
-var_and_mse = merge(mse_melted, variance_melted, by = c('prop_sampled', 'variable'))
+# mse_melted = melt(mse[var == 'has_t1_MRI', grepl('prop_sampled|mse', names(mse)), with = F], id.vars = c('prop_sampled'), value.name = 'MSE')
+# mse_melted[, variable := gsub('_brainvol_mse', '', variable)]
+# 
+# var_and_mse = merge(mse_melted, variance_melted, by = c('prop_sampled', 'variable'))
+
+var_and_error = merge(bias_melted, variance_melted, by = c('prop_sampled', 'variable'))
 
 
-plot_var_by_MSE = ggplot(var_and_mse, aes(x = MSE, y = Var, color = variable)) + 
-  geom_line() + theme_classic() + 
-  xlab('Log(MSE)') + ylab('Weight variance') +
-  ggtitle('Variance by MSE')
+plot_var_by_bias = ggplot(var_and_error[prop_sampled < 0.7][order(variable, prop_sampled)]
+                          , aes(x = Bias, y = Var, color = variable, size = prop_sampled)) + 
+  geom_point(alpha = 0.5) + #geom_line(alpha = 0.2, size = 3) + 
+  theme_classic() +
+  xlab('Avg bias') + ylab('Avg weight variance') +
+  ggtitle('Variance by Bias')
+plot_var_by_bias
 
 ggsave(filename = paste0(plot_dir, '/plot_var_by_MSE.pdf'), plot = plot_var_by_MSE, device = 'pdf', width = 10, height = 6, units = 'in')
 
 
 var_and_mse[order(variable)]
+
+############################
+# Var x MSE x Prop sampled #
+############################
+
+plot_list = lapply(sort(all_props[all_props < 0.75]), function(p){
+  mean_error = weight_summary[var == 'has_t1_MRI'& prop_sampled == p, lapply(.SD, mean), .SDcols = paste0(methods, '_error')]
+  mean_var = weight_summary[var == 'has_t1_MRI'& prop_sampled == p, lapply(.SD, mean), .SDcols = paste0('var_',methods)]
+  summary = data.frame(methods, error = as.numeric(mean_error), var = as.numeric(mean_var))
+  
+  actual_bias = weight_summary[var == 'has_t1_MRI' & prop_sampled == p, .(actual_bias = mean(samp_brainvol - pop_brainvol))]
+  
+  ggplot(weight_summary[var == 'has_t1_MRI'& prop_sampled == p]) + 
+    geom_hline(yintercept = actual_bias$actual_bias, color = 'black', lty = 2) +
+    geom_hline(yintercept = 0, color = 'black') +
+    
+    geom_point(aes(y = rake_error, x = var_rake, color = 'rake'), alpha = 0.1) +
+    geom_point(aes(y = strat_error, x = var_strat, color = 'strat'), alpha = 0.1) +
+    geom_point(aes(y = calib_error, x = var_calib, color = 'lasso'), alpha = 0.1) +
+    geom_point(aes(y = calib_error, x = var_calib, color = 'calib'), alpha = 0.1) +
+    geom_point(aes(y = logit_error, x = var_logit, color = 'logit'), alpha = 0.1) +
+    geom_point(aes(y = bart_error, x = var_bart, color = 'bart'), alpha = 0.1) +
+    
+    geom_point(data = summary, aes(y = error, x = var, fill = methods), color = 'black', shape = 24, size = 2, alpha = 1) +
+    ggtitle(paste0("Prop=",p)) + theme_light() + #theme(legend.position = "none") +
+    ylim(-50000,25000) + xlim(0,10) + guides(colour=FALSE)
+    
+  
+})
+
+marrangeGrob(plot_list, ncol = 3, nrow = 3, top=paste0('Error x Variance'))
 
 
 ###############
