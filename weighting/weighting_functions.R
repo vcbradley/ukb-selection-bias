@@ -48,23 +48,23 @@ modmat_all_levs.data.table=function(formula, data, sparse = F){
 # function to create popframe
 getPopframe = function(data, vars, weight_col = NULL){
 
-    data = as_tibble(data)
+    data_new = as_tibble(copy(data))
 
-    popframe = data %>% 
+    popframe = data_new %>% 
             group_by_at(vars(vars)) %>% 
             summarize(
                 n = n()
-                , prop = n()/nrow(data)
+                , prop = n()/nrow(data_new)
                 )
 
     if(!is.null(weight_col)){
-        data = data %>% mutate(weight = .data[[weight_col]])
+        data_new = data_new %>% mutate(weight = data_new[[weight_col]])
 
-        weighted = data %>% 
+        weighted = data_new %>% 
             group_by_at(vars(vars)) %>% 
             summarize(
                 n_wt = sum(weight, na.rm = T)
-                , prop_wt = sum(weight, na.rm = T)/sum(data$weight, na.rm = T)
+                , prop_wt = sum(weight, na.rm = T)/sum(data_new$weight, na.rm = T)
                 )
 
         popframe = left_join(popframe, weighted, by = vars)
@@ -203,9 +203,10 @@ doRaking = function(svydata
         
     }
 
+    cat(vars)
+
     popmargins = lapply(vars, getPopframe, data = popdata, weight_col = 'pop_weight')
    
-
     strata = lapply(vars, function(x) as.formula(paste("~", x)))
 
     prior_weight = as.formula(ifelse(!is.null(prior_weight_col), paste0('~', prior_weight_col), '~1'))
@@ -222,10 +223,10 @@ doRaking = function(svydata
 ## Wrapper for stratification that adds in a variable select function based on importance from a random forest
 doPostStratVarSelect = function(data, vars, selected_ind){
 
-    sample = data[get(selected_ind) == 1, ]
+    sample = copy(data[get(selected_ind) == 1, ])
 
     # make model matrix with categorical vars for random forest
-    ps_modmat = data[, vars, with = F]
+    ps_modmat = copy(data[, vars, with = F])
     ps_modmat[,(vars):=lapply(.SD, as.factor), .SDcols=vars]
 
     # fit random forest and calc variable importance
@@ -279,13 +280,19 @@ doLassoRake = function(
     , n_interactions = 2
 ){
     # deep copy
-    data = copy(data)
+    data_lasso = copy(data)
+
+    # check numbers of levels and drop vars with only 1
+    samp_levels = apply(data_lasso[get(selected_ind) == 1, vars, with = F], 2, function(x) length(unique(x)))
+    pop_levels = apply(data_lasso[, vars, with = F], 2, function(x) length(unique(x)))
+    single_level = unique(names(c(samp_levels[which(samp_levels == 1)], pop_levels[which(samp_levels == 1)] )))
+    vars = vars[!vars %in% single_level]
 
     formula = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^', n_interactions))
 
     #moodmat for nr data
-    data_modmat = modmat_all_levs(formula, data, sparse = T)
-    outdata_modmat = modmat_all_levs(formula, data[get(selected_ind) == 1, ], sparse = T)
+    data_modmat = modmat_all_levs(formula, data_lasso, sparse = T)
+    outdata_modmat = modmat_all_levs(formula, data_lasso[get(selected_ind) == 1, ], sparse = T)
 
     ##### PREP VARIABLES #####
     samp = apply(outdata_modmat, 2, sum)
@@ -299,11 +306,11 @@ doLassoRake = function(
     lasso_vars[order(var_code),]
 
     # drop strata that are null in the pop or the sample
-    strata_missing = lasso_vars[(is.na(n_pop) | is.na(n_samp)),]
-    if(nrow(strata_missing) > 0){
+    strata_missing = lasso_vars[,which(is.na(n_pop) | is.na(n_samp) | n_samp == 0 | n_pop == 0)]
+    if(length(strata_missing) > 0){
     	print("WARNING dropping strata because missing in sample or pop")
     	print(strata_missing)
-    	lasso_vars = lasso_vars[!(is.na(n_pop) | is.na(n_samp)),]
+    	lasso_vars = lasso_vars[-strata_missing,]
     }
     lasso_vars = lasso_vars[order(var_code)]
 
@@ -326,7 +333,7 @@ doLassoRake = function(
     drop_pop = which(lasso_vars$dist_pop < 0.01 | lasso_vars$dist_pop > 0.99)
 
     # drop variables from lasso_vars and data
-    lasso_vars = lasso_vars[-unique(drop_pop, drop_samp),]
+    lasso_vars = lasso_vars[-unique(c(drop_pop, drop_samp)),]
     data_modmat = data_modmat[, colnames(data_modmat) %in% lasso_vars$var_code]
     outdata_modmat = outdata_modmat[, colnames(data_modmat) %in% lasso_vars$var_code]
 
@@ -336,12 +343,12 @@ doLassoRake = function(
     #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
 
     # nonresponse
-    y_mat_nr = matrix(as.numeric(data[, get(selected_ind)]), ncol = 1)
+    y_mat_nr = matrix(as.numeric(data_lasso[, get(selected_ind)]), ncol = 1)
     lambda_max_nr = max(t(y_mat_nr) %*% data_modmat)/nrow(data_modmat)
     lambda_nr <- exp(seq(log(lambda_max_nr * 0.001), log(lambda_max_nr), length.out=20)) 
 
     # outcome
-    y_mat_out = matrix(as.numeric(data[get(selected_ind) == 1, get(selected_ind)]), ncol = 1)
+    y_mat_out = matrix(as.numeric(data_lasso[get(selected_ind) == 1, get(selected_ind)]), ncol = 1)
     lambda_max_out = max(t(y_mat_out) %*% outdata_modmat)/nrow(outdata_modmat)
     lambda_out <- exp(seq(log(lambda_max_out * 0.001), log(lambda_max_out), length.out=20)) 
 
@@ -349,15 +356,15 @@ doLassoRake = function(
     ###### FIT MODELS ######
     # fit nonresponse lasso
     if(is.null(pop_weight_col)){
-    	data[, pop_weight := 1]
+    	data_lasso[, pop_weight := 1]
     }else{
-    	data[, pop_weight := get(pop_weight_col)]
+    	data_lasso[, pop_weight := get(pop_weight_col)]
     }
 
     cat(paste0(Sys.time(), "\t\t Fitting NR model....\n"))
-    fit_nr = cv.glmnet(y = as.numeric(data[, get(selected_ind)])
+    fit_nr = cv.glmnet(y = as.numeric(data_lasso[, get(selected_ind)])
         , x = data_modmat
-        , weights = as.numeric(data[, pop_weight])  #because the population data is weighted, include this
+        , weights = as.numeric(data_lasso[, pop_weight])  #because the population data is weighted, include this
         , family = 'binomial'
         , nfolds = 5
         , lambda = lambda_nr
@@ -368,7 +375,7 @@ doLassoRake = function(
     
     cat(paste0(Sys.time(), "\t\t Fitting outcome model....\n"))
 
-    fit_out = cv.glmnet(y = as.numeric(data[get(selected_ind) == 1, get(outcome)])
+    fit_out = cv.glmnet(y = as.numeric(data_lasso[get(selected_ind) == 1, get(outcome)])
         , x = outdata_modmat
         , nfolds = 5
         , lambda = lambda_out
@@ -377,7 +384,7 @@ doLassoRake = function(
     print(summary(fit_nr))
 
     ##### RANK COEFS #####
-    coef_nr = data.table(var_code = rownames(coef(fit_nr, s = 'lambda.1se')), coef_nr = coef(fit_nr, s = 'lambda.1se')[,1])[-1,]
+    coef_nr = data.table(var_code = rownames(coef(fit_nr, s = 'lambda.min')), coef_nr = coef(fit_nr, s = 'lambda.min')[,1])[-1,]
     coef_out = data.table(var_code = rownames(coef(fit_out, s = 'lambda.1se')), coef_out = coef(fit_out, s = 'lambda.1se')[,1])[-1,]
 
     lasso_vars[coef_nr, on = 'var_code', coef_nr := i.coef_nr]
@@ -398,10 +405,11 @@ doLassoRake = function(
     print(lasso_vars[rank_total < 15, ][order(rank_total)])
 
     #create data table for weighting
-    data_modmat_allvars = cbind(data, as.matrix(data_modmat))
+    data_modmat_allvars = cbind(data_lasso, as.matrix(data_modmat))
 
     # get variable subsets for raking
-    lasso_vars = lasso_vars[!is.na(rank_nr) | !is.na(rank_out)]
+    # only take top 50 vars if there are more than 50
+    lasso_vars = lasso_vars[rank_total <= 50]
 
     lasso_vars[, subset := floor(rank_total/20)]
     lasso_vars[, subset := (max(subset) + 1)- subset]
@@ -436,7 +444,7 @@ doLassoRake = function(
     }
 
     #set final weight
-    weighted = data[get(selected_ind) == 1, ]
+    weighted = copy(data_lasso[get(selected_ind) == 1, ])
     weighted$weight = svydata$prior_weight
 
     return(list(weighted, lasso_vars$var_name))
@@ -542,9 +550,9 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking')
     # split into subgroups for calibration so it doesn't die
     n_vars = length(pop_totals)
     
-    for(i in 1:3){
+    for(i in 1:2){
         cat(paste0(Sys.time(), "\t\t\t Iteration ",i ,"\n"))
-        group = order(pop_totals)[ceiling((1:n_vars)/(n_vars/3)) == i]
+        group = order(pop_totals)[ceiling((1:n_vars)/(n_vars/2)) == i]
 
         ## make formula
         formula_cal = as.formula(paste0('~ -1 +', paste(names(pop_totals)[group], collapse = '+')))
@@ -673,7 +681,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
     print(summary(fit_logit))
 
-    coef_logit = data.table(rownames(coef(fit_logit, s = 'lambda.1se')), coef = as.numeric(coef(fit_logit, s = 'lambda.1se')))
+    coef_logit = data.table(rownames(coef(fit_logit, s = 'lambda.min')), coef = as.numeric(coef(fit_logit, s = 'lambda.min')))
     coef_logit = coef_logit[coef != 0,]
 
     print(coef_logit)
@@ -694,8 +702,15 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     }else{
         logit_vars = coef_logit$V1[-1]
 
+        re_fit_logit = glmnet(y = as.numeric(data_scaled[, get(selected_ind)])
+            , x = logit_modmat[, which(colnames(logit_modmat) %in% logit_vars)]
+            , weights = as.numeric(data_scaled[, pop_weight])  #because the population data is weighted, include this
+            , family = 'binomial'
+            , lambda=0
+            )
+
         # calculate weights
-        lp = predict(fit_logit, newx = logit_modmat[data_scaled$selected == 1, ], s = 'lambda.min')
+        lp = predict(re_fit_logit, newx = logit_modmat[data_scaled$selected == 1, which(colnames(logit_modmat) %in% logit_vars)])
         probs = exp(lp)/(1+exp(lp))        
     }
 
@@ -819,7 +834,7 @@ runSim = function(data
     #data[, selected := NULL]
     data = cbind(data, selected = sample)
 
-    sample = data[selected == 1, ]
+    sample = copy(data[selected == 1, ])
 
     # cat(names(data))
     # cat('\n')
@@ -846,7 +861,7 @@ runSim = function(data
     }else{
         cat('Calibration did not converge \n\n')
 
-        calibrated_data = sample
+        calibrated_data = copy(sample)
         calibrated_data[, weight := 1]
     }
     timing$calib_end <- Sys.time()
@@ -869,7 +884,7 @@ runSim = function(data
         cat('\n\n') 
     }else{
         cat('Logit did not converge \n\n')
-        logit_weighted = sample
+        logit_weighted = copy(sample)
         logit_weighted = list(logit_weighted[, weight := 1], vars = 'none')
     }
     
@@ -893,7 +908,7 @@ runSim = function(data
         cat('\n\n') 
     }else{
         cat('PostStrat did not converge \n\n')
-        strat_data = sample
+        strat_data = copy(sample)
         strat_data = list(strat_data[, weight := 1], vars = 'none')
     }
     timing$poststrat_end <- Sys.time()
@@ -905,6 +920,8 @@ runSim = function(data
 
 
     ###### LASSO RAKE
+    head(data)
+    head(sample)
     timing$lassorake_start <- Sys.time()
     cat(paste0(timing$lassorake_start, '\t', "Running lasso rake...\n\n\n"))
     lassorake_data = tryCatch({
@@ -922,7 +939,7 @@ runSim = function(data
         cat('\n\n') 
     }else{
         cat('LassoRake did not converge \n\n')
-        lassorake_data = sample
+        lassorake_data = copy(sample)
         lassorake_data = list(lassorake_data[, weight := 1], vars = 'none')
     }
 
@@ -948,7 +965,7 @@ runSim = function(data
         cat('\n\n') 
     }else{
         cat('BARTWeight did not converge \n\n')
-        bart_weighted = sample
+        bart_weighted = copy(sample)
         bart_weighted = list(bart_weighted[, weight := 1], vars = 'none')
     }
     timing$bart_end <- Sys.time()
@@ -960,10 +977,6 @@ runSim = function(data
      ##### RAKING
     timing$rake_end <- Sys.time()
     cat(paste0(timing$rake_end, '\t', "Running raking..."))
-
-    print(data)
-    print(sample)
-
     # calibration without continuous vars is raking
     # raked_data = tryCatch({
     #     doCalibration(svydata = sample
@@ -985,7 +998,7 @@ runSim = function(data
         cat('\n\n') 
     }else{
         cat('Raking did not converge \n\n')
-        raked_data = sample
+        raked_data = copy(sample)
         raked_data[, weight := 1]
     }
 
@@ -1021,7 +1034,7 @@ runSim = function(data
 
 # #### For testing
 
-# sample = read.csv(sprintf("sample_%05d.csv", 1))[,1]
+# sample = read.csv(sprintf("sample_%05d.csv", 2))[,1]
 
 # # load data
 # load(file = paste0('../../data.rda'))
@@ -1031,7 +1044,7 @@ runSim = function(data
 # # run simulation draft
 # print(paste0(Sys.time(), '\t Weighting starting...'))
 
-# source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
+# #source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
 
 
 
@@ -1069,7 +1082,7 @@ runSim = function(data
 #         , epsilon = epsilon
 #         )
 # , error = function(e) print(e))
-
+ 
 # #all_weights
 # apply(all_weights[[1]], 2, summary)
 
