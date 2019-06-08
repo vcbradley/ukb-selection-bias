@@ -24,8 +24,8 @@ source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.
 # might want to think about controlling the level of noise
 
 ####### SET simulation parameters
-n_equations = 1
-n_samples = 5000
+n_equations = 5000
+n_samples = 1
 
 use_health_vars = F
 
