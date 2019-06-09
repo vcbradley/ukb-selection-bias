@@ -119,6 +119,7 @@ doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weig
     weighted = merge(popframe, sampframe, by = vars)
     weighted[, weight := (pop_prop/samp_prop)]
     weighted = merge(svydata, weighted[, c(vars, 'weight'), with = F], by = vars, all.x = T)
+    weighted[is.na(weight), weight := 1]
 
     #fix col sorting
     weighted = weighted[, c(names(svydata), 'weight'), with = F]
@@ -243,6 +244,7 @@ doPostStratVarSelect = function(data, vars, selected_ind, pop_weight_col = NULL)
     # fit random forest and calc variable importance
     ps_fit = randomForest(y = as.factor(data[, get(selected_ind)]), x = ps_modmat, importance = T, ntree = 100)
     ps_vars = sort(ps_fit$importance[, 1], decreasing = T)
+    cat(names(ps_vars))
 
     # get sample and popdata
     sample = popdata[get(selected_ind) == 1, ]
@@ -274,7 +276,7 @@ doPostStratVarSelect = function(data, vars, selected_ind, pop_weight_col = NULL)
     weighted = doPostStrat(svydata = sample
             , popdata = popdata
             , vars = strat_vars
-            , pop_weight_col = 'pop_weight')
+            , pop_weight_col = pop_weight_col)
 
     return(list(weighted, strat_vars))
 }
@@ -704,9 +706,9 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
     # define lambda values based on largest coef
     #https://stats.stackexchange.com/questions/174897/choosing-the-range-and-grid-density-for-regularization-parameter-in-lasso
-    y_mat = matrix(as.numeric(data_scaled[, get(selected_ind)]), ncol = 1)
-    lambda_max = max(t(y_mat) %*% logit_modmat)/nrow(logit_modmat)
-    lambda <- exp(seq(log(lambda_max * 0.001), log(lambda_max), length.out=20)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
+    # y_mat = matrix(as.numeric(data_scaled[, get(selected_ind)]), ncol = 1)
+    # lambda_max = max(t(y_mat) %*% logit_modmat)/nrow(logit_modmat)
+    # lambda <- exp(seq(log(lambda_max * 0.001), log(lambda_max), length.out=20)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
     
     # RUN LASSO
     fit_logit = cv.glmnet(y = as.numeric(data_scaled[, get(selected_ind)])
@@ -714,7 +716,8 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
             , weights = as.numeric(data_scaled[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
             , family = 'binomial'
             , nfolds = 5
-            , lambda=lambda
+            #, lambda=lambda
+            , nlambda = 20
             )
 
     print(summary(fit_logit))
