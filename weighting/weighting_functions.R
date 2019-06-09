@@ -842,7 +842,9 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
             weighted = weighted[, -'bart_weight', with = F]
             imp_vars = 'none'
         }else{
-            weighted = temp
+            weighted[temp, on = 'eid', weight := i.weight]
+            # if there are null weights because raking dropped some, set them to 1
+            weighted[is.na(weight), weight := 1]
         }
 
     }else{
