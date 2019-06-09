@@ -81,12 +81,12 @@ n_interactions = 2
 
     # create combined data table
     data_comb = rbind(
-    	cbind(data_img[, c('eid',vars), with = F], pop_weight = 1, selected = 1)
+    	cbind(data_img[, c('eid',vars), with = F], pop_weight = 0, selected = 1)
 	    , cbind(data_hse[, c('SerialA', vars, 'wt_blood'), with = F], selected = 0)
 	    , use.names = F)
 
     # drop rows with null pop weights
-	data_comb = data_comb[!is.na(pop_weight)]
+	data_comb = data_comb[!is.na(pop_weight),]
 
 	# get logit weights
     logit_weighted = tryCatch({
