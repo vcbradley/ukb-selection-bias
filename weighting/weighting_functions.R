@@ -137,7 +137,7 @@ doRaking = function(svydata
     , vars
     , pop_weight_col = NULL
     , prior_weight_col = NULL
-    , control = list(maxit = 1000, epsilon = 10e-4, verbose=FALSE)
+    , control = list(maxit = 5000, epsilon = 3e-4, verbose=FALSE)
     ){
      popdata <- copy(popdata)
      svydata <- copy(svydata)
