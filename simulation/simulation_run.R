@@ -64,6 +64,10 @@ vars = c('demo_sex'
 , 'demo_hh_size'
 , 'demo_hh_ownrent'
 , 'demo_hh_accom_type')
+#exclude vars from raking
+vars_rake = vars[-which(vars == 'demo_ethnicity_full' | vars == 'demo_year_immigrated')]
+# and add in rolled-up ethnicity
+vars_rake = c(vars_rake, 'demo_ethnicity_4way')
 
 vars_add = c('age', 'age_sq')
 pop_weight_col = NULL
@@ -73,12 +77,15 @@ calfun = 'raking'
 outcome = 'MRI_brain_vol'
 
 
+lapply(vars, getPopframe, data = data)
+
 
 ###### RUN ONE ITERATION
 all_weights = tryCatch(runSim(data = data
         , sample = sample
         , vars = vars
         , vars_add = vars_add
+        , vars_rake = vars_rake
         , outcome = 'MRI_brain_vol'
         , pop_weight_col = pop_weight_col
         , verbose = FALSE

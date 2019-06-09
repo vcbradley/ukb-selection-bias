@@ -823,6 +823,7 @@ runSim = function(data
     , sample
     , vars
     , vars_add = NULL
+    , vars_rake = NULL
     , epsilon = 1
     , outcome
     , pop_weight_col = NULL
@@ -850,7 +851,7 @@ runSim = function(data
     calibrated_data = tryCatch({
         doCalibration(svydata = sample
             , popdata = data
-            , vars = c(vars, 'age')
+            , vars = c(vars_rake, 'age')
             , epsilon = epsilon
             , calfun = calfun)
         }, error = function(e) print(e))
@@ -988,7 +989,7 @@ runSim = function(data
      raked_data = tryCatch({
         doRaking(svydata = sample
             , popdata = data
-            , vars = vars
+            , vars = vars_rake
             )
         }, error = function(e) print(e))
   
