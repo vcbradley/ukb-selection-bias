@@ -457,7 +457,6 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
         popdata[, pop_weight := 1]
     }else{
         popdata[, pop_weight := get(pop_weight_col)]
-        popdata[-which(is.na(pop_weight)),]
     }
 
     # check levels and get rid of those vars with only 1 so model matrix works
@@ -486,6 +485,19 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
         }
         
         pop_modmat = pop_modmat[, -drop_pop_levels]
+    }
+
+    drop_samp_levels = which(!colnames(samp_modmat) %in% colnames(pop_modmat))
+
+    if(length(drop_samp_levels) > 0){
+        print("WARNING dropping population levels because not in sample\n")
+        if(length(drop_samp_levels) == 1){
+            print(paste(colnames(samp_modmat)[drop_samp_levels],mean(samp_modmat[,drop_samp_levels])))
+        }else{
+            print(apply(samp_modmat[,drop_samp_levels], 2, mean))
+        }
+        
+        samp_modmat = samp_modmat[, -drop_samp_levels]
     }
     
 
@@ -557,7 +569,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
     # split into subgroups for calibration so it doesn't die
     n_vars = length(pop_totals)
     n_loop = ceiling(n_vars/20)
-    
+
     for(i in 1:n_loop){
         cat(paste0(Sys.time(), "\t\t\t Iteration ",i ,"\n"))
         group = order(pop_totals)[ceiling((1:n_vars)/(n_vars/n_loop)) == i]
