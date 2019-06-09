@@ -724,20 +724,28 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     }else{
         logit_vars = coef_logit$V1[-1]
 
-        re_fit_logit = glmnet(y = as.numeric(data_scaled[, get(selected_ind)])
-            , x = logit_modmat[, which(colnames(logit_modmat) %in% logit_vars)]
+        re_fit_logit = glm.fit(x = logit_modmat[, which(colnames(logit_modmat) %in% logit_vars)]
+            , y = as.numeric(data_scaled[, get(selected_ind)])
             , weights = as.numeric(data_scaled[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
-            , family = 'binomial'
-            , lambda=0
+            , family = binomial()
             )
+        probs = re_fit_logit$fitted.values
+
+        # re_fit_logit = glmnet(y = as.numeric(data_scaled[, get(selected_ind)])
+        #     , x = logit_modmat[, which(colnames(logit_modmat) %in% logit_vars)]
+        #     , weights = as.numeric(data_scaled[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
+        #     , family = 'binomial'
+        #     , lambda=0 # re-fit with no penalty, like normal logit
+        #     )
 
         # calculate weights
-        lp = predict(re_fit_logit, newx = logit_modmat[data_scaled$selected == 1, which(colnames(logit_modmat) %in% logit_vars)])
-        probs = exp(lp)/(1+exp(lp))        
+        # lp = predict(re_fit_logit, newx = logit_modmat[data_scaled$selected == 1, which(colnames(logit_modmat) %in% logit_vars)])
+        # probs = exp(lp)/(1+exp(lp))        
     }
 
-    weighted = data[selected == 1,]
+    weighted = copy(data)
     weighted[, prob := probs]
+    weighted = weighted[selected == 1,]
     weighted[, weight := (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T)]
 
     return(list(weighted[, -'prob', with = F], logit_vars))
