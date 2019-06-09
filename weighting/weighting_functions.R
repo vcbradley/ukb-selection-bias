@@ -296,7 +296,7 @@ doLassoRake = function(
 
     ##### PREP VARIABLES #####
     samp = apply(outdata_modmat, 2, sum)
-    pop = apply(data_modmat, 2, sum)
+    pop = apply(data_modmat, 2, function(x, pop_weight) sum(x * pop_weight), pop_weight = data_lasso[, get(pop_weight_col)])
 
     # create var data table with variable codes
     lasso_vars = data.table(var_name = names(pop), var_code = paste0('v', str_pad(1:length(pop), width = 4, side = 'left', pad = '0')), n_pop = pop)
@@ -364,7 +364,7 @@ doLassoRake = function(
     cat(paste0(Sys.time(), "\t\t Fitting NR model....\n"))
     fit_nr = cv.glmnet(y = as.numeric(data_lasso[, get(selected_ind)])
         , x = data_modmat
-        , weights = as.numeric(data_lasso[, pop_weight])  #because the population data is weighted, include this
+        , weights = as.numeric(data_lasso[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
         , family = 'binomial'
         , nfolds = 5
         , lambda = lambda_nr
@@ -415,7 +415,7 @@ doLassoRake = function(
     lasso_vars[, subset := (max(subset) + 1)- subset]
 
     svydata = data_modmat_allvars[get(selected_ind) == 1, ]
-    popdata = data_modmat_allvars[get(selected_ind) == 0, ]
+    popdata = data_modmat_allvars[get(pop_weight_col) > 0 & !is.na(get(pop_weight_col)),]
 
 
 
@@ -817,15 +817,22 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
     gc()
 
     if(!is.null(imp_vars)){
-        if(is.null(popdata)){
+
+        if(is.null(pop_weight_col)){
             popdata = copy(data)
+            popdata[, pop_weight := 1]
+        }else{
+            popdata = copy(data[(get(pop_weight_col) > 0) & (!is.na(get(pop_weight_col))),])
+            popdata[, pop_weight := get(pop_weight_col)]
         }
+
 
         cat(paste0(Sys.time(), "\t\t Raking....\n"))
         temp = tryCatch({doRaking(svydata = weighted
                         , popdata = popdata
                         , vars = imp_vars
                         , prior_weight_col = 'bart_weight'
+                        , pop_weight_col = 'pop_weight'
                         )}, error = function(e) print(e))
 
         # if raking fails, just use BART weights
