@@ -48,20 +48,24 @@ source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.
 
 ####### DO WEIGHTING  #######
 vars = c('demo_sex'
-        , 'demo_age_bucket'
-        , 'demo_ethnicity_4way'
-        , 'demo_empl_employed'
-        , 'demo_empl_retired'
-        , 'demo_occupation'
-        , 'demo_educ_highest'
-        , 'demo_income_bucket'
-        #, 'demo_year_immigrated'
-        , 'demo_hh_size'
-        , 'demo_hh_ownrent'
-        , 'demo_hh_accom_type'
-        )
+, 'demo_age_bucket'
+, 'demo_ethnicity_full'
+, 'demo_empl_employed'
+, 'demo_empl_retired'
+, 'demo_empl_homemaker'
+, 'demo_empl_disabled'
+, 'demo_empl_unemployed'
+, 'demo_empl_volunteer'
+, 'demo_empl_student'
+, 'demo_occupation'
+, 'demo_educ_highest'
+, 'demo_income_bucket'
+, 'demo_year_immigrated'
+, 'demo_hh_size'
+, 'demo_hh_ownrent'
+, 'demo_hh_accom_type')
+
 vars_add = c('age', 'age_sq')
-vars_rake = c('demo_sex', 'demo_ethnicity_4way', 'demo_age_bucket')
 pop_weight_col = NULL
 
 epsilon = nrow(data) * 0.0003
