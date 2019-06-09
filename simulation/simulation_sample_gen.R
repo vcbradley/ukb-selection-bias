@@ -35,7 +35,7 @@ prop_sampled_options = c(0.01, 0.02, 0.04, 0.05, 0.075, 0.1, 0.25, 0.5)
 
 # Set specific param for this task
 TaskId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-#TaskId = 1
+TaskId = 1
 prop_sampled = prop_sampled_options[TaskId]
 
 load('data_modmat.rda')
@@ -45,16 +45,33 @@ coeff_samples = fread('coefs.csv')
 #coeff_samples[which(colnames(ukbdata_modmat) == 'age'), X1 := -5]
 #ukbdata_modmat[, which(colnames(ukbdata_modmat) == 'age')]
 
+nas = apply(ukbdata_modmat, 2, function(p) sum(is.na(p)))
+nas[nas > 0]
+
+
 ####### USE COEFS TO GENERATE SAMPLES
 lps = ukbdata_modmat %*% as.matrix(coeff_samples)
+
+#cap at -10 and 10 so we don't break R, but don't center so we maintain skew of prob dist (if exists)
+lps <- scale(lps, center = F, scale = T) * 10
+lps[lps > 10] <- 10
+lps[lps < -10] <- -10
+
+# calculate probs
 probs = exp(lps)/(1+exp(lps))
 
+#check that none are NA
+nas = apply(probs, 2, function(p) sum(is.na(p)))
+nas[nas > 0]
+
 #check 
-cat('Dist of probs\n')
-summary(probs)
+#cat('Dist of probs\n')
+#summary(probs)
 
 
 prob_mat = matrix(apply(probs, 2, rep, n_samples), ncol = ncol(probs)*n_samples)
+
+apply(prob_mat, 2, function(p) sum(is.na(p)))
 
 samples = apply(prob_mat, 2, function(p, prop_sampled){
 	sampled_int = sample(x = 1:length(p), size = (length(p) * prop_sampled), prob = p)
