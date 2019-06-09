@@ -772,7 +772,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
 
 
-doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, verbose = FALSE){
+doBARTweight = function(data, vars, popdata = NULL, selected_ind, pop_weight_col = NULL, ntree = 20, verbose = FALSE){
 
     cat(paste0(Sys.time(), "\t\t Creating model matricies....\n"))
     formula_bart = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')'))
@@ -851,7 +851,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, ntree = 20, ve
                         , popdata = popdata
                         , vars = imp_vars
                         , prior_weight_col = 'bart_weight'
-                        , pop_weight_col = 'pop_weight'
+                        , pop_weight_col = pop_weight_col
                         )}, error = function(e) print(e))
 
         # if raking fails, just use BART weights
