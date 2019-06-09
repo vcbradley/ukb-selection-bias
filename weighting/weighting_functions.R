@@ -120,6 +120,7 @@ doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weig
     weighted[, weight := (pop_prop/samp_prop)]
     weighted = merge(svydata, weighted[, c(vars, 'weight'), with = F], by = vars, all.x = T)
     weighted[is.na(weight), weight := 1]
+    print(weighted[,.N,is.na(weight)])
 
     #fix col sorting
     weighted = weighted[, c(names(svydata), 'weight'), with = F]
