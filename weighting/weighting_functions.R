@@ -103,7 +103,7 @@ doPostStrat = function(svydata, popdata, vars, pop_weight_col = NULL, prior_weig
     cat(vars)
     cat("\n")
 
-    popframe  = getPopframe(popdata, vars = vars, weight_col = NULL)
+    popframe  = getPopframe(popdata, vars = vars, weight_col = pop_weight_col)
 	setnames(popframe, old = 'Freq', new = 'pop_prop')
     popframe = popframe[, pop_N := pop_prop * nrow(popdata)]
 
@@ -225,17 +225,28 @@ doRaking = function(svydata
 }
 
 ## Wrapper for stratification that adds in a variable select function based on importance from a random forest
-doPostStratVarSelect = function(data, vars, selected_ind){
+doPostStratVarSelect = function(data, vars, selected_ind, pop_weight_col = NULL){
 
-    sample = copy(data[get(selected_ind) == 1, ])
+    popdata = copy(data)
+
+    if(is.null(pop_weight_col)){
+        popdata[, pop_weight := 1]
+    }else{
+        popdata[, pop_weight := get(pop_weight_col)]
+    }
+
 
     # make model matrix with categorical vars for random forest
-    ps_modmat = copy(data[, vars, with = F])
+    ps_modmat = copy(popdata[, vars, with = F])
     ps_modmat[,(vars):=lapply(.SD, as.factor), .SDcols=vars]
 
     # fit random forest and calc variable importance
     ps_fit = randomForest(y = as.factor(data[, get(selected_ind)]), x = ps_modmat, importance = T, ntree = 100)
     ps_vars = sort(ps_fit$importance[, 1], decreasing = T)
+
+    # get sample and popdata
+    sample = popdata[get(selected_ind) == 1, ]
+    popdata = popdata[!is.na(pop_weight) & pop_weight > 0, ]
 
     ### Increase number of stratification variables until we lose too much of the pop
     prop_pop_dropped = 0
@@ -246,7 +257,7 @@ doPostStratVarSelect = function(data, vars, selected_ind){
         strat_vars = names(ps_vars[1:n_vars])
 
         # calculate number in sample and number in populatioin
-        drop_pop = merge(data[, .(prop_pop = .N/nrow(data)), by = strat_vars]
+        drop_pop = merge(popdata[, .(prop_pop = sum(pop_weight)/sum(popdata$pop_weight)), by = strat_vars]
             , sample[, .(n_samp = .N, prop_samp = .N/nrow(sample)), by = strat_vars], all.x = T)
 
         # caluclate the pct of the sample that will be dropped
@@ -260,13 +271,13 @@ doPostStratVarSelect = function(data, vars, selected_ind){
     strat_vars = names(ps_vars[1:n_vars])
 
     ## DO POST STRAT
-    weighted = doPostStrat(svydata = data[get(selected_ind) == 1,]
-            , popdata = data
-            , vars = strat_vars)
+    weighted = doPostStrat(svydata = sample
+            , popdata = popdata
+            , vars = strat_vars
+            , pop_weight_col = 'pop_weight')
 
     return(list(weighted, strat_vars))
 }
-
 
 # load('data.rda')
 # load('data_modmat.rda')
