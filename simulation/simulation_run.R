@@ -35,7 +35,7 @@ sample = read.csv(sprintf("sample_%05d.csv",JobId))[,1]
 
 # load data
 load(file = paste0(sim_dir,'/data.rda'))
-data = ukbdata[1:length(sample),]#limit for now
+data = ukbdata#limit for now
 rm(ukbdata)
 
 
