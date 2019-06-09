@@ -64,10 +64,10 @@ vars = c('demo_sex'
 , 'demo_hh_size'
 , 'demo_hh_ownrent'
 , 'demo_hh_accom_type')
-#exclude vars from raking
-vars_rake = vars[-which(vars == 'demo_ethnicity_full' | vars == 'demo_year_immigrated')]
+#exclude vars from raking and calibration (pop % < 1)
+vars_rake = vars[-which(vars %in% c('demo_ethnicity_full','demo_year_immigrated', 'demo_empl_unemployed', 'demo_empl_student', 'demo_empl_disabled'))]
 # and add in rolled-up ethnicity
-vars_rake = c(vars_rake, 'demo_ethnicity_4way')
+vars_rake = c(vars_rake, 'demo_white')
 
 vars_add = c('age', 'age_sq')
 pop_weight_col = NULL
@@ -77,7 +77,7 @@ calfun = 'raking'
 outcome = 'MRI_brain_vol'
 
 
-lapply(vars, getPopframe, data = data)
+#lapply(vars_rake, getPopframe, data = data)
 
 
 ###### RUN ONE ITERATION
