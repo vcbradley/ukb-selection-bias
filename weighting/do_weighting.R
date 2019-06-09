@@ -212,5 +212,20 @@ weighted_list = list(
     , logit_weighted[[1]][, .(eid, logit_weight = weight)]
     , bart_weighted[[1]][, .(eid, bart_weight = weight)]
     )
+all_weights = Reduce(function(x,y) merge(x,y, by = 'eid', all = T) , weighted_list)
+
 
 apply(all_weights, 2, summary)
+
+#check NAs
+apply(all_weights, 2, function(x) sum(is.na(x)))
+
+
+data_img_hse_weighted = merge(data_img, all_weights, by = 'eid', all = T)
+
+data_img_hse_weighted[, .(mean(MRI_brain_vol)
+	, weighted.mean(MRI_brain_vol, w = strat_weight)
+	, mean(MRI_brain_vol) - weighted.mean(MRI_brain_vol, w = strat_weight)
+	), by = demo_age_bucket][order(demo_age_bucket)]
+
+
