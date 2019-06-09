@@ -35,7 +35,7 @@ prop_sampled_options = c(0.01, 0.02, 0.04, 0.05, 0.075, 0.1, 0.25, 0.5)
 
 # Set specific param for this task
 TaskId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-TaskId = 1
+#TaskId = 1
 prop_sampled = prop_sampled_options[TaskId]
 
 load('data_modmat.rda')
