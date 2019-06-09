@@ -139,27 +139,28 @@ doRaking = function(svydata
     , prior_weight_col = NULL
     , control = list(maxit = 5000, epsilon = 3e-4, verbose=FALSE)
     ){
-     popdata <- copy(popdata)
-     svydata <- copy(svydata)
+     popdata_rake <- copy(popdata)
+     svydata_rake <- copy(svydata)
 
     if(is.null(pop_weight_col)){
-        popdata[, pop_weight := 1]
+        popdata_rake[, pop_weight := 1]
     }else{
-        popdata[, pop_weight := get(pop_weight_col)]
+        popdata_rake[, pop_weight := get(pop_weight_col)]
+        popdata_rake = popdata_rake[pop_weight > 0 & !is.na(pop_weight),]
     }
 
     if(is.null(prior_weight_col)){
-        svydata[, prior_weight := 1]
+        svydata_rake[, prior_weight := 1]
     }else{
-        svydata[, prior_weight := get(prior_weight_col)]
+        svydata_rake[, prior_weight := get(prior_weight_col)]
     }
 
     drop_pop = 1
     drop_samp = 1
     while(length(drop_samp)>0 | length(drop_pop)>0){
         drop_samp = unlist(lapply(vars, function(v){
-            popmargin = popdata[, .(pop_prop = sum(pop_weight)/sum(popdata$pop_weight)), by = v]
-            sampmargin = svydata[, .(samp_prop = sum(prior_weight)/sum(svydata$prior_weight)), by = v]
+            popmargin = popdata_rake[, .(pop_prop = sum(pop_weight)/sum(popdata_rake$pop_weight)), by = v]
+            sampmargin = svydata_rake[, .(samp_prop = sum(prior_weight)/sum(svydata_rake$prior_weight)), by = v]
             margins = merge(popmargin, sampmargin, all = T)
             margins = cbind(var = v, margins)
 
@@ -170,18 +171,18 @@ doRaking = function(svydata
                 print(drop_samp)
             }
 
-            drop = which(svydata[,get(as.character(v))] %in% drop_samp[, 2])
+            drop = which(svydata_rake[,get(as.character(v))] %in% drop_samp[, 2])
 
             return(drop)
             }))
 
         if(length(drop_samp)>0){
-            svydata = svydata[-unique(drop_samp), ]
+            svydata_rake = svydata_rake[-unique(drop_samp), ]
         }
 
         drop_pop = unlist(lapply(vars, function(v){
-            popmargin = popdata[, .(pop_prop = sum(pop_weight)/sum(popdata$pop_weight)), by = v]
-            sampmargin = svydata[, .(samp_prop = sum(prior_weight)/sum(svydata$prior_weight)), by = v]
+            popmargin = popdata_rake[, .(pop_prop = sum(pop_weight)/sum(popdata_rake$pop_weight)), by = v]
+            sampmargin = svydata_rake[, .(samp_prop = sum(prior_weight)/sum(svydata_rake$prior_weight)), by = v]
             margins = merge(popmargin, sampmargin, all = T)
             margins = cbind(var = v, margins)
 
@@ -192,32 +193,35 @@ doRaking = function(svydata
                 print(drop_pop)
             }
 
-            drop = which(popdata[,get(as.character(v))] %in% unlist(drop_pop[, 2]))
+            drop = which(popdata_rake[,get(as.character(v))] %in% unlist(drop_pop[, 2]))
 
             return(drop)
             }))
 
         if(length(drop_pop) > 0){
-            popdata = popdata[-unique(drop_pop), ]
+            popdata_rake = popdata_rake[-unique(drop_pop), ]
         }
         
     }
 
     cat(vars)
 
-    popmargins = lapply(vars, getPopframe, data = popdata, weight_col = 'pop_weight')
+    popmargins = lapply(vars, getPopframe, data = popdata_rake, weight_col = 'pop_weight')
    
     strata = lapply(vars, function(x) as.formula(paste("~", x)))
 
     prior_weight = as.formula(ifelse(!is.null(prior_weight_col), paste0('~', prior_weight_col), '~1'))
-    svydata = svydesign(id = ~1, weights = prior_weight, data = svydata)
+    svydata_rake = svydesign(id = ~1, weights = prior_weight, data = svydata_rake)
 
 
     # do weighting
-    weighted = rake(svydata, sample.margins = strata, population.margins = popmargins, control = control)
+    weighted = rake(svydata_rake, sample.margins = strata, population.margins = popmargins, control = control)
     weighted = cbind(weighted$variables, weight = (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T))
 
-    return(weighted)
+    svydata[weighted, on = 'eid', weight := i.weight]
+    svydata[is.na(weight), weight := 1]
+
+    return(svydata)
 }
 
 ## Wrapper for stratification that adds in a variable select function based on importance from a random forest
