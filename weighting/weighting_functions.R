@@ -420,7 +420,7 @@ doLassoRake = function(
     lasso_vars[, subset := (max(subset) + 1)- subset]
 
     svydata = data_modmat_allvars[get(selected_ind) == 1, ]
-    popdata = data_modmat_allvars[get(pop_weight_col) > 0 & !is.na(get(pop_weight_col)),]
+    popdata = data_modmat_allvars[pop_weight > 0 & !is.na(pop_weight),]
 
 
 
