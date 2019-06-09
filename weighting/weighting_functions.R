@@ -629,9 +629,11 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
     #############
 
-    pop = apply(logit_modmat, 2, sum)
-    samp = apply(logit_modmat[data[, get(selected_ind)] == 1,], 2, sum)
+    # get var totals
+    pop = apply(logit_modmat, 2, function(x, pop_weight) sum(x*pop_weight), pop_weight = data_scaled$pop_weight)
+    samp = apply(logit_modmat[data_scaled[, get(selected_ind)] == 1,], 2, sum)
 
+    # get number of levels
     pop_levels = apply(logit_modmat, 2, function(x) length(unique(x)))
 
 
@@ -664,7 +666,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
     # calc distributions
     lasso_vars[, dist_pop := n_pop/nrow(logit_modmat)]
-    lasso_vars[, dist_samp := n_samp/sum(data[, get(selected_ind)])]
+    lasso_vars[, dist_samp := n_samp/sum(data_scaled[, get(selected_ind)])]
 
     # figure out which lasso_vars to drop
     drop_samp = which((lasso_vars$dist_samp < 0.01 | lasso_vars$dist_samp > 0.99) & lasso_vars$discrete == 1)
@@ -693,7 +695,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     # RUN LASSO
     fit_logit = cv.glmnet(y = as.numeric(data_scaled[, get(selected_ind)])
             , x = logit_modmat
-            , weights = as.numeric(data_scaled[, pop_weight])  #because the population data is weighted, include this
+            , weights = as.numeric(data_scaled[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
             , family = 'binomial'
             , nfolds = 5
             , lambda=lambda
@@ -714,7 +716,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
         fit_logit = glm(as.formula(paste0(selected_ind, "~", paste(vars, collapse = '+')))
             , data = data_scaled
-            , weights = as.numeric(data_scaled[, pop_weight])  #because the population data is weighted, include this
+            , weights = as.numeric(data_scaled[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
             , family = 'binomial'
             )
         probs = fit_logit$fitted.values[data_scaled[,get(selected_ind)] == 1]
@@ -724,7 +726,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
         re_fit_logit = glmnet(y = as.numeric(data_scaled[, get(selected_ind)])
             , x = logit_modmat[, which(colnames(logit_modmat) %in% logit_vars)]
-            , weights = as.numeric(data_scaled[, pop_weight])  #because the population data is weighted, include this
+            , weights = as.numeric(data_scaled[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
             , family = 'binomial'
             , lambda=0
             )
