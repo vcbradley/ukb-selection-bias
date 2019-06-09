@@ -282,6 +282,12 @@ doLassoRake = function(
     # deep copy
     data_lasso = copy(data)
 
+    if(is.null(pop_weight_col)){
+        data_lasso[, pop_weight := 1]
+    }else{
+        data_lasso[, pop_weight := get(pop_weight_col)]
+    }
+
     # check numbers of levels and drop vars with only 1
     samp_levels = apply(data_lasso[get(selected_ind) == 1, vars, with = F], 2, function(x) length(unique(x)))
     pop_levels = apply(data_lasso[, vars, with = F], 2, function(x) length(unique(x)))
@@ -296,7 +302,7 @@ doLassoRake = function(
 
     ##### PREP VARIABLES #####
     samp = apply(outdata_modmat, 2, sum)
-    pop = apply(data_modmat, 2, function(x, pop_weight) sum(x * pop_weight), pop_weight = data_lasso[, get(pop_weight_col)])
+    pop = apply(data_modmat, 2, function(x, pop_weight) sum(x * pop_weight), pop_weight = data_lasso$pop_weight)
 
     # create var data table with variable codes
     lasso_vars = data.table(var_name = names(pop), var_code = paste0('v', str_pad(1:length(pop), width = 4, side = 'left', pad = '0')), n_pop = pop)
@@ -355,11 +361,6 @@ doLassoRake = function(
 
     ###### FIT MODELS ######
     # fit nonresponse lasso
-    if(is.null(pop_weight_col)){
-    	data_lasso[, pop_weight := 1]
-    }else{
-    	data_lasso[, pop_weight := get(pop_weight_col)]
-    }
 
     cat(paste0(Sys.time(), "\t\t Fitting NR model....\n"))
     fit_nr = cv.glmnet(y = as.numeric(data_lasso[, get(selected_ind)])
