@@ -77,7 +77,7 @@ ntree = 25
 
 
 ####### CALIBRATE
-
+cat(paste0(Sys.time(), '\t', "Running calibration...\n\n\n"))
 calibrated_data = tryCatch({
     doCalibration(svydata = data_img
         , popdata = data_hse
@@ -100,7 +100,7 @@ if('data.table' %in% class(calibrated_data)){
 
 
 ###### LOGIT
-
+cat(paste0(Sys.time(), '\t', "Running logit...\n\n\n"))
 # get logit weights
 logit_weighted = tryCatch({
     doLogitWeight(data = data_comb
@@ -123,7 +123,7 @@ if('list' %in% class(logit_weighted)){
 
 
 ####### POST STRAT WITH variable selection
-
+cat(paste0(Sys.time(), '\t', "Running post-strat...\n\n\n"))
 strat_data = tryCatch({
     doPostStratVarSelect(data = data_comb
     , vars = vars
@@ -142,7 +142,7 @@ if('list' %in% class(strat_data)){
 
 
 ###### LASSO RAKE
-cat(paste0(timing$lassorake_start, '\t', "Running lasso rake...\n\n\n"))
+cat(paste0(Sys.time(), '\t', "Running lasso rake...\n\n\n"))
 lassorake_data = tryCatch({
     doLassoRake(data = data_comb
     , vars = vars
@@ -163,7 +163,7 @@ if('list' %in% class(lassorake_data)){
 
 
 ####### BART + rake
-cat(paste0(timing$bart_start, '\t', "Running BART...\n\n\n"))
+cat(paste0(Sys.time(), '\t', "Running BART...\n\n\n"))
 bart_weighted = tryCatch({
     doBARTweight(data = data_comb
     , vars = vars
@@ -184,7 +184,7 @@ if('list' %in% class(bart_weighted)){
 
 
 ##### RAKING
-cat(paste0(timing$rake_end, '\t', "Running raking..."))
+cat(paste0(Sys.time(), '\t', "Running raking..."))
  raked_data = tryCatch({
     doRaking(svydata = data_img
         , popdata = data_hse
@@ -204,12 +204,13 @@ if('data.table' %in% class(raked_data)){
 
 
     
+weighted_list = list(
+    raked_data[, .(eid, rake_weight = weight)]
+    , strat_data[[1]][, .(eid, strat_weight = weight)]
+    , calibrated_data[, .(eid, calib_weight = weight)]
+    , lassorake_data[[1]][, .(eid, lasso_weight = weight)]
+    , logit_weighted[[1]][, .(eid, logit_weight = weight)]
+    , bart_weighted[[1]][, .(eid, bart_weight = weight)]
+    )
 
-    weighted_list = list(
-        raked_data[, .(eid, rake_weight = weight)]
-        , strat_data[[1]][, .(eid, strat_weight = weight)]
-        , calibrated_data[, .(eid, calib_weight = weight)]
-        , lassorake_data[[1]][, .(eid, lasso_weight = weight)]
-        , logit_weighted[[1]][, .(eid, logit_weight = weight)]
-        , bart_weighted[[1]][, .(eid, bart_weight = weight)]
-        )
+apply(all_weights, 2, summary)
