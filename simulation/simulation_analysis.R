@@ -112,6 +112,10 @@ vars = c('demo_sex'
         , 'demo_hh_size'
         , 'demo_hh_ownrent'
         , 'demo_hh_accom_type'
+        , 'health_smoking_status'
+        , 'health_apoe_phenotype'
+        , 'health_BMI_bucket'
+        , 'health_bp_high_ever'
         )
 
 all_weights_demos[all_weights_demos[, .(n_samp = .N/max(sim_num)), by = prop_sampled], on = 'prop_sampled', n_samp := i.n_samp]
@@ -130,18 +134,6 @@ weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
         samp_count = .N
         , samp_prop = .N/max(n_samp)
         , samp_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
-        , samp_smoke_current = sum(health_smoking_status == '01-Current')/.N
-        , samp_smoke_prev = sum(health_smoking_status == '02-Previous')/.N
-        , samp_smoke_never = sum(health_smoking_status == '03-Never')/.N
-        , samp_apoe_e4e4 = sum(health_apoe_phenotype == '01-e4/e4')/.N
-        , samp_apoe_e3e4 = sum(health_apoe_phenotype == '02-e3/e4')/.N
-        , samp_apoe_other = sum(health_apoe_phenotype == '03-other')/.N
-        , samp_bmi_underweight = sum(health_BMI_bucket == '01-Underweight')/.N
-        , samp_bmi_normal = sum(health_BMI_bucket == '02-Healthy')/.N
-        , samp_bmi_overweight = sum(health_BMI_bucket == '03-Overweight')/.N
-        , samp_bmi_obese = sum(health_BMI_bucket == '04-Obese')/.N
-        , samp_bmi_dnk = sum(health_BMI_bucket == '99-DNK/Refused')/.N
-        , samp_bp_high_ever = sum(health_bp_high_ever == '01-Yes')/.N
 
         , rake_prop = sum(rake_weight, na.rm = T)/max(n_samp)
         , rake_brainvol = sum(as.numeric(MRI_brain_vol) * rake_weight, na.rm = T)/sum(rake_weight, na.rm = T)
