@@ -123,7 +123,22 @@ weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
         pop_count = .N
         , pop_prop = .N/nrow(ukbdata)
         , pop_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
+        , pop_smoke_current = sum(health_smoking_status == '01-Current')/.N
+        , pop_smoke_prev = sum(health_smoking_status == '02-Previous')/.N
+        , pop_smoke_never = sum(health_smoking_status == '03-Never')/.N
+        , pop_apoe_e4e4 = sum(health_apoe_phenotype == '01-e4/e4')/.N
+        , pop_apoe_e3e4 = sum(health_apoe_phenotype == '02-e3/e4')/.N
+        , pop_apoe_other = sum(health_apoe_phenotype == '03-other')/.N
+        , pop_bmi_underweight = sum(health_BMI_bucket == '01-Underweight')/.N
+        , pop_bmi_normal = sum(health_BMI_bucket == '02-Healthy')/.N
+        , pop_bmi_overweight = sum(health_BMI_bucket == '03-Overweight')/.N
+        , pop_bmi_obese = sum(health_BMI_bucket == '04-Obese')/.N
+        , pop_bmi_dnk = sum(health_BMI_bucket == '99-DNK/Refused')/.N
+        , pop_bp_high_ever = sum(health_bp_high_ever == '01-Yes')/.N
+        , cor(health_apoe_level, MRI_brain_vol)
         ), by = v]
+
+
 
     samp = all_weights_demos[, .(
         samp_count = .N
@@ -164,15 +179,19 @@ weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
 setnames(weight_summary, old = 'has_t1_MRI', new = 'level')
 weight_summary
 
+# check NAs
+weight_summary[var == 'has_t1_MRI', lapply(.SD, function(x) sum(x == 0 | is.na(x))), .SDcols = names(weight_summary)[grepl('var', names(weight_summary))]]
 
-### check 
+# check where algs didn't converge
 weight_summary[var == 'has_t1_MRI', lapply(.SD, function(x) mean(x == 0)), .SDcols = names(weight_summary)[grepl('var_', names(weight_summary))], by = prop_sampled][order(prop_sampled)]
 
+# check weights count by prop_sampled
 weight_summary[var == 'has_t1_MRI', .N, prop_sampled]
 
+# check toplines
 weight_summary[var == 'has_t1_MRI' & prop_sampled == 0.01,][order(sim_num)]
 
-# calc error
+# calc brainvol error
 weight_summary[, samp_error := samp_brainvol - pop_brainvol]
 weight_summary[, paste0(methods, '_error') := lapply(.SD, function(col) col - pop_brainvol), .SDcols = paste0(methods, '_brainvol')]
 
@@ -207,8 +226,17 @@ list.files(results_path)
 save(weight_summary, mse, file = paste0(results_path, '/results_summary.rda'))
 
 
-# to move to local comp
-#paste0('scp biobank:/well/nichols/users/bwj567/simulation/',sim_name, '~/Documents/')
+save(all_weights_demos, file = paste0(results_path, '/all_weights_demos.rda'))
+
+
+# library(data.table)
+# sim_name = 'sim_1_5000_v3'
+# setwd(paste0('/well/nichols/users/bwj567/simulation/', sim_name))
+
+# covars = fread('missingness_covars.csv')
+# coefs = fread('coefs.csv')
+
+# sim_coefs = cbind(covars, coefs)[X1 != 0]
 
 
 
