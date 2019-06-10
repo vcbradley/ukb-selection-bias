@@ -119,8 +119,8 @@ coefs_full = data.table(cbind(coefs_full, coef_error))
 
 
 #### save results
-write.csv(coefs_full, file = paste0(results_dir, '/apoe_reg_coef_prop_',prop,'.rda'))
-write.csv(p_vals_full, file = paste0(results_dir, '/apoe_reg_pval_prop_',prop,'.rda'))
+write.csv(coefs_full, file = paste0(results_dir, '/apoe_reg_coef_prop_',prop,'.csv'))
+write.csv(p_vals_full, file = paste0(results_dir, '/apoe_reg_pval_prop_',prop,'.csv'))
 
 if(JobId == 1){
 	save(pop_coefs, pop_p_vals, file = paste0(results_dir, '/apoe_reg_popvals.rda'))
