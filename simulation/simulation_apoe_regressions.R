@@ -1,6 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript       
 #$ -N sim_apoe_reg
-#$ -t 8                                                                                                                         
+#$ -t 1:7                                                                                                                         
 #$ -cwd
 #$ -q short.qc
 #$ -o ./logs                                                                                                                                                                               
