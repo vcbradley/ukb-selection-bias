@@ -12,7 +12,9 @@
 # Brain Vol and ApoE #
 ######################
 
+
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
+JobId = 2
 prop_sampled_options = c(0.01, 0.02, 0.04, 0.05, 0.075, 0.1, 0.25, 0.5)
 prop = prop_sampled_options[JobId]
 
@@ -94,8 +96,7 @@ for(p in sort(unique(all_weights_demos[, prop_sampled]))){
 	}
 }
 coefs_full
-p_vals_full
-
+p_vals_full[, V1 := NULL]
 
 ## pop
 pop_fit = glm(MRI_brain_vol ~ -1 +
