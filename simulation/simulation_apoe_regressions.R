@@ -3,8 +3,8 @@
 #$ -t 1:8                                                                                                                         
 #$ -cwd
 #$ -q short.qc
-#$ -o ../../logs                                                                                                                                                                               
-#$ -e ../../logs   
+#$ -o ./logs                                                                                                                                                                               
+#$ -e ./logs   
 #$ -l s_rt=24:00:00
 #$ -l h_rt=24:00:00
 
