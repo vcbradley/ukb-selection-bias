@@ -58,7 +58,7 @@ p_vals_full = NULL
 for(p in sort(unique(all_weights_demos[, prop_sampled]))){
 	cat(paste('Running prop ', p, '\n'))
 
-	for(i in 1:1){#max(all_weights_demos[prop_sampled == p, sim_num])){
+	for(i in 1:max(all_weights_demos[prop_sampled == p, sim_num])){
 		if(i/100 == 0){
 			cat(paste('\tRunning iter ', i, '\n'))
 		}
