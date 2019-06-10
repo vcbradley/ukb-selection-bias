@@ -36,7 +36,7 @@ result_list = list.files('results/', pattern = 'prop')
 # 	write.csv(data_rev, file = r, row.names = F)
 # }
 
-
+######## CAT TOGETHER RESULTS ########
 ##### create all results files
 for(r_ind in 1:length(result_list)){
 	r = result_list[r_ind]
@@ -78,7 +78,7 @@ for(r_ind in 1:length(result_list)){
 
 
 
-#### Load in summary data
+######### LOAD WEIGHTS #########
 all_weights = fread(file = 'results/all_weights.csv')
 
 
