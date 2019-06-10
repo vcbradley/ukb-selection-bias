@@ -58,7 +58,7 @@ p_vals_full = NULL
 for(p in sort(unique(all_weights_demos[, prop_sampled]))){
 	cat(paste('Running prop ', p, '\n'))
 
-	for(i in 1:max(all_weights_demos[prop_sampled == p, sim_num])){
+	for(i in 1:1){#max(all_weights_demos[prop_sampled == p, sim_num])){
 		if(i/100 == 0){
 			cat(paste('\tRunning iter ', i, '\n'))
 		}
@@ -69,7 +69,7 @@ for(p in sort(unique(all_weights_demos[, prop_sampled]))){
 				weights = all_weights_demos[prop_sampled == p & sim_num == i,get(paste0(m,'_weight'))]
 			}
 			
-			fit = glm(MRI_brain_vol ~ 
+			fit = glm(MRI_brain_vol ~ -1 +
 				demo_sex * health_apoe_phenotype +
 				age
 				, data = all_weights_demos[prop_sampled == p & sim_num == i,]
@@ -98,7 +98,7 @@ p_vals_full
 
 
 ## pop
-pop_fit = glm(MRI_brain_vol ~
+pop_fit = glm(MRI_brain_vol ~ -1 +
 		demo_sex * health_apoe_phenotype +
 		age
 		, data = ukbdata
@@ -107,13 +107,21 @@ pop_coefs = data.table(prop_sampled = p, sim_num = i, method = m, t(coef(pop_fit
 pop_p_vals = data.table(prop_sampled = p, sim_num = i, method = m, t(summary(pop_fit)$coef[,4]))
 
 
-#### calculate error
-cols = names(coef(pop_fit))
+# RENAME
+coef_names = c('Male','Female', 'ApoE e4/e4', 'ApoE e3/e4', 'Age', 'Female:ApoE e4/e4', 'Female:ApoE e3/e4')
+setnames(coefs_full, c('prop_sampled', 'sim_num','method',coef_names))
+setnames(p_vals_full, c('prop_sampled', 'sim_num','method',coef_names))
+setnames(pop_coefs, c('prop_sampled', 'sim_num','method',coef_names))
+setnames(pop_p_vals, c('prop_sampled', 'sim_num','method',coef_names))
 
-coef_error = lapply(cols, function(c){
+
+#### calculate error
+
+coef_error = lapply(coef_names, function(c){
 	coefs_full[, c, with = F] - as.numeric(pop_coefs[,c, with = F])
 	})
 coef_error = do.call(cbind, coef_error)
+setnames(coef_error, paste0('Error ', coef_names))
 coefs_full = data.table(cbind(coefs_full, coef_error))
 
 
