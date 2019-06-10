@@ -123,27 +123,25 @@ weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
         pop_count = .N
         , pop_prop = .N/nrow(ukbdata)
         , pop_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
-        , pop_smoke_current = sum(health_smoking_status == '01-Current')/.N
-        , pop_smoke_prev = sum(health_smoking_status == '02-Previous')/.N
-        , pop_smoke_never = sum(health_smoking_status == '03-Never')/.N
-        , pop_apoe_e4e4 = sum(health_apoe_phenotype == '01-e4/e4')/.N
-        , pop_apoe_e3e4 = sum(health_apoe_phenotype == '02-e3/e4')/.N
-        , pop_apoe_other = sum(health_apoe_phenotype == '03-other')/.N
-        , pop_bmi_underweight = sum(health_BMI_bucket == '01-Underweight')/.N
-        , pop_bmi_normal = sum(health_BMI_bucket == '02-Healthy')/.N
-        , pop_bmi_overweight = sum(health_BMI_bucket == '03-Overweight')/.N
-        , pop_bmi_obese = sum(health_BMI_bucket == '04-Obese')/.N
-        , pop_bmi_dnk = sum(health_BMI_bucket == '99-DNK/Refused')/.N
-        , pop_bp_high_ever = sum(health_bp_high_ever == '01-Yes')/.N
         , cor(health_apoe_level, MRI_brain_vol)
         ), by = v]
-
-
 
     samp = all_weights_demos[, .(
         samp_count = .N
         , samp_prop = .N/max(n_samp)
         , samp_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
+        , samp_smoke_current = sum(health_smoking_status == '01-Current')/.N
+        , samp_smoke_prev = sum(health_smoking_status == '02-Previous')/.N
+        , samp_smoke_never = sum(health_smoking_status == '03-Never')/.N
+        , samp_apoe_e4e4 = sum(health_apoe_phenotype == '01-e4/e4')/.N
+        , samp_apoe_e3e4 = sum(health_apoe_phenotype == '02-e3/e4')/.N
+        , samp_apoe_other = sum(health_apoe_phenotype == '03-other')/.N
+        , samp_bmi_underweight = sum(health_BMI_bucket == '01-Underweight')/.N
+        , samp_bmi_normal = sum(health_BMI_bucket == '02-Healthy')/.N
+        , samp_bmi_overweight = sum(health_BMI_bucket == '03-Overweight')/.N
+        , samp_bmi_obese = sum(health_BMI_bucket == '04-Obese')/.N
+        , samp_bmi_dnk = sum(health_BMI_bucket == '99-DNK/Refused')/.N
+        , samp_bp_high_ever = sum(health_bp_high_ever == '01-Yes')/.N
 
         , rake_prop = sum(rake_weight, na.rm = T)/max(n_samp)
         , rake_brainvol = sum(as.numeric(MRI_brain_vol) * rake_weight, na.rm = T)/sum(rake_weight, na.rm = T)
@@ -173,8 +171,7 @@ weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
 
         ), by = c('prop_sampled','sim_num', v)]
 
-    cbind(var = v, merge(pop, samp, by = v, all = T))
-    }))
+}))
 
 setnames(weight_summary, old = 'has_t1_MRI', new = 'level')
 weight_summary
@@ -226,7 +223,8 @@ list.files(results_path)
 save(weight_summary, mse, file = paste0(results_path, '/results_summary.rda'))
 
 
-save(all_weights_demos, file = paste0(results_path, '/all_weights_demos.rda'))
+# DO NOT SAVE ON GIT
+save(all_weights_demos, file = paste0('/gpfs2/well/nichols/users/bwj567/simulation/',sim_name,'/all_weights_demos.rda'))
 
 
 # library(data.table)
