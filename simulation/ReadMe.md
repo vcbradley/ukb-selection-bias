@@ -32,7 +32,11 @@ i.e.
 i.e. `/well/nichols/users/bwj567/simulation/sim_1_5000_1/samples/prop_0.02`
 and run
 ```qsub /well/nichols/users/bwj567/mini-project-1/simulation/simulation_run.R```
-Note that you have to do this separately for each proportion missing
+Note that you have to do this separately for each proportion missing.
+
+
+### Simulation analysis
+
 
 5. *GENERATE SUMMARY* Once results are finished, navigate to the simulation directory
 ```cd /well/nichols/users/bwj567/simulation/sim_1_5000_1```
@@ -46,6 +50,9 @@ This generates a `results_summary.rda` object that can be pulled off of rescomp.
 run 
 ```/well/nichols/users/bwj567/mini-project-1/simulation/simulation_plots.R```
 This will generate a series of result plots that are saved in a `plots/` subdirectory
+
+7. *Apoe REGRESSIONS*
+`qsub /well/nichols/users/bwj567/mini-project-1/simulation/simulation_apoe_regressions.R`
 
 
 
