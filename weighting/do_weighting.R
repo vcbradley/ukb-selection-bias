@@ -236,18 +236,48 @@ apply(all_weights, 2, summary)
 apply(all_weights, 2, function(x) sum(is.na(x)))
 
 
+
+##### SAVE WEIGHTS #####
+save(all_weights, file = '/well/nichols/users/bwj567/weighting/weights_img_hse.rda')
+########################
+
+
+
+
+##### ANALYSIS ######
+
+# merge with demo data
 data_img_hse_weighted = merge(data_img, all_weights, by = 'eid', all = T)
 
-data_img_hse_weighted[, .(mean(MRI_brain_vol)
-	, weighted.mean(MRI_brain_vol, w = strat_weight)
-	, mean(MRI_brain_vol) - weighted.mean(MRI_brain_vol, w = strat_weight)
-	), by = demo_age_bucket][order(demo_age_bucket)]
+
+### Brain vol and age
+# check weighted and unweighted brainvol by age
+data_img_hse_weighted[, .(
+	brain_vol = mean(MRI_brain_vol)
+	, rake_brain_vol = weighted.mean(MRI_brain_vol, w = rake_weight)
+	, strat_brain_vol = weighted.mean(MRI_brain_vol, w = strat_weight)
+	, calib_brain_vol = weighted.mean(MRI_brain_vol, w = calib_weight)
+	, lasso_brain_vol = weighted.mean(MRI_brain_vol, w = lasso_weight)
+	, logit_brain_vol = weighted.mean(MRI_brain_vol, w = logit_weight)
+	, bart_brain_vol = weighted.mean(MRI_brain_vol, w = bart_weight)
+	), by = age_bucket][order(age_bucket)]
+
+brainvol_age = data_img_hse_weighted[, .(
+	brain_vol = mean(MRI_brain_vol)
+	, rake_brain_vol = weighted.mean(MRI_brain_vol, w = rake_weight)
+	, strat_brain_vol = weighted.mean(MRI_brain_vol, w = strat_weight)
+	, calib_brain_vol = weighted.mean(MRI_brain_vol, w = calib_weight)
+	, lasso_brain_vol = weighted.mean(MRI_brain_vol, w = lasso_weight)
+	, logit_brain_vol = weighted.mean(MRI_brain_vol, w = logit_weight)
+	, bart_brain_vol = weighted.mean(MRI_brain_vol, w = bart_weight)
+	), by = age][order(age)]
 
 
 
+### SUBGROUP SUMMARY
 data_hse[, has_t1_MRI := 1]
-weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
-	
+
+weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){	
 
 	pop = data_hse[pop_weight > 0 & !is.na(pop_weight), .(
 		pop_count = .N
@@ -302,5 +332,50 @@ apply(weight_summary[, lapply(.SD, function(x) x - pop_prop),.SDcols = paste0(me
 	, 2, function(x) sum(x^2, na.rm = T))
 
 
+data_img_hse_weighted[, demo_sex := relevel(factor(demo_sex), 'Male')]
+data_img_hse_weighted[, health_apoe_phenotype := relevel(factor(health_apoe_phenotype), '03-other')]
+
+
+
+#### RUN BRAIN VOL APOE REGRESSIONS ####
+all_coefs = NULL
+all_pvals = NULL
+
+for(m in c('none', methods)){
+	if(m == 'none'){
+		weights = rep(1, nrow(data_img_hse_weighted))
+	}else{
+		weights = data_img_hse_weighted[,get(paste0(m,'_weight'))]
+	}
+
+	fit = glm(MRI_brain_vol ~ 
+		demo_sex * health_apoe_phenotype +
+		age
+		, data = data_img_hse_weighted
+		, weights = weights
+		)
+
+	coefs = data.table(method = m, t(coef(fit)))
+	p_vals = data.table(method = m, t(summary(fit)$coef[,4]))
+
+	if(is.null(all_coefs)){
+		all_coefs = coefs
+	}else{
+		all_coefs = rbind(all_coefs, coefs, fill = T)
+	}
+
+	if(is.null(all_pvals)){
+		all_pvals = p_vals
+	}else{
+		all_pvals = rbind(all_pvals, p_vals, fill = T)
+	}
+}
+all_coefs
+all_pvals
+
+
+###### SAVE AGG RESULTS ######
+save(weight_summary, brainvol_age,all_coefs, all_pvals
+	, file = 'ukb_weighted_hse16_summary.rda')
 
 
