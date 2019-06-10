@@ -98,6 +98,9 @@ nans[nans > 0]
 ukbdata_modmat = ukbdata_modmat[, -which(nans > 0)]
 missingness_covars = missingness_covars[-which(nans > 0),]
 
+nas = apply(ukbdata_modmat, 2, function(x) sum(is.na(x)))
+nas[nas > 0]
+
 
 ##### GENERATE MISSINGNESS MODEL COEFS
 coeff_samples = rbindlist(lapply(1:nrow(missingness_covars), function(t, n_equations){
