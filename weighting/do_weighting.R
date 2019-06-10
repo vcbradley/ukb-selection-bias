@@ -53,6 +53,10 @@ intersect(names(data_hse)
 #names(data_census)
 
 
+
+
+#######################
+#### RUN WEIGHTING ####
 #######################
 
 selected_ind = 'selected'
@@ -243,6 +247,10 @@ save(all_weights, file = '/well/nichols/users/bwj567/weighting/weights_img_hse.r
 
 
 
+##### LOAD WEIGHTS #####
+load('/well/nichols/users/bwj567/weighting/weights_img_hse.rda')
+########################
+
 
 ##### ANALYSIS ######
 
@@ -377,5 +385,6 @@ all_pvals
 ###### SAVE AGG RESULTS ######
 save(weight_summary, brainvol_age,all_coefs, all_pvals
 	, file = 'ukb_weighted_hse16_summary.rda')
+
 
 
