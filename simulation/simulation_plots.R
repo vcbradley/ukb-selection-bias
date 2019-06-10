@@ -25,87 +25,108 @@ all_props = unique(weight_summary[, prop_sampled])
 
 weight_summary[, .N, prop_sampled]
 
-##############################
-# PLOT Weighted v. raw error #
-##############################
-
-plotError = function(data, methods, plot_style = 'overlap', x_var = 'samp_error', extra_title = NULL){
-  plot = ggplot(data, aes(x = get(x_var))) + theme_light()
-  
-  if(plot_style == 'tiled'){
-    
-    ymin = min(data[, lapply(.SD, min), .SDcols = paste0(methods, '_error')])
-    ymax = max(data[, lapply(.SD, max), .SDcols = paste0(methods, '_error')])
-    
-    subplots = lapply(methods, function(m){
-      plot + geom_point(aes(y = get(paste0(m, '_error')))) + 
-        ylab('Weighted error') + 
-        xlab('Raw error') + 
-        ggtitle(m) + 
-        ylim(ymin, ymax) 
-    })
-    
-    plot = plot + theme(legend.position = "none")
-    
-    ncol = ceiling(sqrt(length(methods)))
-    nrow = ceiling(length(methods)/ncol)
-    plot = marrangeGrob(subplots, ncol = ncol, nrow = nrow, top=paste0('Weighted by raw brain volume error', ifelse(!is.null(extra_title), extra_title, '')))
-    
-  }else{
-    
-    plot = plot + unlist(lapply(methods, function(m){
-      geom_point(aes(y = get(paste0(m, '_error')), color = m))
-    }))
-    
-    plot = plot + geom_hline(aes(yintercept = 0), lty = 2, color = 'grey')
-    
-    plot = plot + ylab('Weighted error') + xlab('Raw error')
-  }
-
-  return(plot)
-}
 
 
-#print(plotError(weight_summary[var == 'has_t1_MRI' & prop_sampled == '0.5',], methods = methods))
+#### create melted df
+error_melted = melt(weight_summary, id.vars = c('prop_sampled', 'var', 'level', 'sim_num'),value.name = 'error', measure.vars = names(weight_summary)[grepl('error', names(weight_summary))])
+error_melted[, variable := gsub('_error', '', variable)]
+
+var_melted = melt(weight_summary, id.vars = c('prop_sampled', 'var', 'level', 'sim_num'), value.name = 'variance', measure.vars = names(weight_summary)[grepl('var_', names(weight_summary))])
+var_melted[, variable := gsub('var_', '', variable)]
+
+outcome_melted = melt(weight_summary, id.vars = c('prop_sampled', 'var', 'level', 'sim_num'),value.name = 'MRI_brain_vol', measure.vars = names(weight_summary)[grepl('brainvol', names(weight_summary))])
+outcome_melted[, variable := gsub('_brainvol', '', variable)]
+
+weight_summary_melted = merge(error_melted, var_melted, by = c('prop_sampled', 'var', 'level', 'sim_num', 'variable'), all = T)
+weight_summary_melted = merge(weight_summary_melted, outcome_melted, by = c('prop_sampled', 'var', 'level', 'sim_num', 'variable'), all = T)
+
+# drop pop
+weight_summary_melted = weight_summary_melted[!variable %in% c('pop', 'samp'),]
+
+# add in samp error
+weight_summary_melted = merge(weight_summary_melted, weight_summary[var == 'has_t1_MRI', .(var, level, prop_sampled, sim_num, samp_error)], by = c('prop_sampled', 'var', 'level', 'sim_num'))
 
 
-### Create plots
-for(p in all_props){
-  plot = plotError(weight_summary[var == 'has_t1_MRI'& prop_sampled == p,], methods = methods, plot_style = 'tiled', extra_title = paste0('\nprop sampled = ', p))
-  ggsave(paste0(plot_dir, '/plot_error_', p, '.pdf'), plot = plot, height = 6, width = 10, units = 'in', device = 'pdf')
-  
-}
+
+#######################
+# PLOT Selection Bias #
+#######################
+plot_selection_bias = ggplot(weight_summary_melted[variable == 'bart' & var == 'has_t1_MRI',], aes(x = samp_error)) + 
+  geom_histogram() + 
+  facet_grid(.~prop_sampled) +
+  geom_vline(xintercept = 0, color = 'blue', lty = 2) + 
+  ggtitle('Selection bias in total brain volume') +
+  xlab('Total brain volume selection bias') +
+  theme_light() +
+  scale_x_continuous(labels = function(x) format(x, scientific = TRUE)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave(filename = paste0(plot_dir, '/selection_bias.png'), plot = plot_selection_bias, device = 'png', width = 6, height = 2)
 
 
 #############################
 # PLOT Error by sample size #
 #############################
 
-error_melted = melt(weight_summary, id.vars = c('prop_sampled', 'var', 'level', 'sim_num'), measure.vars = names(weight_summary)[grepl('error', names(weight_summary))])
-outcome_melted = melt(weight_summary, id.vars = c('prop_sampled', 'var', 'level', 'sim_num'), measure.vars = names(weight_summary)[grepl('brainvol', names(weight_summary))])
-
-
-plot_error_by_sampsize = ggplot(error_melted[var == 'has_t1_MRI' & variable != 'samp_error']
+plot_error_by_sampsize = ggplot(weight_summary_melted[var == 'has_t1_MRI' & variable != 'samp']
                                 , aes(x = factor(round(prop_sampled * max(weight_summary$pop_count)))
-                                      , y = value, color = factor(round(prop_sampled * max(weight_summary$pop_count))))) + 
+                                      , y = error, color = factor(round(prop_sampled * max(weight_summary$pop_count))))) + 
   geom_boxplot() +
   facet_grid(. ~ gsub("_error","",variable)) +
-  xlab('Sample size') + ylab('Weighted error') + ggtitle('Error by sample size') + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  xlab('Sample size') + ylab('Post-adjustment bias') + ggtitle('Post-adjustment bias in total brain volume ') + 
   theme_light() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(color = "N") 
-ggsave(filename = paste0(plot_dir, '/error_by_sample_size_method.pdf'), plot = plot_error_by_sampsize, device = 'pdf', width = 10, height = 5)
+ggsave(filename = paste0(plot_dir, '/error_by_sample_size_method.png'), plot = plot_error_by_sampsize, device = 'png', width = 10, height = 5)
 
 
-summary(lm(rake_error ~ samp_error, data = weight_summary))
+################################
+# PLOT Variance by sample size #
+################################
+
+plot_variance_by_sampsize = ggplot(weight_summary_melted[var == 'has_t1_MRI' & variable != 'samp']
+                                , aes(x = factor(round(prop_sampled * max(weight_summary$pop_count)))
+                                      , y = log(variance), color = factor(round(prop_sampled * max(weight_summary$pop_count))))) + 
+  geom_boxplot() +
+  facet_grid(. ~ gsub("_error","",variable)) +
+  xlab('Sample size') + ylab('Log variance of weights') + ggtitle('Variance of weights by method and sample size') + 
+  theme_light() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(color = "N") 
+ggsave(filename = paste0(plot_dir, '/variance_by_sample_size_method.png'), plot = plot_variance_by_sampsize, device = 'png', width = 10, height = 5)
 
 
+
+##############################
+# PLOT Weighted v. raw error #
+##############################
+
+
+plot_error_by_samp_error = ggplot(weight_summary_melted) + 
+  geom_point(aes(x = samp_error, y = error)) + 
+  facet_grid(prop_sampled ~ variable, labeller = labeller(vs = label_both, am = label_value)) +
+  geom_hline(yintercept = 0, color = 'blue', lty = 2)
+  ggtitle('Weigted bias by sample bias (total brain volume)') +
+  xlab('Sample bias') + ylab('Weighted bias') +
+  theme_light() +
+  scale_x_continuous(labels = function(x) format(x, scientific = TRUE)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+
+ggsave(filename = paste0(plot_dir, '/error_by_samp_error.png'), plot = plot_error_by_samp_error, device = 'png', width = 8, height = 10)
+
+
+######################
+# PLOT MSE 
+#####################
+
+ggplot(weight_summary_melted, )
 
 plotMSE = function(data, methods, x_axis = 'pop_prop'){
   plot = ggplot(data, aes(x = get(x_axis)))
   
   plot = plot + unlist(lapply(methods, function(m){
-    geom_point(aes(y = get(paste0(m, '_brainvol_mse')), color = m, group = prop_sampled))
+    geom_smooth(aes(y = get(paste0(m, '_brainvol_mse')), color = m))
   }))
   
   plot = plot + ylab('Weighted error') + ggtitle('Weighted error')
@@ -115,7 +136,7 @@ plotMSE = function(data, methods, x_axis = 'pop_prop'){
 }
 
 
-print(plotMSE(mse, methods = methods, x_axis = 'samp_prop'))
+print(plotMSE(mse[prop_sampled == 0.02,], methods = methods, x_axis = 'samp_prop'))
 
 
 
@@ -254,7 +275,7 @@ variance_melted = variance_melted[value > 0, .(Var = mean(value)), by = .(prop_s
 variance_melted[, variable := gsub('var_', '', variable)]
 
 bias_melted = melt(weight_summary[var == 'has_t1_MRI'], id.vars = c('prop_sampled', 'sim_num'), measure.vars = names(weight_summary)[grepl('_error', names(weight_summary))])
-bias_melted = bias_melted[value > 0, .(Bias = mean(value)), by = .(prop_sampled, variable)]
+bias_melted = bias_melted[, .(Bias = mean(value)), by = .(prop_sampled, variable)]
 bias_melted[, variable := gsub('_error', '', variable)]
 
 # mse_melted = melt(mse[var == 'has_t1_MRI', grepl('prop_sampled|mse', names(mse)), with = F], id.vars = c('prop_sampled'), value.name = 'MSE')
@@ -266,14 +287,14 @@ var_and_error = merge(bias_melted, variance_melted, by = c('prop_sampled', 'vari
 
 
 plot_var_by_bias = ggplot(var_and_error[prop_sampled < 0.7][order(variable, prop_sampled)]
-                          , aes(x = Bias, y = Var, color = variable, size = prop_sampled)) + 
+                          , aes(x = Bias, y = log(Var), color = variable, size = prop_sampled)) + 
   geom_point(alpha = 0.5) + #geom_line(alpha = 0.2, size = 3) + 
   theme_classic() +
-  xlab('Avg bias') + ylab('Avg weight variance') +
+  xlab('Avg bias') + ylab('Log avg weight variance') +
   ggtitle('Variance by Bias')
 plot_var_by_bias
 
-ggsave(filename = paste0(plot_dir, '/plot_var_by_MSE.pdf'), plot = plot_var_by_MSE, device = 'pdf', width = 10, height = 6, units = 'in')
+ggsave(filename = paste0(plot_dir, '/plot_var_by_bias.pdf'), plot = plot_var_by_bias, device = 'pdf', width = 10, height = 6, units = 'in')
 
 
 var_and_mse[order(variable)]
