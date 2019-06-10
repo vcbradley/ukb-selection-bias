@@ -127,7 +127,6 @@ weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
         pop_count = .N
         , pop_prop = .N/nrow(ukbdata)
         , pop_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
-        , cor(health_apoe_level, MRI_brain_vol)
         ), by = v]
 
     samp = all_weights_demos[, .(
@@ -162,6 +161,8 @@ weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
 		, var_bart = var(bart_weight, na.rm = T)
 
         ), by = c('prop_sampled','sim_num', v)]
+
+    cbind(var = v, merge(pop, samp, by = v, all = T))
 
 }))
 
@@ -213,10 +214,6 @@ list.files(git_path)
 list.files(results_path)
 
 save(weight_summary, mse, file = paste0(results_path, '/results_summary.rda'))
-
-
-# DO NOT SAVE ON GIT
-save(all_weights_demos, file = paste0('/gpfs2/well/nichols/users/bwj567/simulation/',sim_name,'/all_weights_demos.rda'))
 
 
 # library(data.table)
