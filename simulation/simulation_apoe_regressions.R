@@ -14,7 +14,7 @@
 
 
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-JobId = 3
+#JobId = 3
 prop_sampled_options = c(0.01, 0.02, 0.04, 0.05, 0.075, 0.1, 0.25, 0.5)
 prop = prop_sampled_options[JobId]
 
