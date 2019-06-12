@@ -14,7 +14,7 @@
 
 
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-JobId = 2
+JobId = 3
 prop_sampled_options = c(0.01, 0.02, 0.04, 0.05, 0.075, 0.1, 0.25, 0.5)
 prop = prop_sampled_options[JobId]
 
@@ -60,7 +60,7 @@ p_vals_full = NULL
 for(p in sort(unique(all_weights_demos[, prop_sampled]))){
 	cat(paste('Running prop ', p, '\n'))
 
-	for(i in 1:max(all_weights_demos[prop_sampled == p, sim_num])){
+	for(i in 1:10){#max(all_weights_demos[prop_sampled == p, sim_num])){
 		if(i/100 == 0){
 			cat(paste('\tRunning iter ', i, '\n'))
 		}
@@ -71,8 +71,8 @@ for(p in sort(unique(all_weights_demos[, prop_sampled]))){
 				weights = all_weights_demos[prop_sampled == p & sim_num == i,get(paste0(m,'_weight'))]
 			}
 			
-			fit = glm(MRI_brain_vol ~ -1 +
-				demo_sex * health_apoe_phenotype +
+			fit = glm(MRI_brain_vol ~
+				#demo_sex * health_apoe_phenotype +
 				age
 				, data = all_weights_demos[prop_sampled == p & sim_num == i,]
 				, weights = weights
@@ -99,31 +99,33 @@ coefs_full
 p_vals_full[, V1 := NULL]
 
 ## pop
-pop_fit = glm(MRI_brain_vol ~ -1 +
-		demo_sex * health_apoe_phenotype +
-		age
+pop_fit = glm(MRI_brain_vol ~ age
 		, data = ukbdata
 	)
 pop_coefs = data.table(prop_sampled = p, sim_num = i, method = m, t(coef(pop_fit)))
 pop_p_vals = data.table(prop_sampled = p, sim_num = i, method = m, t(summary(pop_fit)$coef[,4]))
 
 
+#lapply(c('none',methods), function(m) coefs_full[method == m, summary(age)])
+
 # RENAME
-coef_names = c('Male','Female', 'ApoE e4/e4', 'ApoE e3/e4', 'Age', 'Female:ApoE e4/e4', 'Female:ApoE e3/e4')
-setnames(coefs_full, c('prop_sampled', 'sim_num','method',coef_names))
-setnames(p_vals_full, c('prop_sampled', 'sim_num','method',coef_names))
-setnames(pop_coefs, c('prop_sampled', 'sim_num','method',coef_names))
-setnames(pop_p_vals, c('prop_sampled', 'sim_num','method',coef_names))
+# coef_names = c('Male','Female', 'ApoE e4/e4', 'ApoE e3/e4', 'Age', 'Female:ApoE e4/e4', 'Female:ApoE e3/e4')
+# setnames(coefs_full, c('prop_sampled', 'sim_num','method',coef_names))
+# setnames(p_vals_full, c('prop_sampled', 'sim_num','method',coef_names))
+# setnames(pop_coefs, c('prop_sampled', 'sim_num','method',coef_names))
+# setnames(pop_p_vals, c('prop_sampled', 'sim_num','method',coef_names))
 
 
 #### calculate error
+coefs_full[, 'Error age' := age - pop_coefs$age]
+coefs_full[, 'Error Intercept' := `(Intercept)` - pop_coefs[["(Intercept)"]]]
 
-coef_error = lapply(coef_names, function(c){
-	coefs_full[, c, with = F] - as.numeric(pop_coefs[,c, with = F])
-	})
-coef_error = do.call(cbind, coef_error)
-setnames(coef_error, paste0('Error ', coef_names))
-coefs_full = data.table(cbind(coefs_full, coef_error))
+# coef_error = lapply(coef_names, function(c){
+# 	coefs_full[, c, with = F] - as.numeric(pop_coefs[,c, with = F])
+# 	})
+# coef_error = do.call(cbind, coef_error)
+# setnames(coef_error, paste0('Error ', coef_names))
+# coefs_full = data.table(cbind(coefs_full, coef_error))
 
 
 
