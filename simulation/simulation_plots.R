@@ -81,7 +81,7 @@ plot_selection_bias = ggplot(weight_summary_melted[variable == 'bart' & var == '
   scale_x_continuous(labels = function(x) format(x, scientific = TRUE)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggsave(filename = paste0(plot_dir, '/selection_bias.png'), plot = plot_selection_bias, device = 'png', width = 6, height = 2)
+ggsave(filename = paste0(plot_dir, '/selection_bias.png'), plot = plot_selection_bias, device = 'png', width = 8, height = 2)
 
 
 #############################
@@ -239,10 +239,74 @@ ggsave(filename = paste0(plot_dir, '/distribution_error.png'), plot = plot_dist_
 
 
 
-###############
-# BY DEMOS #
+######################
+# ApoE and Age Coefs #
+######################
 
-ggplot(weight_summary[var == 'demo_age_bucket' & prop_sampled == 0.02,]) +
-  geom_boxplot(aes(x = level, y = samp_error, color = 'prop_sampled'))
+# apoe_coef[apoe_coef[method == 'none',], samp_Male := i.Male,on = c('prop_sampled', 'sim_num')]
+# apoe_coef[apoe_coef[method == 'none',], samp_Female := i.Female,on = c('prop_sampled', 'sim_num')]
+# apoe_coef[apoe_coef[method == 'none',], `samp_ApoE e4/e4` := `i.ApoE e4/e4`, on = c('prop_sampled', 'sim_num')]
+# apoe_coef[apoe_coef[method == 'none',], `samp_Female:ApoE e4/e4` := `i.Female:ApoE e4/e4`, on = c('prop_sampled', 'sim_num')]
+apoe_coef[apoe_coef[method == 'none',], samp_age := i.age, on = c('prop_sampled', 'sim_num')]
+apoe_coef[, pop_age := pop_coefs$age]
+
+###### Bias exists in association
+plot_bias_age = ggplot(data = apoe_coef[method == 'none'], aes(x = (age - pop_age))) + 
+  geom_histogram() + 
+  facet_grid(.~prop_sampled) +
+  geom_vline(xintercept = 0, color = 'blue', lty = 2) + 
+  ggtitle('Selection bias in age coefficient') +
+  xlab('Bias in age coefficient') +
+  theme_light() +
+  scale_x_continuous(labels = function(x) format(x, scientific = TRUE)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave(filename = paste0(plot_dir, '/selection_bias_assoc.png'), plot = plot_bias_age, device = 'png', width = 8, height = 2)
+
+####### WE generally correct it
+# plot_bias_age_brain_vol = ggplot(apoe_coef[method != 'none'], aes(x = (samp_Age - pop_Age), y = `Error Age`)) + 
+#   geom_point() + facet_grid(prop_sampled ~ method) +
+#   xlab('Bias in unweighted age coefficient') +
+#   ylab('Bias in weighted age coefficient') +
+#   ggtitle("Bias in age and total brain volume association")
+
+# plot_bias_age_brain_vol = ggplot(apoe_coef[method != 'none', .(mean_samp_error = mean(samp_age - pop_age)
+#                                      , mean_weighted_error = mean(`Error age`, na.rm = T)
+#                                      #, var_samp_error = var(samp_Age - pop_Age, na.rm = T)
+#                                      ), by = c('prop_sampled', 'method')], aes(x = mean_samp_error
+#                                         , y = mean_weighted_error
+#                                         , size = prop_sampled
+#                                         , color = method)) +
+#   geom_point() +
+#   xlab("Mean unweighted sample bias") +
+#   ylab("Mean adjusted sample bias") +
+#   ggtitle("Sample bias in brain vol and age association")
+
+#ggsave(filename = paste0(plot_dir, '/bias_age_brainvol.png'), plot = plot_bias_age_brain_vol, device = 'png', width = 6, height = 3)
+
+###### Which method does best
+plot_bias_age_brainvol = ggplot(apoe_coef[method != 'none'], aes(x = factor(round(prop_sampled * 20827)), y = `Error age`
+                                                                 , color = factor(round(prop_sampled * 20827)))) +
+  geom_boxplot() +
+  facet_grid(.~method) +
+  #geom_hline(yintercept = -300) +
+  theme_light() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("Adjusted bias in total brain vol and age association") +
+  xlab("Sample size") +
+  ylab("Bias in age coefficient") +
+  labs(color = "N") +
+  ylim(c(-15000, 15000))
+
+ggsave(filename = paste0(plot_dir, '/bias_age_brainvol.png'), plot = plot_bias_age_brainvol, device = 'png', width = 10, height = 4)
+
+
+plot_MSE_assoc = ggplot(apoe_coef[method != 'none', .(MSE = mean(`Error age` ^2)), by = .(prop_sampled, method)], 
+                           aes(x = prop_sampled, y = log(MSE), color = method)) + geom_line() +
+  theme_light() +
+  ggtitle("MSE of age coefficient by proportion sampled") +
+  xlab('Proportion sampled') + ylab("Log MSE")
+
+ggsave(filename = paste0(plot_dir, '/mse_age_brainvol.png'), plot = plot_MSE_assoc, device = 'png', width = 6, height = 3)
 
 

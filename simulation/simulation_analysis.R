@@ -226,5 +226,14 @@ save(weight_summary, mse, file = paste0(results_path, '/results_summary.rda'))
 # sim_coefs = cbind(covars, coefs)[X1 != 0]
 
 
+#### missingness mech
+coefs = fread('coefs.csv')
+covars = fread('missingness_covars.csv')
+coef_table = cbind(covars, coefs)[X1 != 0]
+
+kable(coef_table[, .(Z = var_name, B_z = X1)], format = 'latex', booktabs = T)
+
+
+
 
 

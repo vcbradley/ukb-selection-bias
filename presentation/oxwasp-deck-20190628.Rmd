@@ -1,0 +1,113 @@
+---
+title: "Methods for Selection Bias in the UK Biobank"
+author: "Valerie Bradley"
+date: "6/28/2019"
+output: beamer_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(ggplot2)
+library(data.table)
+library(knitr)
+
+load('~/github/mini-project-1/weighting/ukb_weighted_hse16_summary.rda')
+```
+
+
+## The UK Biobank
+
+__UK Biobank__
+
+* Largest ever prospective health study
+* Includes genetic sequencing, blood tests, physical exams, health history questionnaire
+* 500,000 participants aged 40-70 when recruited between 2006 and 2010
+
+__UK Biobank imaging cohort__
+
+* Subset of UKB participants recruited to undergo additional imaging exams
+
+__Goal__: Study exposures and outcomes that affect aging populations
+
+
+## Selection bias in the UK Biobank
+```{r fig-1}
+ggplot(weight_summary[level %in% c('Female', '01-White', '1', '01-Under 18k', '01-College plus/profesh', '01-Own outright','02-Own with mortgage') | var %in% c('03-Age Bucket', '11-Income')]) +
+  geom_point(aes(x = as.numeric(as.character(pop_prop_weighted)), y = paste0(var, ': ',level), color = 'Population')) +
+  geom_point(aes(x = as.numeric(as.character(samp_prop)), y = paste0(var, ': ',level), color = 'UKB Imaging cohort')) + 
+  ggtitle("UK Population v. UKB Imaging cohort") +
+  xlab("proportion of group") +
+  ylab("")
+
+```
+
+
+## Why is this a problem?
+
+For example,
+
+* Y is an individual’s hippocampal volume
+* X represents a subject’s socio-economic status (SES)
+* Z represents the subject’s level of dementia 
+* S is selection into the study
+
+\center
+```{r fig-2, out.width='40%'}
+include_graphics('~/github/mini-project-1/presentation/selection-bias-ex'
+                 , auto_pdf = getOption("knitr.graphics.auto_pdf", FALSE)
+                 , dpi = NULL)
+```
+\center
+
+By conditioning on selection, if we know that someone is of low SES, they are less likely to show signs of dementia (than if we didn't know their SES)
+
+
+## Recovering from selection bias
+
+If we can re-write our outcome of interest \(\text{P}(\mathbf{y}|\mathbf{x})\) as
+
+\(\text{P}(\mathbf{y}|\mathbf{x}) = \sum_\mathbf{z} \text{P}(\mathbf{y}|\mathbf{x}, \mathbf{z}, S=1)\text{P}(\mathbf{z}\setminus\mathbf{z^T}|\mathbf{z^T}, S = 1)\text{P}(\mathbf{z^T})\)
+
+then it's possible to recover from selection bias. 
+
+* \(\mathbf{z}\) is a set of observed *auxiliary variables*
+* \(\mathbf{z}^T\) is the subset of \(\mathbf{z}\) for which we have external, unbiased population data
+* Key is that conditioning on \(\mathbf{z}\) makes the outcome of interest, \(Y\) conditionally independent of selection \(S\)
+
+__Problem__: can only condition on a limited number of discrete variables before this breaks down
+
+Methods for selection bias seek to solve this in different ways
+
+## Methods
+
+1. *Post-stratification*: adjust to the joint distribution of \(\mathbf{z}\) 
+2. *Raking*: iteratively adjust the marginal distributions of elements in \(\mathbf{z}\)
+3. *Calibration*: raking, but with continuous variables as well as discrete variables
+4. *LASSO*: use a LASSO to select variables and interactions for raking
+5. *Logit*: estimate the probability of selection directly
+
+New method:
+
+6. *BART + raking*: use a BART to estimate the probability of selection, then rake so key marginal distributions match those of the population
+
+
+## Simulation Results
+\center
+```{r fig-sim-results, out.width='100%'}
+include_graphics('~/github/mini-project-1/simulation/results/sim_1_5000_old_v3/plots/mse_by_sample_size.png'
+                 , auto_pdf = getOption("knitr.graphics.auto_pdf", FALSE)
+                 , dpi = NULL)
+```
+
+
+## Application to UK Biobank
+```{r fig-ukb-results}
+ggplot(weight_summary[level %in% c('Female', '01-White', '1', '01-Under 18k', '01-College plus/profesh', '01-Own outright','02-Own with mortgage') | var %in% c('03-Age Bucket', '11-Income')]) +
+  geom_point(aes(x = as.numeric(as.character(pop_prop_weighted)), y = paste0(var, ': ',level), color = 'Population')) +
+  geom_point(aes(x = as.numeric(as.character(samp_prop)), y = paste0(var, ': ',level), color = 'UKB Imaging cohort')) +
+geom_point(aes(x = as.numeric(as.character(bart_prop)), y = paste0(var, ': ',level), color = 'BART adjusted')) + 
+  ggtitle("UK Population v. UKB Imaging cohort") +
+  xlab("proportion of group") +
+  ylab("")
+```
+

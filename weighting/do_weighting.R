@@ -1,6 +1,8 @@
 ########################
 # Weighting neuro data #
 ########################
+library(data.table)
+library(mgcv)
 
 setwd('/well/nichols/users/bwj567/mini-project-1/weighting')
 
@@ -36,13 +38,17 @@ data_img[, .N, demo_age_bucket][order(demo_age_bucket)]
 # fix coding
 data_hse[demo_income_bucket == '06-DNK/Refused', demo_income_bucket := '99-DNK/Refused']
 
+# set pop weight col
+data_hse[, pop_weight := get(pop_weight_col)]
 
+
+# get vars
 vars = intersect(names(data_hse), names(data_img))
 
 # create combined data table
 data_comb = rbind(
 	cbind(data_img[, c('eid',vars, outcome), with = F], pop_weight = 0, selected = 1)
-    , cbind(data_hse[, c('SerialA', vars), with = F], MRI_brain_vol = NA, data_hse[, c(pop_weight_col), with = F], selected = 0)
+    , cbind(data_hse[, c('SerialA', vars), with = F], MRI_brain_vol = NA, data_hse[, pop_weight], selected = 0)
     , use.names = F)
 # drop rows with null pop weights
 data_comb = data_comb[!is.na(pop_weight),]
@@ -53,6 +59,7 @@ intersect(names(data_hse)
 #names(data_census)
 
 
+#-----------------------------------------------------------#
 
 
 #######################
@@ -245,6 +252,7 @@ apply(all_weights, 2, function(x) sum(is.na(x)))
 save(all_weights, file = '/well/nichols/users/bwj567/weighting/weights_img_hse.rda')
 ########################
 
+#-----------------------------------------------------------#
 
 
 ##### LOAD WEIGHTS #####
@@ -271,31 +279,104 @@ data_img_hse_weighted[, .(
 	), by = age_bucket][order(age_bucket)]
 
 brainvol_age = data_img_hse_weighted[, .(
-	brain_vol = mean(MRI_brain_vol)
-	, rake_brain_vol = weighted.mean(MRI_brain_vol, w = rake_weight)
-	, strat_brain_vol = weighted.mean(MRI_brain_vol, w = strat_weight)
-	, calib_brain_vol = weighted.mean(MRI_brain_vol, w = calib_weight)
-	, lasso_brain_vol = weighted.mean(MRI_brain_vol, w = lasso_weight)
-	, logit_brain_vol = weighted.mean(MRI_brain_vol, w = logit_weight)
-	, bart_brain_vol = weighted.mean(MRI_brain_vol, w = bart_weight)
-	), by = age][order(age)]
+	.N
+	, brain_vol = mean(MRI_brain_vol)
+	, rake_brain_vol = sum(MRI_brain_vol * rake_weight)/sum(rake_weight)
+	, strat_brain_vol = sum(MRI_brain_vol * strat_weight)/sum(strat_weight)
+	, calib_brain_vol = sum(MRI_brain_vol * calib_weight)/sum(calib_weight)
+	, lasso_brain_vol = sum(MRI_brain_vol * lasso_weight)/sum(lasso_weight)
+	, logit_brain_vol = sum(MRI_brain_vol * logit_weight)/sum(logit_weight)
+	, bart_brain_vol = sum(MRI_brain_vol * bart_weight)/sum(bart_weight)
+	, mean(rake_weight)
+	), by = .(age)][order(age)]
 
 
 
 ### SUBGROUP SUMMARY
 data_hse[, has_t1_MRI := 1]
 
-weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){	
+xtab_vars = intersect(names(data_hse)
+	,names(data_img))
 
-	pop = data_hse[pop_weight > 0 & !is.na(pop_weight), .(
+
+xtab_vars = list(
+	data.frame(var = 'has_t1_MRI'
+		, label = 'Topline')
+	, data.frame(var = 'demo_sex'
+		, label = 'Sex')
+	, data.frame(var = 'demo_age_bucket'
+		, label = 'Age Bucket')
+	, data.frame(var = "paste0(demo_sex, ' x ', demo_age_bucket)"
+		, label = 'Sex x Age Bucket')
+	, data.frame(var = 'demo_ethnicity_4way'
+		, label = 'Ethnicity')
+	, data.frame(var = 'demo_empl_employed'
+		, label = 'Employed')
+	, data.frame(var = 'demo_empl_retired'
+		, label = 'Retired')
+	, data.frame(var = 'demo_empl_student'
+		, label = 'Student')
+	, data.frame(var = 'demo_empl_disabled'
+		, label = 'Disabled')
+	, data.frame(var = 'demo_occupation'
+		, label = 'Occupation')
+	, data.frame(var = 'demo_income_bucket'
+		, label = 'Income')
+	, data.frame(var = 'demo_educ_highest'
+		, label = 'Education')
+	, data.frame(var = "paste0(demo_age_bucket, ' x ', demo_empl_employed)"
+		, label = 'Age x Employed')
+	, data.frame(var = "demo_hh_ownrent"
+		, label = 'Home ownership')
+	, data.frame(var = "demo_hh_ownrent"
+		, label = 'Home ownership')
+	, data.frame(var = "health_apoe_phenotype"
+		, label = 'ApoE Phenotype')
+	, data.frame(var = "paste0(health_apoe_phenotype, ' x ', demo_sex)"
+		, label = 'ApoE x Sex')
+	, data.frame(var = "paste0(health_apoe_phenotype, ' x ', demo_age_bucket)"
+		, label = 'ApoE x Age')
+	, data.frame(var = "paste0(health_apoe_phenotype, ' x ', demo_sex, ' x ', demo_age_bucket)"
+		, label = 'ApoE x Sex x Age')
+	, data.frame(var = "health_smoking_status"
+		, label = "Smoking Status")
+	, data.frame(var = "health_BMI_bucket"
+		, label = "BMI Bucket")
+	, data.frame(var = "health_BMI_bucket"
+		, label = "High BP Ever")
+	, data.frame(var = "health_diabetes"
+		, label = "Diabetes Ever")
+	)
+
+
+pop_sum = rbindlist(lapply(1:length(xtab_vars), function(v){	
+	var = as.vector(xtab_vars[[v]]$var)
+	label = xtab_vars[[v]]$label
+	label = paste0(str_pad(v, side = 'left', width = 2, pad = '0'), '-', label)
+
+	pop = tryCatch({data_hse[pop_weight > 0 & !is.na(pop_weight), .(
 		pop_count = .N
 		, pop_count_weighted = sum(pop_weight)
 		, pop_prop = .N/data_hse[,sum(pop_weight > 0 & !is.na(pop_weight))]
         , pop_prop_weighted = sum(pop_weight)/sum(data_hse$pop_weight, na.rm = T)
         #, pop_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
-        ), by = v]
+        ), by = eval(parse(text = var))]
+	}, error = function(e) print(e))
 
-    samp = data_img_hse_weighted[, .(
+	if('data.table' %in% class(pop)){
+		cbind(label, pop)
+	}else{
+		data.frame(cbind(label, t(rep(NA, 5))))
+	}
+	
+    }))
+
+samp_sum = rbindlist(lapply(1:length(xtab_vars), function(v){	
+	var = as.vector(xtab_vars[[v]]$var)
+	label = xtab_vars[[v]]$label
+	label = paste0(str_pad(v, side = 'left', width = 2, pad = '0'), '-', label)
+
+	samp = data_img_hse_weighted[, .(
         samp_count = .N
         , samp_prop = .N/nrow(data_img_hse_weighted)
         , samp_brainvol = sum(as.numeric(MRI_brain_vol), na.rm = T)/.N
@@ -326,13 +407,21 @@ weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
 		, var_logit = var(logit_weight, na.rm = T)
 		, var_bart = var(bart_weight, na.rm = T)
 
-        ), by = v]
+        ), by = eval(parse(text = var))]
 
-    cbind(var = v, merge(pop, samp, by = v, all = T))
-    }))
+	cbind(label, samp)
+	}))
 
-setnames(weight_summary, old = 'has_t1_MRI', new = 'level')
+
+weight_summary = merge(pop_sum, samp_sum, by = c('label', 'parse'), all = T)
+weight_summary = weight_summary[!is.na(parse),]
+
+setnames(weight_summary, old = c('label','parse'), new = c('var','level'))
 weight_summary
+
+
+#check biggest changes
+weight_summary[, .(var, level, samp_count, diff = (samp_brainvol - rake_brainvol))][order(abs(diff), decreasing = T)]
 
 
 methods = c('rake','strat','calib','lasso','logit','bart')
@@ -356,13 +445,12 @@ for(m in c('none', methods)){
 		weights = data_img_hse_weighted[,get(paste0(m,'_weight'))]
 	}
 
-	fit = glm(MRI_brain_vol ~ 
-		demo_sex * health_apoe_phenotype +
+	fit = glm(MRI_brain_vol ~ #-1 +
+		#demo_sex * health_apoe_phenotype +
 		age
 		, data = data_img_hse_weighted
 		, weights = weights
 		)
-
 	coefs = data.table(method = m, t(coef(fit)))
 	p_vals = data.table(method = m, t(summary(fit)$coef[,4]))
 
@@ -387,4 +475,22 @@ save(weight_summary, brainvol_age,all_coefs, all_pvals
 	, file = 'ukb_weighted_hse16_summary.rda')
 
 
+### trying fancier regressions
+fac = factor(data_img_hse_weighted[, paste0(demo_sex, ' x ', health_apoe_phenotype)])
+fit_bart = gam(MRI_brain_vol ~
+		s(age, by = fac)
+		, data = data_img_hse_weighted
+		, weights = data_img_hse_weighted[,bart_weight]
+		)
+fit_none = gam(MRI_brain_vol ~
+		s(age, by = fac)
+		, data = data_img_hse_weighted
+		#, weights = data_img_hse_weighted[,bart_weight]
+		)
+
+data_img_hse_weighted[, pred_bart := fit_bart$fitted.values]
+data_img_hse_weighted[, pred_noweight := fit_none$fitted.values]
+
+
+data_img_hse_weighted[, .(mean(pred_noweight), mean(pred_bart), mean(pred_bart) - mean(pred_noweight)), by = age][order(age)]
 
