@@ -26,6 +26,13 @@ setnames(data_img
     , new = gsub('^img_','',names(data_img)[grepl('^img', names(data_img))])
     )
 
+setnames(data_full
+         , old = names(data_full)[grepl('^base', names(data_full))]
+         , new = gsub('^base_','',names(data_full)[grepl('^base', names(data_full))])
+)
+data_full[, has_t1_MRI := 1]
+
+
 # read in census and HSE data
 data_hse = fread('/well/nichols/users/bwj567/data/hse16_recoded.csv')
 data_census = fread('/well/nichols/users/bwj567/data/census11_recoded.csv')
@@ -371,6 +378,24 @@ pop_sum = rbindlist(lapply(1:length(xtab_vars), function(v){
 	
     }))
 
+ukb_full_sum = rbindlist(lapply(1:length(xtab_vars), function(v){	
+  var = as.vector(xtab_vars[[v]]$var)
+  label = xtab_vars[[v]]$label
+  label = paste0(str_pad(v, side = 'left', width = 2, pad = '0'), '-', label)
+  
+  pop = tryCatch({data_full[, .(ukb_count = .N
+                                , ukb_prop = .N/nrow(data_full)
+                                ), by = eval(parse(text = var))]
+  }, error = function(e) print(e))
+  
+  if('data.table' %in% class(pop)){
+    cbind(label, pop)
+  }else{
+    data.frame(cbind(label, t(rep(NA, 3))))
+  }
+  
+}))
+
 samp_sum = rbindlist(lapply(1:length(xtab_vars), function(v){	
 	var = as.vector(xtab_vars[[v]]$var)
 	label = xtab_vars[[v]]$label
@@ -413,7 +438,8 @@ samp_sum = rbindlist(lapply(1:length(xtab_vars), function(v){
 	}))
 
 
-weight_summary = merge(pop_sum, samp_sum, by = c('label', 'parse'), all = T)
+#weight_summary = merge(, by = c('label', 'parse'), all = T)
+weight_summary = Reduce(function(x,y) merge(x,y, by = 'eid', all = T) , list(pop_sum, ukb_full_sum, samp_sum))
 weight_summary = weight_summary[!is.na(parse),]
 
 setnames(weight_summary, old = c('label','parse'), new = c('var','level'))
