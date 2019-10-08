@@ -15,17 +15,22 @@ outcome = 'MRI_brain_vol'
 pop_weight_col = 'wt_blood'
 
 
-# load data
+### LOAD DATA
 list.files('../data')
 
-data_full = fread('/well/nichols/users/bwj567/data/ukb25120_weighting.csv')
+# full UKB data
+data_full = fread('/well/nichols/users/bwj567/data/ukb25120_weighting_base.csv')
+
+# UKB imaging data
 data_img = fread('/well/nichols/users/bwj567/data/ukb25120_weighting_img.csv')
 
+# drop img_ prefix (for measurements taken at time of imaging)
 setnames(data_img
     , old = names(data_img)[grepl('^img', names(data_img))]
     , new = gsub('^img_','',names(data_img)[grepl('^img', names(data_img))])
     )
 
+# drop base_ prefix (for measurements taken at baseline)
 setnames(data_full
          , old = names(data_full)[grepl('^base', names(data_full))]
          , new = gsub('^base_','',names(data_full)[grepl('^base', names(data_full))])
@@ -60,7 +65,7 @@ data_comb = rbind(
 # drop rows with null pop weights
 data_comb = data_comb[!is.na(pop_weight),]
 
-
+# check what variable names overlap
 intersect(names(data_hse)
 ,names(data_img))
 #names(data_census)
@@ -283,7 +288,7 @@ data_img_hse_weighted[, .(
 	, lasso_brain_vol = weighted.mean(MRI_brain_vol, w = lasso_weight)
 	, logit_brain_vol = weighted.mean(MRI_brain_vol, w = logit_weight)
 	, bart_brain_vol = weighted.mean(MRI_brain_vol, w = bart_weight)
-	), by = age_bucket][order(age_bucket)]
+	), by = demo_age_bucket][order(demo_age_bucket)]
 
 brainvol_age = data_img_hse_weighted[, .(
 	.N
@@ -371,12 +376,13 @@ pop_sum = rbindlist(lapply(1:length(xtab_vars), function(v){
 	}, error = function(e) print(e))
 
 	if('data.table' %in% class(pop)){
-		cbind(label, pop)
+		cbind.data.frame(label, pop)
 	}else{
-		data.frame(cbind(label, t(rep(NA, 5))))
+		data.frame(cbind.data.frame(label, t(rep(NA, 5))))
 	}
 	
     }))
+
 
 ukb_full_sum = rbindlist(lapply(1:length(xtab_vars), function(v){	
   var = as.vector(xtab_vars[[v]]$var)
@@ -389,9 +395,9 @@ ukb_full_sum = rbindlist(lapply(1:length(xtab_vars), function(v){
   }, error = function(e) print(e))
   
   if('data.table' %in% class(pop)){
-    cbind(label, pop)
+    cbind.data.frame(label, pop)
   }else{
-    data.frame(cbind(label, t(rep(NA, 3))))
+    data.frame(cbind.data.frame(label, t(rep(NA, 3))))
   }
   
 }))
@@ -434,12 +440,12 @@ samp_sum = rbindlist(lapply(1:length(xtab_vars), function(v){
 
         ), by = eval(parse(text = var))]
 
-	cbind(label, samp)
+	cbind.data.frame(label, samp)
 	}))
 
 
 #weight_summary = merge(, by = c('label', 'parse'), all = T)
-weight_summary = Reduce(function(x,y) merge(x,y, by = 'eid', all = T) , list(pop_sum, ukb_full_sum, samp_sum))
+weight_summary = Reduce(function(x,y) merge(x,y, by = c('label','parse'), all = T) , list(pop_sum, ukb_full_sum, samp_sum))
 weight_summary = weight_summary[!is.na(parse),]
 
 setnames(weight_summary, old = c('label','parse'), new = c('var','level'))
