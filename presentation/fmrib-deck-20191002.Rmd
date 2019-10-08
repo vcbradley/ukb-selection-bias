@@ -51,6 +51,8 @@ getDistPlot = function(data, title = NULL){
 }
 
 load('~/github/mini-project-1/weighting/ukb_weighted_hse16_summary.rda')
+# pop_prop = HSE, unweighted
+# pop_prop_weighted = HSE, weighted
 ```
 
 
@@ -138,17 +140,29 @@ __Problem__: can only condition on a limited number of discrete variables before
 
 Methods for selection bias seek to solve this in different ways
 
-# Methods
+
+# Methods: post-stratification
+
+## Intuition
+
+
+
+# Methods: summary
+
+Classic weighting methods:
 
 1. *Post-stratification*: adjust to the joint distribution of \(\mathbf{z}\) 
 2. *Raking*: iteratively adjust the marginal distributions of elements in \(\mathbf{z}\)
 3. *Calibration*: raking, but with continuous variables as well as discrete variables
+
+Less-common methods:
+
 4. *LASSO*: use a LASSO to select variables and interactions for raking
 5. *Logit*: estimate the probability of selection directly
 
 New method:
 
-6. *BART + raking*: use a BART to estimate the probability of selection, then rake so key marginal distributions match those of the population
+6. *BART + raking*: use a BART to estimate the probability of selection, then rake such that key marginal distributions match those of the population
 
 
 # Simulation Results
