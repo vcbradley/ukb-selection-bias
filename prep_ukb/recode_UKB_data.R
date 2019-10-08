@@ -12,7 +12,7 @@ source('/well/nichols/users/bwj567/mini-project-1/prep_ukb/recode_functions.R')
 
 # set params for testing
 full_baseline_file = 'ukb25120_raw_baseline.tsv'
-full_imaging_file = 'ukb25120_raw_imaging.tsv'
+full_imaging_file = 'ukb25120_raw_imaging.tsv'  
 all_UKB_vars_file = 'ukb25120_allvars.csv'
 apoe_file = 'ApoE.dat'
 var_codings_file = '/well/nichols/users/bwj567/mini-project-1/variable_codings.csv'
@@ -119,15 +119,16 @@ data_imaging = fread(full_imaging_file
     )
 
 # merge in ApoE data
-data_imaging = merge(data_imaging, apoe, by = 'eid')
+data_imaging = merge(data_imaging, apoe, by = 'eid', all.x = T)  # LEFT JOIN BECASE NOT ALL IN APOE DATA!!
 
 data_imaging <- as_tibble(data_imaging)
 
 # limit to only imaging subjects
+data_imaging %>% filter(., !is.na(MRI_t1_struct)) %>% count()
 data_imaging <- data_imaging %>% filter(., !is.na(MRI_t1_struct))
 
 # join in impt columns from the baseliine data
-data_imaging <- left_join(data_imaging, data_base %>% select(eid, dob_imputed, sex, base_age = age, base_assessment_date = assessment_date, base_ethnicity = ethnicity))
+data_imaging <- left_join(data_imaging, data_base %>% dplyr::select(eid, dob_imputed, sex, base_age = age, base_assessment_date = assessment_date, base_ethnicity = ethnicity))
 
 # calculate age at imaging
 data_imaging <- data_imaging %>% mutate(age = age(dob_imputed, assessment_date))
@@ -147,10 +148,10 @@ data_imaging_recoded <- doRecode(data_imaging)
 #rm(data_imaging)
 
 # select the vars we need
-data_imaging_recoded <- data_imaging_recoded %>% select(., grep('eid|^demo_|^health_|^age|^bmi|^MRI|has_t1_MRI|addr_east_recent|addr_north_recent|^assessment', names(data_imaging_recoded)))
+data_imaging_recoded <- data_imaging_recoded %>% dplyr::select(., grep('eid|^demo_|^health_|^age|^bmi|^MRI|has_t1_MRI|addr_east_recent|addr_north_recent|^assessment', names(data_imaging_recoded)))
 
 
-data_imaging %>% select(., MRI_t1_struct) %>% summary(.)
+data_imaging %>% dplyr::select(., MRI_t1_struct) %>% summary(.)
 
 data_imaging_recoded %>% group_by(is.na(MRI_t1_struct), has_t1_MRI) %>% tally()
 
