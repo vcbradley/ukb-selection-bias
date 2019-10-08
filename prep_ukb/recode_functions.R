@@ -25,7 +25,7 @@ doRecode <- function(data){
     #### AGE
     if(exists('age', data)){
 
-        if(data %>% select(age) %>% max > 75){
+        if(data %>% dplyr::select(age) %>% max > 75){
             data <- data %>% mutate(demo_age_bucket = case_when(
                 age < 50 ~ '45 to 49'
                 , age < 55 ~ '50 to 54'
@@ -102,7 +102,7 @@ doRecode <- function(data){
     if(exists('job_status1', data)){
         data <- cbind(data, 
             data %>% 
-                select(.,grep('job_status', names(data))) %>%
+                dplyr::select(.,grep('job_status', names(data))) %>%
                 transmute(
                     demo_empl_employed = rowSums(. == 1, na.rm = T)
                     , demo_empl_retired = rowSums(. == 2, na.rm = T)
@@ -158,7 +158,7 @@ doRecode <- function(data){
         # binary indicators
         data <- cbind(data, 
             data %>% 
-                select(., grep('educ', names(data))) %>%
+                dplyr::select(., grep('educ', names(data))) %>%
                 transmute(
                     demo_educ_collegeplus = rowSums(. == 1, na.rm = T)
                     , demo_educ_alevels = rowSums(. == 2, na.rm = T)
@@ -219,7 +219,7 @@ doRecode <- function(data){
     if(exists('addr_east1', data)){
 
         ## Check that logic works
-        addr_dates <- data %>% select(., grep('addr_firstdate', names(data))) %>% mutate_all(as.Date)
+        addr_dates <- data %>% dplyr::select(., grep('addr_firstdate', names(data))) %>% mutate_all(as.Date)
 
         # check that max date is the last one listed
         all.equal(
@@ -228,11 +228,11 @@ doRecode <- function(data){
             )
 
         # apply same logic to locations instead of dates
-        data$addr_east_recent <- data %>% select(., grep('addr_east', names(data))) %>% apply(1, getLast)
-        data$addr_north_recent <- data %>% select(., grep('addr_north', names(data))) %>% apply(1, getLast)
+        data$addr_east_recent <- data %>% dplyr::select(., grep('addr_east', names(data))) %>% apply(1, getLast)
+        data$addr_north_recent <- data %>% dplyr::select(., grep('addr_north', names(data))) %>% apply(1, getLast)
 
         #check that ir worked
-        data %>% select(addr_east_recent, addr_north_recent) %>% glimpse(.)
+        data %>% dplyr::select(addr_east_recent, addr_north_recent) %>% glimpse(.)
         data %>% filter(is.na(addr_east2)) %>% summarize(prop_equal = mean(addr_east1 == addr_east_recent))
         data %>% filter(is.na(addr_east6) & !is.na(addr_east5)) %>% summarize(prop_equal = mean(addr_east5 == addr_east_recent))
         data %>% filter(is.na(addr_north6) & !is.na(addr_north5)) %>% summarize(prop_equal = mean(addr_north5 == addr_north_recent))
@@ -355,11 +355,11 @@ doRecode <- function(data){
     # Total alc consumption
     if(exists('alc_weekly_beer', data)){
         data$health_alc_weekly_total <-  data %>% 
-            select(., grep('alc_weekly', names(data))) %>% 
+            dplyr::select(., grep('alc_weekly', names(data))) %>% 
             mutate(health_alc_weekly_total = rowSums(., na.rm = T)) %>% pull()
 
-        data %>% select(health_alc_weekly_total) %>% glimpse(.)
-        data %>% select(health_alc_weekly_total) %>% summary()
+        data %>% dplyr::select(health_alc_weekly_total) %>% glimpse(.)
+        data %>% dplyr::select(health_alc_weekly_total) %>% summary()
     }
  
 
@@ -372,11 +372,11 @@ doRecode <- function(data){
         # coalesce and average the measurements
         data <- data %>% 
             mutate_at(as.numeric, .vars = c('bp_systolic_auto1', 'bp_systolic_auto2', 'bp_systolic_man1', 'bp_systolic_man2')) %>%
-            mutate(bp_systolic = rowMeans(select(., c('bp_systolic_auto1', 'bp_systolic_auto2', 'bp_systolic_man1', 'bp_systolic_man2')), na.rm = T))
+            mutate(bp_systolic = rowMeans(dplyr::select(., c('bp_systolic_auto1', 'bp_systolic_auto2', 'bp_systolic_man1', 'bp_systolic_man2')), na.rm = T))
 
         data <- data %>% 
             mutate_at(as.numeric, .vars = c('bp_diastolic_auto1', 'bp_diastolic_auto2', 'bp_diastolic_man1', 'bp_diastolic_man2')) %>%
-            mutate(bp_diastolic = rowMeans(select(., c('bp_diastolic_auto1', 'bp_diastolic_auto2', 'bp_diastolic_man1', 'bp_diastolic_man2')), na.rm = T))
+            mutate(bp_diastolic = rowMeans(dplyr::select(., c('bp_diastolic_auto1', 'bp_diastolic_auto2', 'bp_diastolic_man1', 'bp_diastolic_man2')), na.rm = T))
 
         # categories
         data <- data %>%
@@ -413,7 +413,7 @@ doRecode <- function(data){
     if(exists('bp_current_meds1', data)){
 
         data$health_bp_meds_current <- data %>%
-            select(bp_current_meds1,bp_current_meds2,bp_current_meds3) %>%
+            dplyr::select(bp_current_meds1,bp_current_meds2,bp_current_meds3) %>%
             mutate(health_bp_meds_current_TF = (rowSums(. == 2, na.rm = T) > 0)
                 , health_bp_meds_current_REFUSED = (rowSums(. == -1 | . == -3, na.rm = T) > 0)
                 , health_bp_meds_current = case_when(
@@ -430,7 +430,7 @@ doRecode <- function(data){
     if(exists('diabetes', data)){
 
         data$health_diabetes <- data %>% 
-            select(.,diabetes) %>% 
+            dplyr::select(.,diabetes) %>% 
             mutate(health_diabetes = ifelse(diabetes != 1 | is.na(diabetes), '02-No', '01-Yes')) %>% 
             pull()
 
