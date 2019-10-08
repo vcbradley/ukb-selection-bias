@@ -81,7 +81,7 @@ data_base = fread(full_baseline_file
     )
 
 # merge in ApoE data
-data_base = merge(data_base, apoe, by = 'eid')
+data_base = merge(data_base, apoe, by = 'eid', all.x = T)
 
 data_base <- as_tibble(data_base)
 
