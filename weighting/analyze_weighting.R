@@ -3,6 +3,11 @@
 #########################
 rm(list = ls())
 
+library(ggplot2)
+library(data.table)
+library(knitr)
+library(kableExtra)
+
 setwd('~/github/mini-project-1/weighting')
 list.files()
 load('ukb_weighted_hse16_summary.rda')
@@ -23,16 +28,16 @@ ggplot(weight_summary[var == 'demo_age_bucket'], aes(x = level)) +
   geom_line(aes(y = bart_brainvol)) +
   geom_line(aes(y = strat_brainvol))
 
-weight_summary[var == 'demo_age_bucket', grepl('_prop', names(weight_summary)), with = F, by = level]
-weight_summary[var == 'demo_sex', grepl('_prop', names(weight_summary)), with = F, by = level]
-weight_summary[var == 'demo_income_bucket', grepl('_prop', names(weight_summary)), with = F, by = level]
-weight_summary[var == 'demo_hh_ownrent', grepl('_prop', names(weight_summary)), with = F, by = level]
-
-weight_summary[var == 'health_smoking_status', grepl('_prop', names(weight_summary)), with = F, by = level]
-weight_summary[var == 'health_bp_meds_current', grepl('_prop', names(weight_summary)), with = F, by = level]
-weight_summary[var == 'health_diabetes', grepl('_prop', names(weight_summary)), with = F, by = level]
-weight_summary[var == 'health_BMI_bucket', grepl('_prop', names(weight_summary)), with = F]
-weight_summary[var == 'health_apoe_phenotype', grepl('_prop', names(weight_summary)), with = F]
+weight_summary[var == '03-Age Bucket', grepl('_prop', names(weight_summary)), with = F, by = level]
+weight_summary[var == '02-Sex', grepl('_prop', names(weight_summary)), with = F, by = level]
+# weight_summary[var == 'demo_income_bucket', grepl('_prop', names(weight_summary)), with = F, by = level]
+# weight_summary[var == 'demo_hh_ownrent', grepl('_prop', names(weight_summary)), with = F, by = level]
+# 
+# weight_summary[var == 'health_smoking_status', grepl('_prop', names(weight_summary)), with = F, by = level]
+# weight_summary[var == 'health_bp_meds_current', grepl('_prop', names(weight_summary)), with = F, by = level]
+# weight_summary[var == 'health_diabetes', grepl('_prop', names(weight_summary)), with = F, by = level]
+# weight_summary[var == 'health_BMI_bucket', grepl('_prop', names(weight_summary)), with = F]
+# weight_summary[var == 'health_apoe_phenotype', grepl('_prop', names(weight_summary)), with = F]
 
 
 outcome_melted = melt(weight_summary
@@ -70,7 +75,7 @@ results_tab[, pop_prop := NULL]
 results_tab = cbind(results_tab[,1:2]
   ,apply(results_tab[, 3:ncol(results_tab)], 2, function(x) round(as.numeric(x) * 100, 1)))
 results_tab[is.na(results_tab)] <- '-'
-setnames(results_tab, c("Variable", "Level", "HSE", "Unweighted", "Rake", "Strat", "Calib", "LASSO", "Logit", "BART"))
+setnames(results_tab, c("Variable", "Level", "HSE", "UKB", "UKB IMG", "Rake", "Strat", "Calib", "LASSO", "Logit", "BART"))
 results_tab[, Variable := gsub('\\d\\d-', '', Variable)]
 results_tab = results_tab[order(Variable, as.character(Level))]
 

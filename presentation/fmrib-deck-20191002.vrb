@@ -1,0 +1,13 @@
+\frametitle{Application to UK Biobank}
+\protect\hypertarget{application-to-uk-biobank}{}
+
+\begin{verbatim}
+## Warning: Removed 1 rows containing missing values (geom_point).
+
+## Warning: Removed 1 rows containing missing values (geom_point).
+
+## Warning: Removed 1 rows containing missing values (geom_point).
+\end{verbatim}
+
+\includegraphics{fmrib-deck-20191002_files/figure-beamer/fig-ukb-results-1.pdf}
+
