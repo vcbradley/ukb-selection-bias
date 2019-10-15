@@ -310,3 +310,29 @@ plot_MSE_assoc = ggplot(apoe_coef[method != 'none', .(MSE = mean(`Error age` ^2)
 ggsave(filename = paste0(plot_dir, '/mse_age_brainvol.png'), plot = plot_MSE_assoc, device = 'png', width = 6, height = 3)
 
 
+#####################
+# PLOT: Median Deff #
+#####################
+
+pres_plot_data = weight_summary_melted[var == 'has_t1_MRI', .(avg_bias = mean(abs(error)), med_deff = log(median( 1+ variance))),by=.(prop_sampled, variable)]
+setnames(pres_plot_data, old = 'variable', new = 'method')
+pres_plot_data_melted = melt(pres_plot_data, id.vars = c('prop_sampled','method'))
+
+pres_plot_data_melted[variable == 'avg_bias', variable := 'Average absolute bias']
+pres_plot_data_melted[variable == 'med_deff', variable := 'Log median design effect']
+
+plot_pres_results = ggplot(pres_plot_data_melted, aes(x = prop_sampled, y = value, color = method)) + 
+  #geom_hline(data = data.frame(variable = 'Average absolute bias', Z = 0), aes(yintercept = Z), color = 'black', lty = 2) +
+  facet_grid(variable~., scales="free") +
+  geom_line() +
+  ylab("") +
+  xlab("proportion sampled") +
+  ggtitle("Bias and deff by weighting method") +
+  theme_minimal()
+  
+
+ggsave(filename = paste0(plot_dir, '/sim_results_presentation.png'), plot = plot_pres_results, device = 'png', width = 6, height = 5)
+
+
+
+  
