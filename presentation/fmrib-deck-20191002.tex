@@ -104,6 +104,9 @@
 
 \usepackage{tikz}
 \usepackage{colortbl}
+\usepackage[]{algorithm2e}
+\usepackage{pifont}
+\usepackage{amssymb}
 
 \usetikzlibrary{shapes,decorations,arrows,calc,arrows.meta,fit,positioning}
 \tikzset{
@@ -131,6 +134,7 @@
 \definecolor{oxfordgreen}{RGB}{15,115,97}
 \usecolortheme[named=oxfordblue]{structure}
 
+
 \defbeamertemplate{section page}{mine}[1][]{%
 	\begin{centering}
 		{\usebeamerfont{section name}\usebeamercolor[fg]{section name}#1}
@@ -154,56 +158,60 @@
 \begin{frame}
   \tableofcontents[hideallsubsections]
 \end{frame}
-\hypertarget{the-uk-biobank}{%
-\section{The UK Biobank}\label{the-uk-biobank}}
+\hypertarget{unrepresentativeness-in-the-uk-biobank}{%
+\section{Unrepresentativeness in the UK
+Biobank}\label{unrepresentativeness-in-the-uk-biobank}}
 
-\begin{frame}{Overview}
-\protect\hypertarget{overview}{}
+\begin{frame}{About the data}
+\protect\hypertarget{about-the-data}{}
 
 \textbf{UK Biobank}
 
 \begin{itemize}
 \tightlist
 \item
-  Largest ever prospective health study
-\item
-  Includes genetic sequencing, blood tests, physical exams, health
-  history questionnaire
+  \textbf{Goal}: Study exposures and outcomes that affect aging
+  populations
 \item
   500,000+ participants aged 40-70 when recruited between 2006 and 2010
 \item
-  Not representative of the UK general population (Fry et al. 2017)
+  \emph{Not representative of the UK general population} (Fry et al.
+  2017)
 \end{itemize}
-
-\textbf{Goal}: Study exposures and outcomes that affect aging
-populations
 
 \textbf{UK Biobank imaging cohort}
 
 \begin{itemize}
 \tightlist
 \item
-  Subset of UKB participants recruited to undergo additional imaging
-  exams
+  Subset of UKB participants, undergo additional imaging exams
 \item
-  21,407 complete, valid T1 structural MRIs
+  21,407 complete, valid T1 structural MRIs (4\% of UKB)
+\end{itemize}
+
+\textbf{\href{https://digital.nhs.uk/data-and-information/publications/statistical/health-survey-for-england/health-survey-for-england-2016}{2016
+Health Survey for England}}
+
+\begin{itemize}
+\tightlist
+\item
+  Designed to estimate prevalence of health outcomes (e.g.~smoking,
+  obesity, high blood pressure)
+\item
+  2016 survey contains 10,067 respondents, 4,318 aged 45-80
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{Unrepresentativeness of the UK Biobank}
-\protect\hypertarget{unrepresentativeness-of-the-uk-biobank}{}
+\begin{frame}{Quantifying unrepresentativeness of the UKB}
+\protect\hypertarget{quantifying-unrepresentativeness-of-the-ukb}{}
 
 \begin{center}\includegraphics[width=0.95\linewidth]{fmrib-deck-20191002_files/figure-beamer/plot-selection-bias-demos-1} \end{center}
 
-UK population defined using the
-\href{https://digital.nhs.uk/data-and-information/publications/statistical/health-survey-for-england/health-survey-for-england-2016}{2016
-Health Survey for England}
-
 \end{frame}
 
-\begin{frame}{Unrepresentativeness of the UK Biobank}
-\protect\hypertarget{unrepresentativeness-of-the-uk-biobank-1}{}
+\begin{frame}{Quantifying unrepresentativeness of the UKB}
+\protect\hypertarget{quantifying-unrepresentativeness-of-the-ukb-1}{}
 
 \begin{center}\includegraphics[width=0.95\linewidth]{fmrib-deck-20191002_files/figure-beamer/plot-selection-bias-health-1} \end{center}
 
@@ -242,9 +250,17 @@ information about dependence structures (Pearl 1995)
 \end{tikzpicture}
 \end{figure}
 
-\textbf{Note}: we will focus on discrete mechanisms
-(e.g.~\(X \in \{0,1\}\)), but this can be generalized to the continuous
-case
+Things we can say:
+
+\begin{itemize}
+\tightlist
+\item
+  there is a \emph{direct} causal pathway from \(X\) to \(Y\)
+\item
+  there is an \emph{indirect} causal pathway from \(W\) to \(Y\)
+\item
+  \(X\) \emph{d-separates} \(W\) and \(Y\), such that \(W \ci Y | X\)
+\end{itemize}
 
 \end{frame}
 
@@ -272,18 +288,14 @@ case
 \tightlist
 \item
   SES and participation in UKB are \textcolor{green}{positively}
-  correlated: Lower SES may mean it's harder to take time off of work,
-  find childcare, etc.
+  correlated
 \item
-  Dementia and participation are \textcolor{red}{negatively} correlated:
-  Individuals with dementia (even early signs) may find it harder to
-  make it to an appointment
+  Dementia and participation are \textcolor{red}{negatively} correlated
 \item
-  SES and hippocampal volume are independent (no edge)
+  No causal relationship between SES and hippocampal volume (no edge)
 \end{itemize}
 
-What can we infer about someone with low SES who has participated in the
-UKB?
+Are SES and Dementia independent?
 
 \end{frame}
 
@@ -311,8 +323,7 @@ UKB?
 third variable, and that third variable is conditioned upon'' (Munafò et
 al. 2018)
 
-Opens a \emph{backdoor path} (spurious association) between SES (E) and
-hippocampal volume (H).
+Opens a \emph{backdoor path} (spurious association) between E and H.
 
 \begin{itemize}
 \tightlist
@@ -320,6 +331,9 @@ hippocampal volume (H).
   Want to know \(\text{P(H|E)}\)
 \item
   But only observe \(\text{P}(H | E, S = 1)\)
+\item
+  And, because \(H\), \(E\) are \emph{not} independent of \(S\), those
+  are not the same
 \end{itemize}
 
 \end{frame}
@@ -344,29 +358,28 @@ bias?}\label{can-we-recover-from-selection-bias}}
 \begin{frame}{Formal conditions for recovery}
 \protect\hypertarget{formal-conditions-for-recovery}{}
 
-Consider the \emph{association} between \(X\) and \(Y\), or
-\(\text{P}(Y = y|X = x)\)
+Consider the \emph{association} between \(X\) and \(Y\),
+\(\text{P}(y|x)\)
 
 We can recover from selection bias \textbf{if and only if}
 \(\text{P}(y|x)\) can be written in terms of the quantities observed
-under selection, usually relying on a set of \emph{auxilary variables}
-\(\mathbf{Z}\)
+under selection; use \emph{auxilary variables} \(\mathbf{Z}\)
 
 \begin{itemize}
 \tightlist
 \item
-  if \(Y \ci S | {\mathbf{Z}, X}\), then we can recover the association
-  with
+  if \(Y \ci S | \{\mathbf{Z}, X\}\), then
   \[\text{P}(y|x) = \sum_\mathbf{z} \text{P}(y|x, \mathbf{z}, S=1)\text{P}(\mathbf{z}|x)\]
 \item
-  If \(\{Y \cup X\} \ci S | \mathbf{Z}\), then we can recover the
-  association with
+  If \(\{Y \cup X\} \ci S | \mathbf{Z}\), then
   \[\text{P}(y|x) = \sum_\mathbf{z} \text{P}(y|x, \mathbf{z}, S=1)\text{P}(\mathbf{z})\]
 \end{itemize}
 
-The key is that conditioning on \(\mathbf{Z}\) (and maybe \(X\)) makes
-the outcome of interest \(Y\) \emph{conditionally independent of
-selection} \(S\)
+\textbf{The key:} conditioning on \(\mathbf{Z}\) (and maybe \(X\)) makes
+\(Y\) \emph{conditionally independent of selection} \(S\)
+
+\(\text{P}(\mathbf{z})\) and \(\text{P}(\mathbf{z}|x)\) are population
+distributions
 
 \end{frame}
 
@@ -392,13 +405,14 @@ Back to our example\ldots{}
     \end{tikzpicture}
 \end{figure}
 
-True that \(H \ci S | D, E\), but not true that
-\(\{H \cup E\} \ci S | D\)
+\begin{itemize}
+\item[\rlap{\raisebox{0.3ex}{\hspace{0.4ex}\scriptsize \textcolor{red}{\ding{56}}}}$\square$] \(\{H \cup E\} \ci S | D\)
+\item[\rlap{\raisebox{0.3ex}{\hspace{0.4ex}\tiny \textcolor{green}{\ding{52}}}}$\square$] \(H \ci S | D, E\)
+\end{itemize}
 
-Therefore, we CAN recover \(\text{P}(H | E)\) as
-\[\text{P}(H | E) = \sum_D\text{P}(H | E, D, S = 1) P (D|E)\]
-\textbf{only if} we observe \(\text{P}(D | E)\) (or have an unbiased
-estimate)
+So, can only recover \(\text{P}(H | E)\) as
+\[\text{P}(H | E) = \sum_D\text{P}(H | E, D, S = 1) P (D|E)\] \emph{as
+long as we observe} \(\text{P}(D | E)\)
 
 \end{frame}
 
@@ -435,26 +449,30 @@ the presence of selection bias:
 \tightlist
 \item
   \textbf{Inverse probability weighting (IPW)}: weight each observed
-  unit by the inverse of their probability of selection; intuitively,
-  creates a ``pseudo-population" in which selection bias does not exist
-  (Hernán, Hernández-Díaz, and Robins 2004)
+  unit by the inverse of the probability of selection,
+  \(w_i \propto 1/\text{P}(S = 1 | \mathbf{Z}_i)\)
 
   \begin{itemize}
   \tightlist
   \item
-    con: not always clear how to incorporate into estimators
+    \textcolor{oxfordgreen}{pro}: weights are independent of \(Y\) and
+    \(X\)
   \item
-    con: hard to correctly estimate standard errors of weighted
+    \textcolor{oxfordred}{con}: not always clear how to incorporate into
     estimators
+  \item
+    \textcolor{oxfordred}{con}: hard to correctly estimate standard
+    errors of weighted estimators \vspace{0.25cm}
   \end{itemize}
 \item
-  \textbf{Regression methods}: directly model the outcome of interest,
-  accounting for confounders/auxiliary variables
+  \textbf{Regression methods}: directly model the outcome of interest
+  \(\text{P}(Y|X)\), accounting for confounders/auxiliary variables
 
   \begin{itemize}
   \tightlist
   \item
-    con: have to estimate separate regression model for each outcome
+    \textcolor{oxfordred}{con}: have to estimate separate model for each
+    outcome
   \end{itemize}
 \end{itemize}
 
@@ -470,37 +488,49 @@ and Bareinboim 2018): \begin{align}
 \end{align}
 
 \begin{itemize}
-    \item  $\textcolor{oxfordred}{\text{P}(\mathbf{y}, \mathbf{x}, \mathbf{z} | S = 1)}$, joint distribution of $\mathbf{Y}$, $\mathbf{X}$ and $\mathbf{Z}$ under selection bias
-    \item $\textcolor{oxfordlightblue}{\text{P}(\mathbf{x}| \mathbf{z}, S = 1)}$, the probability of treatment given covariates in the selection-biased sample data, related to the *propensity score* $\text{P}(X|\mathbf{Z})$
-    \item $\textcolor{oxfordgreen}{\text{P}(S = 1)/\text{P}(S = 1 | \mathbf{z^T})}$, the \textit{inverse probability-of-selection weight}
+\tightlist
+\item
+  \(\textcolor{oxfordred}{\text{P}(\mathbf{y}, \mathbf{x}, \mathbf{z} | S = 1)}\),
+  joint distribution of \(\mathbf{Y}\), \(\mathbf{X}\) and
+  \(\mathbf{Z}\) under selection bias
+\item
+  \(\textcolor{oxfordlightblue}{\text{P}(\mathbf{x}| \mathbf{z}, S = 1)}\),
+  the probability of treatment given covariates in the selection-biased
+  sample data
+
+  \begin{itemize}
+  \tightlist
+  \item
+    related to the \emph{propensity score} \(\text{P}(X|\mathbf{Z})\)
+  \end{itemize}
+\item
+  \(\textcolor{oxfordgreen}{\text{P}(S = 1)/\text{P}(S = 1 | \mathbf{z^T})}\),
+  the \textit{inverse probability-of-selection weight}
 \end{itemize}
+
+\textbf{But how should we estimate \(\text{P}(S = 1 | \mathbf{Z})\)?}
 
 \end{frame}
 
-\begin{frame}{Inverse probability weighting (IPW)}
-\protect\hypertarget{inverse-probability-weighting-ipw-1}{}
+\begin{frame}{Estimating \(\text{P}(S = 1 | \mathbf{Z})\)}
+\protect\hypertarget{estimating-textps-1-mathbfz}{}
 
-Say we observe outcomes \(Y\), exposures \(X\), and auxiliary variables
-\(Z\) for \(i = 1, \dots, n\) individuals. Can estimate
-\(\text{P}(Y | X)\) with
+Things to think about when comparing methods for estimating
+\(\text{P}(S = 1 | \mathbf{Z})\):
 
-\[\hat{\mu} = E(Y | X = x) = \frac{1}{n}\sum_{i = 1}^n \textcolor{oxfordgreen}{w_i^s} \textcolor{oxfordlightblue}{w_i^c} \textcolor{oxfordred}{I_{(X_i = x)}}Y_i\]
-
-\begin{itemize}
-\tightlist
+\begin{enumerate}
 \item
-  \(\textcolor{oxfordgreen}{w_i^{s}}\) is the inverse probability of
-  selection weight, given \(\mathbf{z}\)
-  \[w_i^{s} = \hat{\text{P}}(S = 1)/\hat{\text{P}}(S = 1 | \mathbf{Z}_i)\]
+  Weighted \textbf{marginal distribution} of \(\mathbf{Z}\) should match
+  that of the population
 \item
-  \(\textcolor{oxfordlightblue}{w_i^c}\) is the probability of treatment
-  under selection \[w_i^c = 1/\hat{\text{P}}(X_i|\mathbf{Z}_i, S = 1)\]
+  Avoid extreme weights that inflate the \textbf{variance} of estimators
+  (have to account for the additional uncertainty of weights)
 \item
-  \(\textcolor{oxfordred}{I_{(X_i = x)}}\) is an indicator function for
-  which exposure a unit recieved
-\end{itemize}
-
-\textbf{But how do we estimate the weights?}
+  \textbf{Computational complexity} of the method
+\item
+  How well does the method account for interactions between elements of
+  \(\mathbf{Z}\)
+\end{enumerate}
 
 \end{frame}
 
@@ -547,8 +577,155 @@ New method:
 
 \end{frame}
 
-\begin{frame}{Methods: Post-stratification}
-\protect\hypertarget{methods-post-stratification}{}
+\hypertarget{application-to-the-uk-biobank}{%
+\section{Application to the UK
+Biobank}\label{application-to-the-uk-biobank}}
+
+\begin{frame}{Simulation overview}
+\protect\hypertarget{simulation-overview}{}
+
+\begin{enumerate}
+\tightlist
+\item
+  Generate a probability of missingness \(p_i\) for all 21,407 imaging
+  subjects in the UKB
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \(p_i\) depends on covariates that we know to be related to brain
+    volume (mainly age) so that samples are biased
+  \end{itemize}
+\item
+  For sample sizes in
+  \(n_{sim} = 21,407 \times (0.01, 0.02, 0.04,0.05,0.075, 0.1, 0.25)\):
+
+  \begin{enumerate}
+  \tightlist
+  \item
+    Draw sample of size \(n_{sim}\) from imaging cohort with probability
+    proportional to \(p_i\)
+  \item
+    Weight sample to \(P(\mathbf{Z})\) defined by UKB imaging cohort
+    using each of 6 methods
+  \item
+    Perform steps 2.1-2.2 1000 times
+  \end{enumerate}
+\end{enumerate}
+
+\end{frame}
+
+\begin{frame}{Simulation overview}
+\protect\hypertarget{simulation-overview-1}{}
+
+Evaluate methods based on:
+
+\begin{itemize}
+\item
+  \textbf{design effect}: measures the decrease in effective sample size
+  (ESS) from weighting
+  \[\text{deff}(\mathbf{w}) = 1 + \text{Var}(\mathbf{w})\]
+  \[ESS = \frac{n}{\text{deff}(\mathbf{w})}\]
+\item
+  \textbf{Absolute bias} of estimated average total brain volume
+\end{itemize}
+
+\[\text{bias} = |\bar{Y}^w - \mu|\]
+\[\bar{Y}^w = \frac{1}{n_{sim}}\sum_{i = 1}^{n_{sim}} Y_i \hat{w}_i\]
+
+\end{frame}
+
+\begin{frame}{Simulation results}
+\protect\hypertarget{simulation-results}{}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.75\textwidth]{~/github/mini-project-1/simulation/results/sim_1_5000_old_v3/plots/sim_results_presentation.png}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Simulation results - Remarks}
+\protect\hypertarget{simulation-results---remarks}{}
+
+\begin{itemize}
+\tightlist
+\item
+  \emph{Post-stratification} performs surprisingly well, likely due to
+  the size of the data set
+
+  \begin{itemize}
+  \tightlist
+  \item
+    note that stratification variables chosen with a random forest (not
+    the standard implementation)
+  \end{itemize}
+\item
+  \emph{BART + raking} outperforms other methods at the smallest sample
+  sizes (which is probably the most realistic setting)
+\item
+  \emph{Calibration} performs very poorly - fails to correct bias and
+  has large variance (likely from sensitivity to age distribution)
+\item
+  Directly predicting \(P(S = 1 | \mathbf{Z})\) with \emph{logistic
+  regression} corrected bias well, but at a rather large cost in
+  variance
+\item
+  \emph{LASSO} has smallest deff, but also fails to correct bias
+  (variable selection not working well)
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Application to UK Biobank imaging cohort}
+\protect\hypertarget{application-to-uk-biobank-imaging-cohort}{}
+
+\includegraphics{fmrib-deck-20191002_files/figure-beamer/fig-ukb-results-demo-1.pdf}
+
+\end{frame}
+
+\begin{frame}{Application to UK Biobank imaging cohort}
+\protect\hypertarget{application-to-uk-biobank-imaging-cohort-1}{}
+
+\includegraphics{fmrib-deck-20191002_files/figure-beamer/fig-ukb-results-health-1.pdf}
+
+\end{frame}
+
+\begin{frame}{Application to the UK Biobank imaging cohort}
+\protect\hypertarget{application-to-the-uk-biobank-imaging-cohort}{}
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{~/github/mini-project-1/simulation/results/sim_1_5000_old_v3/plots/ukb_brainvol_age.png}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Summary}
+\protect\hypertarget{summary}{}
+
+\begin{itemize}
+\item
+  Be wary of collider bias when estimating associations in the UK
+  Biobank!
+\item
+  SCMs are a good framework for thinking about dependence structures,
+  potential sources of bias, and if that bias can be corrected
+\item
+  \textbf{inverse probability weighting} can be used to adjust for
+  selection bias, many different ways to estimate weights
+\item
+  Weighting the UKB imaging cohort corrects most of the bias in the
+  demographic covariates, but only some of the bias in health outcomes
+\end{itemize}
+
+\end{frame}
+
+\hypertarget{appendix}{%
+\section{Appendix}\label{appendix}}
+
+\begin{frame}{Method 1: Post-stratification}
+\protect\hypertarget{method-1-post-stratification}{}
 
 Adjust to the \emph{joint} distribution of \(\mathbf{Z}\). This is
 exactly the definition for recovery (i.e.~a sum over all combinations of
@@ -587,8 +764,8 @@ Then, all men under 50 in the study are given \(w^s = 0.917\)
 
 \end{frame}
 
-\begin{frame}{Methods: Post-stratification}
-\protect\hypertarget{methods-post-stratification-1}{}
+\begin{frame}{Method 1: Post-stratification}
+\protect\hypertarget{method-1-post-stratification-1}{}
 
 \textbf{Pros}:
 
@@ -614,8 +791,8 @@ Then, all men under 50 in the study are given \(w^s = 0.917\)
 
 \end{frame}
 
-\begin{frame}{Methods: Raking}
-\protect\hypertarget{methods-raking}{}
+\begin{frame}{Method 2: Raking}
+\protect\hypertarget{method-2-raking}{}
 
 \emph{Iterative proportional fitting}; iteratively adjust the
 \emph{marginal} distributions of auxilary variables \(\mathbf{Z}\)
@@ -638,8 +815,8 @@ Stop when weights stabilize (according to a tolerance threshold
 
 \end{frame}
 
-\begin{frame}{Methods: Raking}
-\protect\hypertarget{methods-raking-1}{}
+\begin{frame}{Method 2: Raking}
+\protect\hypertarget{method-2-raking-1}{}
 
 \textbf{Pros}:
 
@@ -665,8 +842,8 @@ Stop when weights stabilize (according to a tolerance threshold
 
 \end{frame}
 
-\begin{frame}{Methods: Calibration}
-\protect\hypertarget{methods-calibration}{}
+\begin{frame}{Method 3: Calibration}
+\protect\hypertarget{method-3-calibration}{}
 
 A generalization of raking that allows for continuous \(\mathbf{Z}\)
 
@@ -684,11 +861,26 @@ raking
 
 \end{frame}
 
-\begin{frame}{Methods: Directly estimate
+\begin{frame}{Method 4: Directly estimate
 \(\hat{\text{P}}(S = 1| \mathbf{Z})\) with regression}
-\protect\hypertarget{methods-directly-estimate-hattextps-1-mathbfz-with-regression}{}
+\protect\hypertarget{method-4-directly-estimate-hattextps-1-mathbfz-with-regression}{}
+
+We use logistic regression to estimate
+\(\hat{\text{P}}(S_i = 1 | \mathbf{Z}_i)\) because selection is binary
+(S = 1 if observed, 0 otherwise):
 
 \[\hat{\text{P}}(S_i = 1 | \mathbf{Z}_i) = \text{logit}^{-1}(\boldsymbol{\beta}\mathbf{Z}_i)\]
+
+\textbf{Pros:}
+
+\begin{itemize}
+\tightlist
+\item
+  Can account for a large \(\mathbf{Z}\), including continous variables
+  and interactions
+\item
+  Don't need custom weighting tools, just logistic regression
+\end{itemize}
 
 \textbf{Cons:}
 
@@ -704,59 +896,58 @@ raking
 
 \end{frame}
 
-\begin{frame}{Methods: Raking with LASSO variable selection}
-\protect\hypertarget{methods-raking-with-lasso-variable-selection}{}
+\begin{frame}{Method 5: Raking with LASSO variable selection}
+\protect\hypertarget{method-5-raking-with-lasso-variable-selection}{}
 
 \textbf{Problem:} Both raking and post-stratification can fail when
 \(\mathbf{Z}\) is too large
 
 \textbf{Solution:} Select significant subsets of \(\mathbf{Z}\) using
-LASSO
+LASSO, then rake to those marginals (Caughey and Hartman 2017)
+
+General procedure:
+
+\begin{enumerate}
+\tightlist
+\item
+  Specify all levels of \(\mathbf{Z}\) and subsets to consider (i.e.~all
+  first-order terms, and maybe two-way interactions)
+\item
+  Fit LASSO to
+  \(S_i = \text{logit}^{-1}(\boldsymbol{\beta}\mathbf{Z}_i)\)
+\item
+  Fit LASSO to \(Y_i = f(\boldsymbol{\beta}\mathbf{Z}_i)\) (\(f\)
+  depends on likelihood of \(Y\))
+\item
+  Rake to marginal distributions of all levels of \(\mathbf{Z}\) for
+  which the corresponding \(\beta \neq 0\) in either of the LASSOs
+\end{enumerate}
+
+\textbf{Caution:} Highly dependent on LASSO performance
 
 \end{frame}
 
-\hypertarget{application-to-the-uk-biobank}{%
-\section{Application to the UK
-Biobank}\label{application-to-the-uk-biobank}}
+\begin{frame}{Method 6: BART + raking}
+\protect\hypertarget{method-6-bart-raking}{}
 
-\begin{frame}{Simulation Results}
-\protect\hypertarget{simulation-results}{}
+\textbf{Intuition:} Use \textbf{Bayesian additive regression tree
+(BART)} to estimate \(P(S = 1 | \mathbf{Z})\), then rake to selected
+\(\mathbf{Z}\) so that marginal distributions match (for
+interpretability)
 
-\center
-
-\includegraphics[width=1\linewidth]{~/github/mini-project-1/simulation/results/sim_1_5000_old_v3/plots/mse_by_sample_size}
-
-\end{frame}
-
-\begin{frame}[fragile]{Application to UK Biobank}
-\protect\hypertarget{application-to-uk-biobank}{}
-
-\begin{verbatim}
-## Warning: Removed 1 rows containing missing values (geom_point).
-
-## Warning: Removed 1 rows containing missing values (geom_point).
-
-## Warning: Removed 1 rows containing missing values (geom_point).
-\end{verbatim}
-
-\includegraphics{fmrib-deck-20191002_files/figure-beamer/fig-ukb-results-1.pdf}
-
-\end{frame}
-
-\begin{frame}{Summary}
-\protect\hypertarget{summary}{}
+Why a BART?
 
 \begin{itemize}
 \tightlist
 \item
-  The UKB and the imaging cohort are not representative of the UK
-  general population
+  Trees are great for interactions
 \item
-  This is a problem because \textbf{collider bias} can impact estimates
-  of association
-\item
-  Reviewed SCMs as a language for expressing dependence structures
+  Some parallels to post-stratification
 \end{itemize}
+
+(but could use any method)
+
+\textbf{Caution:} Computation time much greater than other methods
 
 \end{frame}
 
@@ -766,11 +957,16 @@ Biobank}\label{application-to-the-uk-biobank}}
 \small
 
 \hypertarget{refs}{}
+\leavevmode\hypertarget{ref-Caughey2017}{}%
+Caughey, Devin, and Erin Hartman. 2017. ``Target Selection as Variable
+Selection : Using the Lasso to Select Auxiliary Vectors for the
+Construction of Survey Weights.''
+
 \leavevmode\hypertarget{ref-Correa2018}{}%
 Correa, J D, J Tian, and E Bareinboim. 2018. ``Generalized adjustment
 under confounding and selection biases.'' \emph{32nd AAAI Conference on
 Artificial Intelligence, AAAI 2018}, no. June: 6335--42.
-\url{https://www.scopus.com/inward/record.uri?eid=2-s2.0-85059403683\%7B/\&\%7DpartnerID=40\%7B/\&\%7Dmd5=d87612fd7a9f1c4cc8831887080291ab}.
+\url{https://www.aaai.org/ocs/index.php/AAAI/AAAI18/paper/viewFile/17375/16207}.
 
 \leavevmode\hypertarget{ref-Day2016}{}%
 Day, Felix R., Po Ru Loh, Robert A. Scott, Ken K. Ong, and John R. B.
@@ -784,11 +980,6 @@ Adamska, Tim Sprosen, Rory Collins, and Naomi E Allen. 2017.
 ``Comparison of Sociodemographic and Health-Related Characteristics of
 Uk Biobank Participants with Those of the General Population.''
 \emph{American Journal of Epidemiology} 186 (9): 1026--34.
-
-\leavevmode\hypertarget{ref-Hernan2004}{}%
-Hernán, Miguel A., Sonia Hernández-Díaz, and James M. Robins. 2004. ``A
-Structural Approach to Selection Bias.'' \emph{Epidemiology} 15 (5):
-615--25. \url{https://doi.org/10.1097/01.ede.0000135174.63482.43}.
 
 \leavevmode\hypertarget{ref-Munafo2018}{}%
 Munafò, Marcus R., Kate Tilling, Amy E. Taylor, David M. Evans, and

@@ -28,7 +28,7 @@ library(ggpubr)
 
 
 # plotting function
-getDistPlot = function(data, title = NULL){
+getDistPlot = function(data, title = NULL, weighted = F){
   
   plot = ggplot() +
   geom_bar(data = data[variable %in% c('samp_prop', 'ukb_prop'),]
@@ -68,27 +68,29 @@ weight_summary[var == '16-ApoE Phenotype', var := '16-ApoE Genotype']
 
 
 
-# The UK Biobank
+# Unrepresentativeness in the UK Biobank
 
-## Overview
+## About the data
 
 __UK Biobank__
 
-* Largest ever prospective health study
-* Includes genetic sequencing, blood tests, physical exams, health history questionnaire
+* __Goal__: Study exposures and outcomes that affect aging populations
 * 500,000+ participants aged 40-70 when recruited between 2006 and 2010
-* Not representative of the UK general population [@fry2017comparison]
-
-__Goal__: Study exposures and outcomes that affect aging populations
+* _Not representative of the UK general population_ [@fry2017comparison]
 
 __UK Biobank imaging cohort__
 
-* Subset of UKB participants recruited to undergo additional imaging exams
-* 21,407 complete, valid T1 structural MRIs
+* Subset of UKB participants, undergo additional imaging exams
+* 21,407 complete, valid T1 structural MRIs (4% of UKB)
+
+__[2016 Health Survey for England](https://digital.nhs.uk/data-and-information/publications/statistical/health-survey-for-england/health-survey-for-england-2016)__
+
+* Designed to estimate prevalence of health outcomes (e.g. smoking, obesity, high blood pressure)
+* 2016 survey contains 10,067 respondents, 4,318 aged 45-80
 
 
 
-## Unrepresentativeness of the UK Biobank
+## Quantifying unrepresentativeness of the UKB
 
 ```{r plot-selection-bias-demos, warning=FALSE, message=FALSE, echo=F, out.width='95%', fig.align='center'}
 # head(weight_summary)
@@ -102,15 +104,14 @@ plot_data[, var_display := gsub('^[0-9][0-9][-]','',var)]
 getDistPlot(plot_data, title = "Demographic covariates")
 
 ```
-<sub>UK population defined using the [2016 Health Survey for England](https://digital.nhs.uk/data-and-information/publications/statistical/health-survey-for-england/health-survey-for-england-2016)</sub>
 
 
 
-## Unrepresentativeness of the UK Biobank
+## Quantifying unrepresentativeness of the UKB
 
 ```{r plot-selection-bias-health, warning=FALSE, message=FALSE, echo=F, out.width = '95%', fig.align='center'}
 
-var_list = c('20-Smoking Status', '21-BMI Bucket', '23-Diabetes Ever', '16-ApoE Genotype')
+var_list = c('20-Smoking Status', '21-BMI Bucket', '23-Diabetes Ever')
 
 plot_data = melt(weight_summary[var %in% var_list, .(var, level, pop_prop_weighted, ukb_prop, samp_prop)], id.vars = c('var','level'))
 plot_data[, var_display := gsub('^[0-9][0-9][-]','',var)]
@@ -141,7 +142,11 @@ SCMs use directed acyclic graphs (DAGs) as ``a mathematical language for integra
 \end{tikzpicture}
 \end{figure}
 
-**Note**: we will focus on discrete mechanisms (e.g. \(X \in \{0,1\}\)), but this can be generalized to the continuous case
+Things we can say:
+
+* there is a _direct_ causal pathway from $X$ to $Y$
+* there is an _indirect_ causal pathway from $W$ to $Y$
+* $X$ _d-separates_ $W$ and $Y$, such that $W \ci Y | X$
 
 
 ## SCM Example
@@ -163,11 +168,11 @@ SCMs use directed acyclic graphs (DAGs) as ``a mathematical language for integra
 	\end{tikzpicture}
 \end{figure}
 
-* SES and participation in UKB are \textcolor{green}{positively} correlated: Lower SES may mean it's harder to take time off of work, find childcare, etc.
-* Dementia and participation are \textcolor{red}{negatively} correlated: Individuals with dementia (even early signs) may find it harder to make it to an appointment
-* SES and hippocampal volume are independent (no edge)
+* SES and participation in UKB are \textcolor{green}{positively} correlated
+* Dementia and participation are \textcolor{red}{negatively} correlated
+* No causal relationship between SES and hippocampal volume (no edge)
 
-What can we infer about someone with low SES who has participated in the UKB?
+Are SES and Dementia independent?
 
 ## Collider bias
 
@@ -195,10 +200,11 @@ What can we infer about someone with low SES who has participated in the UKB?
 
 **Collider bias**: "When two variables independently influence a third variable, and that third variable is conditioned upon" [@Munafo2018]
 
-Opens a *backdoor path* (spurious association) between SES (E) and hippocampal volume (H).
+Opens a *backdoor path* (spurious association) between E and H.
 
 * Want to know \(\text{P(H|E)}\)
 * But only observe \(\text{P}(H | E, S = 1)\)
+* And, because $H$, $E$ are *not* independent of $S$, those are not the same
 
 ## Collider bias example
 
@@ -215,16 +221,18 @@ Opens a *backdoor path* (spurious association) between SES (E) and hippocampal v
 
 ## Formal conditions for recovery
 
-Consider the *association* between \(X\) and \(Y\), or \(\text{P}(Y = y|X = x)\)
+Consider the *association* between \(X\) and \(Y\), \(\text{P}(y|x)\)
 
-We can recover from selection bias **if and only if** \(\text{P}(y|x)\) can be written in terms of the quantities observed under selection, usually relying on a set of *auxilary variables* \(\mathbf{Z}\)
+We can recover from selection bias **if and only if** \(\text{P}(y|x)\) can be written in terms of the quantities observed under selection; use *auxilary variables* \(\mathbf{Z}\)
 
-* if \(Y \ci S | {\mathbf{Z}, X}\), then we can recover the association with
+* if \(Y \ci S | \{\mathbf{Z}, X\}\), then
 $$\text{P}(y|x) = \sum_\mathbf{z} \text{P}(y|x, \mathbf{z}, S=1)\text{P}(\mathbf{z}|x)$$
-* If \(\{Y \cup X\} \ci S | \mathbf{Z}\), then we can recover the association with
+* If \(\{Y \cup X\} \ci S | \mathbf{Z}\), then
 $$\text{P}(y|x) = \sum_\mathbf{z} \text{P}(y|x, \mathbf{z}, S=1)\text{P}(\mathbf{z})$$
 
-The key is that conditioning on \(\mathbf{Z}\) (and maybe \(X\)) makes the outcome of interest \(Y\) *conditionally independent of selection* \(S\)
+**The key:** conditioning on \(\mathbf{Z}\) (and maybe \(X\)) makes \(Y\) *conditionally independent of selection* \(S\)
+
+$\text{P}(\mathbf{z})$ and $\text{P}(\mathbf{z}|x)$ are population distributions
 
 ## Example
 
@@ -247,11 +255,14 @@ Back to our example...
 	\end{tikzpicture}
 \end{figure}
 
-True that \(H \ci S | D, E\), but not true that \(\{H \cup E\} \ci S | D\)
+\begin{itemize}
+\item[\rlap{\raisebox{0.3ex}{\hspace{0.4ex}\scriptsize \textcolor{red}{\ding{56}}}}$\square$] \(\{H \cup E\} \ci S | D\)
+\item[\rlap{\raisebox{0.3ex}{\hspace{0.4ex}\tiny \textcolor{green}{\ding{52}}}}$\square$] \(H \ci S | D, E\)
+\end{itemize}
 
-Therefore, we CAN recover \(\text{P}(H | E)\) as
+So, can only recover \(\text{P}(H | E)\) as
 $$\text{P}(H | E) = \sum_D\text{P}(H | E, D, S = 1) P (D|E)$$
-**only if** we observe \(\text{P}(D | E)\) (or have an unbiased estimate)
+*as long as we observe* \(\text{P}(D | E)\)
 
 ## Problems
 
@@ -267,12 +278,13 @@ $$\text{P}(H | E) = \sum_D\text{P}(H | E, D, S = 1) P (D|E)$$
 ## Two main methods for recovery
 Classes of methods for estimating effects, associations, prevalence in the presence of selection bias:
 
-* **Inverse probability weighting (IPW)**: weight each observed unit by the inverse of their probability of selection; intuitively, creates a ``pseudo-population" in which selection bias does not exist [@Hernan2004]
-  * con: not always clear how to incorporate into estimators
-  * con: hard to correctly estimate standard errors of weighted estimators
-
-* **Regression methods**: directly model the outcome of interest, accounting for confounders/auxiliary variables 
-  * con: have to estimate separate regression model for each outcome
+* **Inverse probability weighting (IPW)**: weight each observed unit by the inverse of the probability of selection, $w_i \propto 1/\text{P}(S = 1 | \mathbf{Z}_i)$
+  * \textcolor{oxfordgreen}{pro}: weights are independent of $Y$ and $X$
+  * \textcolor{oxfordred}{con}: not always clear how to incorporate into estimators
+  * \textcolor{oxfordred}{con}: hard to correctly estimate standard errors of weighted estimators
+\vspace{0.25cm}
+* **Regression methods**: directly model the outcome of interest $\text{P}(Y|X)$, accounting for confounders/auxiliary variables 
+  * \textcolor{oxfordred}{con}: have to estimate separate model for each outcome
 
 
 
@@ -283,26 +295,27 @@ Can be derived exactly from (causal) recovery conditions [@Correa2018]:
 \text{P}(\mathbf{y}|do(\mathbf{x})) &= \sum_\mathbf{Z} \text{P}(\mathbf{y}|\mathbf{x}, \mathbf{z}, S=1)\text{P}(\mathbf{z}\setminus\mathbf{z^T}|\mathbf{z^T}, S = 1)\text{P}(\mathbf{z^T})\\
 &= \sum_\mathbf{Z} \frac{\textcolor{oxfordred}{\text{P}(\mathbf{y}, \mathbf{x}, \mathbf{z} | S = 1)}}{\textcolor{oxfordlightblue}{\text{P}(\mathbf{x}| \mathbf{z}, S = 1)}} \textcolor{oxfordgreen}{\frac{\text{P}(S = 1)}{\text{P}(S = 1 | \mathbf{z^T})}} \label{eq:IPSW}
 \end{align}
-\begin{itemize}
-	\item  $\textcolor{oxfordred}{\text{P}(\mathbf{y}, \mathbf{x}, \mathbf{z} | S = 1)}$, joint distribution of $\mathbf{Y}$, $\mathbf{X}$ and $\mathbf{Z}$ under selection bias
-	\item $\textcolor{oxfordlightblue}{\text{P}(\mathbf{x}| \mathbf{z}, S = 1)}$, the probability of treatment given covariates in the selection-biased sample data, related to the *propensity score* $\text{P}(X|\mathbf{Z})$
-	\item $\textcolor{oxfordgreen}{\text{P}(S = 1)/\text{P}(S = 1 | \mathbf{z^T})}$, the \textit{inverse probability-of-selection weight}
-\end{itemize}
+
+* $\textcolor{oxfordred}{\text{P}(\mathbf{y}, \mathbf{x}, \mathbf{z} | S = 1)}$, joint distribution of $\mathbf{Y}$, $\mathbf{X}$ and $\mathbf{Z}$ under selection bias
+* $\textcolor{oxfordlightblue}{\text{P}(\mathbf{x}| \mathbf{z}, S = 1)}$, the probability of treatment given covariates in the selection-biased sample data
+    * related to the *propensity score*  $\text{P}(X|\mathbf{Z})$
+* $\textcolor{oxfordgreen}{\text{P}(S = 1)/\text{P}(S = 1 | \mathbf{z^T})}$, the \textit{inverse probability-of-selection weight}
+
+**But how should we estimate $\text{P}(S = 1 | \mathbf{Z})$?**
 
 
-## Inverse probability weighting (IPW)
+## Estimating $\text{P}(S = 1 | \mathbf{Z})$
 
-Say we observe outcomes $Y$, exposures $X$, and auxiliary variables $Z$ for $i = 1, \dots, n$ individuals. Can estimate $\text{P}(Y | X)$ with
+Things to think about when comparing methods for estimating $\text{P}(S = 1 | \mathbf{Z})$:
 
-$$\hat{\mu} = E(Y | X = x) = \frac{1}{n}\sum_{i = 1}^n \textcolor{oxfordgreen}{w_i^s} \textcolor{oxfordlightblue}{w_i^c} \textcolor{oxfordred}{I_{(X_i = x)}}Y_i$$
+1. Weighted **marginal distribution** of $\mathbf{Z}$ should match that of the population
 
-* $\textcolor{oxfordgreen}{w_i^{s}}$ is the inverse probability of selection weight, given $\mathbf{z}$
-$$w_i^{s} = \hat{\text{P}}(S = 1)/\hat{\text{P}}(S = 1 | \mathbf{Z}_i)$$
-* $\textcolor{oxfordlightblue}{w_i^c}$ is the probability of treatment under selection
-$$w_i^c = 1/\hat{\text{P}}(X_i|\mathbf{Z}_i, S = 1)$$
-* $\textcolor{oxfordred}{I_{(X_i = x)}}$ is an indicator function for which exposure a unit recieved
+2. Avoid extreme weights that inflate the **variance** of estimators (have to account for the additional uncertainty of weights)
 
-**But how do we estimate the weights?**
+3. **Computational complexity** of the method
+
+4. How well does the method account for interactions between elements of $\mathbf{Z}$
+
 
 ## Methods: summary
 
@@ -322,7 +335,127 @@ New method:
 6. *BART + raking*: use a Bayesian Additive Regression Tree (BART) to estimate the probability of selection, then rake such that key marginal distributions match those of the population
 
 
-## Methods: Post-stratification
+
+# Application to the UK Biobank
+
+## Simulation overview
+
+1. Generate a probability of missingness $p_i$ for all 21,407 imaging subjects in the UKB
+    * $p_i$ depends on covariates that we know to be related to brain volume (mainly age) so that samples are biased
+2. For sample sizes in $n_{sim} = 21,407 \times (0.01, 0.02, 0.04,0.05,0.075, 0.1, 0.25)$:
+    1. Draw sample of size $n_{sim}$ from imaging cohort with probability proportional to $p_i$
+    2. Weight sample to $P(\mathbf{Z})$ defined by UKB imaging cohort using each of 6 methods
+    3. Perform steps 2.1-2.2 1000 times
+    
+
+## Simulation overview
+    
+Evaluate methods based on:
+
+* **design effect**: measures the decrease in effective sample size (ESS) from weighting
+$$\text{deff}(\mathbf{w}) = 1 + \text{Var}(\mathbf{w})$$
+$$ESS = \frac{n}{\text{deff}(\mathbf{w})}$$
+
+* **Absolute bias** of estimated average total brain volume
+
+$$\text{bias} = |\bar{Y}^w - \mu|$$
+$$\bar{Y}^w = \frac{1}{n_{sim}}\sum_{i = 1}^{n_{sim}} Y_i \hat{w}_i$$
+
+## Simulation results
+
+\begin{figure}
+\centering
+\includegraphics[width=0.75\textwidth]{~/github/mini-project-1/simulation/results/sim_1_5000_old_v3/plots/sim_results_presentation.png}
+\end{figure}
+
+## Simulation results - Remarks
+
+* _Post-stratification_ performs surprisingly well, likely due to the size of the data set
+    * note that stratification variables chosen with a random forest (not the standard implementation)
+* _BART + raking_ outperforms other methods at the smallest sample sizes (which is probably the most realistic setting)
+* _Calibration_ performs very poorly - fails to correct bias and has large variance (likely from sensitivity to age distribution)
+* Directly predicting $P(S = 1 | \mathbf{Z})$ with _logistic regression_ corrected bias well, but at a rather large cost in variance
+* _LASSO_ has smallest deff, but also fails to correct bias (variable selection not working well)
+
+
+
+## Application to UK Biobank imaging cohort
+```{r fig-ukb-results-demo}
+var_list = c('03-Age Bucket', '05-Ethnicity', '15-Home ownership', '10-Occupation')
+
+plot_data = melt(weight_summary[var %in% var_list & !is.na(bart_prop) & !is.na(pop_prop_weighted), .(var, level, pop_prop_weighted, samp_prop, rake_prop, strat_prop, calib_prop, lasso_prop, logit_prop, bart_prop)], id.vars = c('var','level'))
+plot_data[, var_display := gsub('^[0-9][0-9][-]','',var)]
+plot_data[, method := gsub('_prop','', variable)]
+
+
+ggplot() +
+  geom_bar(data = plot_data[variable %in% c('samp_prop', 'bart_prop'),], aes(x = level, y = as.numeric(as.character(value)), fill = variable), position = 'dodge', stat = 'identity') +
+  geom_bar(data = plot_data[variable %in% c('pop_prop_weighted'), ]
+           , aes(x = level, y = as.numeric(as.character(value)), color = 'population'), alpha = 0, stat = 'identity') +
+   facet_wrap(~var_display, nrow = 2, ncol = 2, scales = 'free_x') + 
+  theme_minimal() +
+  scale_color_manual(values = c('black', 'red'), name = c(""), labels = c("UK pop", 'sample')) +
+  scale_fill_manual(values = c('#9bcbeb', '#418FDE'), name = c("UKB imaging"), labels = c("raw", "weighted")) +
+  ggtitle("Weighted demographic distributions") +
+    ylab('') +
+    xlab('variable') +
+  scale_y_continuous(labels=scales::percent) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size=22))
+ 
+
+```
+
+## Application to UK Biobank imaging cohort
+```{r fig-ukb-results-health}
+var_list = c('20-Smoking Status', '21-BMI Bucket', '23-Diabetes Ever')
+
+plot_data = melt(weight_summary[var %in% var_list & !is.na(bart_prop), .(var, level, pop_prop_weighted, samp_prop, rake_prop, strat_prop, calib_prop, lasso_prop, logit_prop, bart_prop)], id.vars = c('var','level'))
+plot_data[, var_display := gsub('^[0-9][0-9][-]','',var)]
+plot_data[, method := gsub('_prop','', variable)]
+
+plot_data = plot_data[!is.na(value)]
+
+ggplot() +
+  geom_bar(data = plot_data[variable %in% c('samp_prop', 'bart_prop'),], aes(x = level, y = as.numeric(as.character(value)), fill = variable), position = 'dodge', stat = 'identity') +
+  geom_bar(data = plot_data[variable %in% c('pop_prop_weighted'), ]
+           , aes(x = level, y = as.numeric(as.character(value)), color = 'population'), alpha = 0, stat = 'identity') +
+   facet_wrap(~var_display, nrow = 2, ncol = 2, scales = 'free_x') + 
+  theme_minimal() +
+  scale_color_manual(values = c('black', 'red'), name = c(""), labels = c("UK pop", 'sample')) +
+  scale_fill_manual(values = c('#9bcbeb', '#418FDE'), name = c("UKB imaging"), labels = c("raw", "weighted")) +
+  ggtitle("Weighted health outcome distributions") +
+    ylab('') +
+    xlab('variable') +
+  scale_y_continuous(labels=scales::percent) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size=22))
+ 
+
+```
+
+
+## Application to the UK Biobank imaging cohort
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{~/github/mini-project-1/simulation/results/sim_1_5000_old_v3/plots/ukb_brainvol_age.png}
+\end{figure}
+
+
+
+## Summary
+
+* Be wary of collider bias when estimating associations in the UK Biobank!
+
+* SCMs are a good framework for thinking about dependence structures, potential sources of bias, and if that bias can be corrected
+
+* **inverse probability weighting** can be used to adjust for selection bias, many different ways to estimate weights
+
+* Weighting the UKB imaging cohort corrects most of the bias in the demographic covariates, but only some of the bias in health outcomes
+
+
+# Appendix
+
+## Method 1: Post-stratification
 
 Adjust to the *joint* distribution of $\mathbf{Z}$.  This is exactly the definition for recovery (i.e. a sum over all combinations of levels of $\mathbf{Z}$)
 
@@ -352,7 +485,7 @@ where $\text{P}(S = 1) = 0.1$
 Then, all men under 50 in the study are given $w^s = 0.917$
 
 
-## Methods: Post-stratification
+## Method 1: Post-stratification
 
 **Pros**:
 
@@ -365,7 +498,7 @@ Then, all men under 50 in the study are given $w^s = 0.917$
 * can only consider a limited number of $\mathbf{Z}$ before the strata get too small
 
 
-## Methods: Raking
+## Method 2: Raking
 
 *Iterative proportional fitting*; iteratively adjust the *marginal* distributions of auxilary variables $\mathbf{Z}$
 
@@ -380,7 +513,7 @@ Then, all men under 50 in the study are given $w^s = 0.917$
 Stop when weights stabilize (according to a tolerance threshold $\epsilon$)
 
 
-## Methods: Raking
+## Method 2: Raking
 
 **Pros**:
 
@@ -395,7 +528,7 @@ Stop when weights stabilize (according to a tolerance threshold $\epsilon$)
 (Basically the opposite of post-stratification)
 
 
-## Methods: Calibration
+## Method 3: Calibration
 
 A generalization of raking that allows for continuous $\mathbf{Z}$
 
@@ -407,7 +540,7 @@ With this formlation, we can also enforce constraints (weight) on **continuous**
 *Con:* can be very finicky, even less likely to converge than raking
 
 
-## Methods: Directly estimate $\hat{\text{P}}(S = 1| \mathbf{Z})$ with regression
+## Method 4: Directly estimate $\hat{\text{P}}(S = 1| \mathbf{Z})$ with regression
 
 We use logistic regression to estimate $\hat{\text{P}}(S_i = 1 | \mathbf{Z}_i)$ because selection is binary (S = 1 if observed, 0 otherwise):
 
@@ -424,42 +557,34 @@ $$\hat{\text{P}}(S_i = 1 | \mathbf{Z}_i) = \text{logit}^{-1}(\boldsymbol{\beta}\
 * Requires individual-level population data
 
 
-## Methods: Raking with LASSO variable selection
+## Method 5: Raking with LASSO variable selection
 
 **Problem:** Both raking and post-stratification can fail when $\mathbf{Z}$ is too large
 
-**Solution:** Select significant subsets of $\mathbf{Z}$ using LASSO
+**Solution:** Select significant subsets of $\mathbf{Z}$ using LASSO, then rake to those marginals [@Caughey2017]
 
-# Application to the UK Biobank
+General procedure:
 
-## Simulation Results
-\center
-```{r fig-sim-results, out.width='100%'}
-include_graphics('~/github/mini-project-1/simulation/results/sim_1_5000_old_v3/plots/mse_by_sample_size.png'
-                 , auto_pdf = getOption("knitr.graphics.auto_pdf", FALSE)
-                 , dpi = NULL)
-```
+1. Specify all levels of $\mathbf{Z}$ and subsets to consider (i.e. all first-order terms, and maybe two-way interactions)
+2. Fit LASSO to $S_i = \text{logit}^{-1}(\boldsymbol{\beta}\mathbf{Z}_i)$
+3. Fit LASSO to $Y_i = f(\boldsymbol{\beta}\mathbf{Z}_i)$ ($f$ depends on likelihood of $Y$)
+4. Rake to marginal distributions of all levels of $\mathbf{Z}$ for which the corresponding $\beta \neq 0$ in either of the LASSOs
 
-
-## Application to UK Biobank
-```{r fig-ukb-results}
-ggplot(weight_summary[level %in% c('Female', '01-White', '1', '01-Under 18k', '01-College plus/profesh', '01-Own outright','02-Own with mortgage') | var %in% c('03-Age Bucket', '11-Income')]) +
-  geom_point(aes(x = as.numeric(as.character(pop_prop_weighted)), y = paste0(var, ': ',level), color = 'Population')) +
-  geom_point(aes(x = as.numeric(as.character(samp_prop)), y = paste0(var, ': ',level), color = 'UKB Imaging cohort')) +
-geom_point(aes(x = as.numeric(as.character(bart_prop)), y = paste0(var, ': ',level), color = 'BART adjusted')) + 
-  ggtitle("UK Population v. UKB Imaging cohort") +
-  xlab("proportion of group") +
-  ylab("")
-```
+**Caution:**  Highly dependent on LASSO performance
 
 
+## Method 6: BART + raking
 
+**Intuition:** Use **Bayesian additive regression tree (BART)** to estimate $P(S = 1 | \mathbf{Z})$, then rake to selected $\mathbf{Z}$ so that marginal distributions match (for interpretability)
 
-## Summary
+Why a BART?
 
-* The UKB and the imaging cohort are not representative of the UK general population
-* This is a problem because **collider bias** can impact estimates of association
-* Reviewed SCMs as a language for expressing dependence structures
+* Trees are great for interactions
+* Some parallels to post-stratification
+
+(but could use any method)
+
+**Caution:** Computation time much greater than other methods
 
 
 ## References {.allowframebreaks} 
