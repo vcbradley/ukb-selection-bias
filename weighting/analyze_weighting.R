@@ -14,13 +14,21 @@ load('ukb_weighted_hse16_summary.rda')
 
 
 
-#brainvol_age_melted = melt(brainvol_age, id.vars = c('age', 'health_apoe_phenotype','demo_sex','demo_income_bucket', 'brain_vol'), measure.vars = names(brainvol_age)[grepl('_brain_vol', names(brainvol_age))])
-brainvol_age_melted = melt(brainvol_age, id.vars = c('age', 'brain_vol'), measure.vars = names(brainvol_age)[grepl('_brain_vol', names(brainvol_age))])
+#brainvol_age_melted = melt(brainvol_age, id.vars = c('age', 'health_apoe_phenotype','demo_sex','demo_income_bucket', 'brain_vol'), measure.vars = names(brainvol_age)[grepl('brain_vol', names(brainvol_age))])
+brainvol_age_melted = melt(brainvol_age, id.vars = c('age', 'brain_vol'), measure.vars = names(brainvol_age)[grepl('brain_vol', names(brainvol_age))])
 brainvol_age_melted[, variable := gsub('_brain_vol', '', variable)]
 
+plot_brainvol_age = ggplot(brainvol_age_melted[variable != 'brain_vol'], aes(x = age, y = brain_vol, color = variable), alpha = 0.2) + 
+  facet_wrap(~variable) +
+  geom_line() +
+  geom_line(data = brainvol_age_melted[variable != 'brain_vol'], aes(x = age, y = brain_vol), lty = 2, color = 'black') +
+  
+  ylab('Total brain volume') +
+  xlab('Age') +
+  ggtitle("Total brain volume by age") + 
+  theme_minimal()
 
-ggplot(brainvol_age_melted, aes(x = age, y = brain_vol, color = variable), alpha = 0.2) + 
-  geom_point()
+ggsave(filename = paste0(plot_dir, '/ukb_brainvol_age.png'), plot = plot_brainvol_age, device = 'png', width = 8, height = 5)
 
 
 ggplot(weight_summary[var == 'demo_age_bucket'], aes(x = level)) + 
