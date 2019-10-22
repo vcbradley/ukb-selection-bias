@@ -456,6 +456,7 @@ doRecode <- function(data){
             )
 
         data  <- data %>% mutate(health_apoe_level = (2 * e4) + e3)
+        data <- data %>% filter(is.na(health_apoe_level)) %>% mutate(health_apoe_level = 0)  # set missing ones to 0
 
         data %>% count(e3, e4, health_apoe_phenotype)
     }
