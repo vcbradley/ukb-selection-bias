@@ -1,4 +1,5 @@
 ## data recode
+rm(list = ls())
 library('data.table')
 library('memisc')
 library('dplyr')
@@ -7,7 +8,7 @@ library('MESS')
 setwd('/well/nichols/users/bwj567/data')
 
 #source code with recode functions
-source('/well/nichols/users/bwj567/mini-project-1/prep_ukb/recode_functions.R')
+source('/well/nichols/users/bwj567/mini-project-1/prep_ukb/functions_recode.R')
 
 
 # set params for testing
@@ -15,6 +16,7 @@ full_baseline_file = 'ukb25120_raw_baseline.tsv'
 full_imaging_file = 'ukb25120_raw_imaging.tsv'  
 all_UKB_vars_file = 'ukb25120_allvars.csv'
 apoe_file = 'ApoE.dat'
+geocodes_file = 'geocodes.csv'
 var_codings_file = '/well/nichols/users/bwj567/mini-project-1/variable_codings.csv'
 new_file_prefix = 'ukb25120_weighting'
 
@@ -106,6 +108,7 @@ data_base_recoded <- data_base_recoded %>% select(., grep('eid|^demo_|^health_|^
 
 
 data_base_recoded %>% group_by(health_apoe_phenotype, health_apoe_level) %>% tally()
+data_base_recoded %>% group_by(health_apoe_phenotype, health_apoe_level, e3, e4) %>% tally()
 
 
 #### IMAGING ####
