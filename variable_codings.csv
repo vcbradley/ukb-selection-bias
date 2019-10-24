@@ -34,6 +34,8 @@ demo,hh_ownrent,680,,,X,TENDUK11,,tenureb,,TenureB2,
 demo,landlord,,,,,,,,,LandLord,
 demo,hh_accom_type,670,,,X,TYPACCOM,* not quite apples to apples,,,,
 demo,priv_healthcare,4674,,,,,,,,,
+,deprivation_ind_england,26410,,,,,,,,,
+,deprivation_ind_scotland,26427,,,,,,,,,
 health,smoking_status,20116,,,X,,,cigst1,,cigst1,
 health,ever_smoked,20160,,,X,,,,,cignow,
 health,weight,21002,,,,,,,,,
@@ -94,7 +96,7 @@ demo,n_child_fathered,2405,,,,,,,,,
 addr,local_authority,,,,,la_group,,,,,
 demo,work_travel_mode,,,,,TRANSPORT,,,,,
 demo,urbanicity,,,,,,,Urban,,,Urban14b
-,govt_region,,,,,,,gor1,,,gor1
+,govt_region,,,,,region,,gor1,,,gor1
 ,reg_with_gp,,,,,,,GPSam,,,GPRegB
 ,anxiety,,,,,,,Anxiety,,,
 hse_weights,wt_coreint,,,,,,,wt_int,,,wt_int
