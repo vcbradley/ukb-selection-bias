@@ -1,106 +1,106 @@
-﻿cat,var,biobank code,Notes,population data,Recoded,census_var,census_notes,hse_var,hse_notes,hse16_var,
-id,eid,eid,,,,caseno,,pserial,,SerialA,
-demo,cob,,,,,COBG,,,,,
-demo,pob_uk_east,130,place of birth (in UK) east coord,,,,,,,,
-demo,pob_uk_north,129,place of birth (in UK) north coord,,,,,,,,
-addr,addr_east,22702,home address east coord,,X,,,,,,
-addr,addr_north,22704,home address north cord,,X,,,,,,
-addr,addr_firstdate,22700,date first recorded at location,,X,,,,,,
-admin,dropout_reason,190,,,,,,,,,
-admin,dropout_date,191,,,,,,,,,
-admin,email_access,20005,,,,,,,,,
-admin,assessment_center,54,UKB assessment center for baseline intake,,,,,,,,
-admin,assessment_month,55,UKB assessment date for baseline intake,,,,,MIntB,,,
-admin,assessment_quarter,,,,,,,,,Qrtint,
-admin,assessment_date,53,,,,,,,,,
-demo,job_code,132,,http://nesstar.ukdataservice.ac.uk/webview/index.jsp?v=2&mode=documentation&submode=abstract&study=http://nesstar.ukdataservice.ac.uk:80/obj/fStudy/7605&top=yes,X,OCCG,,SOC2010B,,SOC2010B,
-demo,job_code_deduced,20024,coalesce with job_code - this is from free text field,,X,,,,,,
-demo,sex,31,,,X,SEX,,Sex,,Sex,
-demo,yob,34,,,,,,,,,
-demo,mob,52,,,,,,,,,
-demo,dob,33,,,,,,,,,
-demo,age,21022,,,X,AGEH,,Age,,Age35g,
-demo,educ,6138,"highest education level, https://biobank.ctsu.ox.ac.uk/showcase/field.cgi?id=6138",,X,HLQUPUK11,,topqual3,,topqual3,
-demo,educ_all,,,,,,,QualA1:QualA29,,"Degree1, Degree2, Degree3, Degree4, Degree5, Degree95",
-demo,job_status,6142,current employment status (highest),,X,ecopuk11,,activb,,Activb2,
-demo,job_status_student,,,,,,,StWork,,StWork,
-demo,job_satisfaction,4537,,,,,,,,,
-demo,year_immigrated,3659,** min year in UKB is 1945,,X,YRARR_YEARG,** eliminate people who didn't move to UK until after UKB recruiitment,,,,
-demo,ethnicity,21000,https://biobank.ctsu.ox.ac.uk/showcase/coding.cgi?id=1001,,X,ETHNICITYEW,,Origin,,Origin2,
-demo,hh_income_cat,738,,,X,,** not asked in censuus,HHInc,,JNTINC2,
-demo,hh_income_cat_recoded,,,,,,,,,HHInc2,
-demo,hh_size,709,,,X,sizhuk11,,HHSize,,,
-demo,hh_ownrent,680,,,X,TENDUK11,,tenureb,,TenureB2,
-demo,landlord,,,,,,,,,LandLord,
-demo,hh_accom_type,670,,,X,TYPACCOM,* not quite apples to apples,,,,
-demo,priv_healthcare,4674,,,,,,,,,
-,deprivation_ind_england,26410,,,,,,,,,
-,deprivation_ind_scotland,26427,,,,,,,,,
-health,smoking_status,20116,,,X,,,cigst1,,cigst1,
-health,ever_smoked,20160,,,X,,,,,cignow,
-health,weight,21002,,,,,,,,,
-health,bmi,21001,,,X,,,bmival,,BMIval,
-health,alc_freq,1558,,,X,,,dnoft3,,dnoft3,
-health,alc_weekly_beer,1588,,,,,,nbeerwu + sbeerwu,,nbeerwu,
-health,alc_weekly_champ,1578,,,,,,,,sbeerwu,
-health,alc_weekly_fortwine,1608,,,,,,sherwu,,sherwu,
-health,alc_weekly_other,5364,,,,,,popswu,,popswu,
-health,alc_weekly_redwine,1568,,,,,,winewu,,winewu,
-health,alc_weekly_spirits,1598,,,,,,spirwu,,spirwu,
-health,alc_weekly_total,,,,X,,,totalwu,,totalwu,
-health,bp_systolic_man,93,,,,,,,,,
-health,bp_systolic_auto,4080,,,X,,,omsysval,,omsysval,
-health,bp_diastolic_man,94,,,,,,,,,
-health,bp_diastolic_auto,4079,,,X,,,omdiaval,,omdiaval,
-health,bp_doc_diagnosis,6150,,,,,,docnurbp,,DocBP,
-health,bp_high_ever,,,,,,,everbp,,EverBP,
-health,bp_age_diagnosed,2966,,,X,,,ageinfbp,,AgeBP,
-health,bp_current_meds,6177,,,X,,,medcinbp,,bpmedc2,
-health,diabetes_selfreport,,,,,,,everdi,,EverDi,
-health,diabetes,2443,,,X,,,diabtyper,,Diabetes,
-health,activity_days_moderate,884,,,,,,,,,
-health,activity_days_vigorous,904,,,,,,,,,
-health,activity_duration_moderate,894,,,,,,,,,
-health,activity_duration_vigorous,914,,,,,,,,,
-neruo,MRI_brain_vol,25009,,,,,,,,,
-neruo,MRI_hippo_vol_L,25886,,,,,,,,,
-neruo,MRI_hippo_vol_R,25887,,,,,,,,,
-neuro,MRI_t1_struct,25000,** USED FOR QC,,X,,,,,,
-neuro,MRI_safe,12139,Believed to be safe to perform MRI scan,,,,,,,,
-neuro,MRI_completed,12188,Brain MRI completed,,,,,,,,
-neuro,MRI_method,12187,"Brain MRI measuring method (why it was not completed, if so)",,,,,,,,
-neuro,MRI_phase,25780,Acquisition protocol phase,,,,,,,,
-biobank,abd_MRI_completed,12224,,,,,,,,,
-biobank,abd_MRI_safe,12140,,,,,,,,,
-biobank,Abd_MRI_method,12223,,,,,,,,,
-biobank,n_diet_surveys_completed,20077,,,,,,,,,
-biobank,ecg_completed,6020,,,,,,,,,
-biobank,invitation_phys_accepted,110005,,,,,,,,,
-biobank,invitation_phys_datesent,110006,,,,,,,,,
-biobank,invitation_diet_accepted,110001,,,,,,,,,
-biobank,invitation_diet_datesent,110002,,,,,,,,,
-biobank,invitation_cog_datesent,22017,,,,,,,,,
-biobank,invitation_occupation_date,22016,,,,,,,,,
-admin,death_date,40000,,,,,,,,,
-admin,death_age,40007,,,,,,,,,
-admin,death_record,40020,,,,,,,,,
-admin,death_cause,40001,,,,,,,,,
-admin,invitation_initial_date,110008,,,,,,,,,
-admin,invitation_initial_accepted,110003,,,,,,,,,
-demo,english_speaking,,,,,LANGPRF,,,,,
-demo,work_travel_dist,796,,,,,,,,,
-demo,disability,,,,,DISABILITY,,,,,
-demo,family_desc,,,,,FMSPUK11,Persons living in a family,,* can maybe use for children indicator,,
-demo,n_live_births,2734,,,,,,,,,
-demo,n_child_fathered,2405,,,,,,,,,
-addr,local_authority,,,,,la_group,,,,,
-demo,work_travel_mode,,,,,TRANSPORT,,,,,
-demo,urbanicity,,,,,,,Urban,,,Urban14b
-,govt_region,,,,,region,,gor1,,,gor1
-,reg_with_gp,,,,,,,GPSam,,,GPRegB
-,anxiety,,,,,,,Anxiety,,,
-hse_weights,wt_coreint,,,,,,,wt_int,,,wt_int
-hse_weights,wt_nurse,,,,,,,wt_nurse,,,wt_nurse
-hse_weights,wt_bloood,,,,,,,wt_blood,,,wt_blood
-hse_weights,wt_cotinine,,,,,,,wt_cotinine,,,wt_cotinine
-hse_weights,wt_drink,,,,,,,wt_drink,,,wt_drink
+﻿cat,var,biobank code,Notes,population data,Recoded,census_var,census_notes,hse_var,hse_notes,hse16_var
+id,eid,eid,,,,caseno,,pserial,,SerialA
+demo,cob,,,,,COBG,,,,
+demo,pob_uk_east,130,place of birth (in UK) east coord,,,,,,,
+demo,pob_uk_north,129,place of birth (in UK) north coord,,,,,,,
+addr,addr_east,22702,home address east coord,,X,,,,,
+addr,addr_north,22704,home address north cord,,X,,,,,
+addr,addr_firstdate,22700,date first recorded at location,,X,,,,,
+admin,dropout_reason,190,,,,,,,,
+admin,dropout_date,191,,,,,,,,
+admin,email_access,20005,,,,,,,,
+admin,assessment_center,54,UKB assessment center for baseline intake,,,,,,,
+admin,assessment_month,55,UKB assessment date for baseline intake,,,,,MIntB,,
+admin,assessment_quarter,,,,,,,,,Qrtint
+admin,assessment_date,53,,,,,,,,
+demo,job_code,132,,http://nesstar.ukdataservice.ac.uk/webview/index.jsp?v=2&mode=documentation&submode=abstract&study=http://nesstar.ukdataservice.ac.uk:80/obj/fStudy/7605&top=yes,X,OCCG,,SOC2010B,,SOC2010B
+demo,job_code_deduced,20024,coalesce with job_code - this is from free text field,,X,,,,,
+demo,sex,31,,,X,SEX,,Sex,,Sex
+demo,yob,34,,,,,,,,
+demo,mob,52,,,,,,,,
+demo,dob,33,,,,,,,,
+demo,age,21022,,,X,AGEH,,Age,,Age35g
+demo,educ,6138,"highest education level, https://biobank.ctsu.ox.ac.uk/showcase/field.cgi?id=6138",,X,HLQUPUK11,,topqual3,,topqual3
+demo,educ_all,,,,,,,QualA1:QualA29,,"Degree1, Degree2, Degree3, Degree4, Degree5, Degree95"
+demo,job_status,6142,current employment status (highest),,X,ecopuk11,,activb,,Activb2
+demo,job_status_student,,,,,,,StWork,,StWork
+demo,job_satisfaction,4537,,,,,,,,
+demo,year_immigrated,3659,** min year in UKB is 1945,,X,YRARR_YEARG,** eliminate people who didn't move to UK until after UKB recruiitment,,,
+demo,ethnicity,21000,https://biobank.ctsu.ox.ac.uk/showcase/coding.cgi?id=1001,,X,ETHNICITYEW,,Origin,,Origin2
+demo,hh_income_cat,738,,,X,,** not asked in censuus,HHInc,,JNTINC2
+demo,hh_income_cat_recoded,,,,,,,,,HHInc2
+demo,hh_size,709,,,X,sizhuk11,,HHSize,,
+demo,hh_ownrent,680,,,X,TENDUK11,,tenureb,,TenureB2
+demo,landlord,,,,,,,,,LandLord
+demo,hh_accom_type,670,,,X,TYPACCOM,* not quite apples to apples,,,
+demo,priv_healthcare,4674,,,,,,,,
+demo,deprivation_ind_england,26410,,,,,,,,
+demo,deprivation_ind_scotland,26427,,,,,,,,
+health,smoking_status,20116,,,X,,,cigst1,,cigst1
+health,ever_smoked,20160,,,X,,,,,cignow
+health,weight,21002,,,,,,,,
+health,bmi,21001,,,X,,,bmival,,BMIval
+health,alc_freq,1558,,,X,,,dnoft3,,dnoft3
+health,alc_weekly_beer,1588,,,,,,nbeerwu + sbeerwu,,nbeerwu
+health,alc_weekly_champ,1578,,,,,,,,sbeerwu
+health,alc_weekly_fortwine,1608,,,,,,sherwu,,sherwu
+health,alc_weekly_other,5364,,,,,,popswu,,popswu
+health,alc_weekly_redwine,1568,,,,,,winewu,,winewu
+health,alc_weekly_spirits,1598,,,,,,spirwu,,spirwu
+health,alc_weekly_total,,,,X,,,totalwu,,totalwu
+health,bp_systolic_man,93,,,,,,,,
+health,bp_systolic_auto,4080,,,X,,,omsysval,,omsysval
+health,bp_diastolic_man,94,,,,,,,,
+health,bp_diastolic_auto,4079,,,X,,,omdiaval,,omdiaval
+health,bp_doc_diagnosis,6150,,,,,,docnurbp,,DocBP
+health,bp_high_ever,,,,,,,everbp,,EverBP
+health,bp_age_diagnosed,2966,,,X,,,ageinfbp,,AgeBP
+health,bp_current_meds,6177,,,X,,,medcinbp,,bpmedc2
+health,diabetes_selfreport,,,,,,,everdi,,EverDi
+health,diabetes,2443,,,X,,,diabtyper,,Diabetes
+health,activity_days_moderate,884,,,,,,,,
+health,activity_days_vigorous,904,,,,,,,,
+health,activity_duration_moderate,894,,,,,,,,
+health,activity_duration_vigorous,914,,,,,,,,
+neruo,MRI_brain_vol,25009,,,,,,,,
+neruo,MRI_hippo_vol_L,25886,,,,,,,,
+neruo,MRI_hippo_vol_R,25887,,,,,,,,
+neuro,MRI_t1_struct,25000,** USED FOR QC,,X,,,,,
+neuro,MRI_safe,12139,Believed to be safe to perform MRI scan,,,,,,,
+neuro,MRI_completed,12188,Brain MRI completed,,,,,,,
+neuro,MRI_method,12187,"Brain MRI measuring method (why it was not completed, if so)",,,,,,,
+neuro,MRI_phase,25780,Acquisition protocol phase,,,,,,,
+biobank,abd_MRI_completed,12224,,,,,,,,
+biobank,abd_MRI_safe,12140,,,,,,,,
+biobank,Abd_MRI_method,12223,,,,,,,,
+biobank,n_diet_surveys_completed,20077,,,,,,,,
+biobank,ecg_completed,6020,,,,,,,,
+biobank,invitation_phys_accepted,110005,,,,,,,,
+biobank,invitation_phys_datesent,110006,,,,,,,,
+biobank,invitation_diet_accepted,110001,,,,,,,,
+biobank,invitation_diet_datesent,110002,,,,,,,,
+biobank,invitation_cog_datesent,22017,,,,,,,,
+biobank,invitation_occupation_date,22016,,,,,,,,
+admin,death_date,40000,,,,,,,,
+admin,death_age,40007,,,,,,,,
+admin,death_record,40020,,,,,,,,
+admin,death_cause,40001,,,,,,,,
+admin,invitation_initial_date,110008,,,,,,,,
+admin,invitation_initial_accepted,110003,,,,,,,,
+demo,english_speaking,,,,,LANGPRF,,,,
+demo,work_travel_dist,796,,,,,,,,
+demo,disability,2188,,,,DISABILITY,,,,
+demo,family_desc,,,,,FMSPUK11,Persons living in a family,,* can maybe use for children indicator,
+demo,n_live_births,2734,,,,,,,,
+demo,n_child_fathered,2405,,,,,,,,
+addr,local_authority,,,,,la_group,,,,
+demo,work_travel_mode,,,,,TRANSPORT,,,,
+demo,urbanicity,,,,,,,Urban,,Urban14b
+demo,govt_region,,,,,region,,gor1,,gor1
+health,reg_with_gp,,,,,,,GPSam,,GPRegB
+health,anxiety,,,,,,,Anxiety,,
+hse_weights,wt_coreint,,,,,,,wt_int,,wt_int
+hse_weights,wt_nurse,,,,,,,wt_nurse,,wt_nurse
+hse_weights,wt_bloood,,,,,,,wt_blood,,wt_blood
+hse_weights,wt_cotinine,,,,,,,wt_cotinine,,wt_cotinine
+hse_weights,wt_drink,,,,,,,wt_drink,,wt_drink
