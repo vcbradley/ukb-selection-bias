@@ -9,7 +9,7 @@
 cd /well/nichols/users/bwj567/
 
 # SET PARAMS
-INSTANCE='baseline'
+INSTANCE='imaging'    #'baseline' or 'imaging'
 FILE_IN='/well/nichols/projects/UKB/SMS/ukb25120.csv'
 #FILE_IN='/well/nichols/users/bwj567/data/ukb25120_sample5k.csv' ##TESTING
 FILE_OUT='/well/nichols/users/bwj567/data/ukb25120_raw'
