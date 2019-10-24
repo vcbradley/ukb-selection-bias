@@ -8,7 +8,7 @@ library('MESS')
 setwd('/well/nichols/users/bwj567/data')
 
 #source code with geo transform functions
-source('/well/nichols/users/bwj567/mini-project-1/prep_ukb/geo_transforms.R')
+source('/well/nichols/users/bwj567/mini-project-1/prep_ukb/functions_geocode.R')
 
 
 # source data for postcode <-> easting/northing
