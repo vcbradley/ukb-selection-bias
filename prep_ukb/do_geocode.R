@@ -26,8 +26,11 @@ PC_to_OSGB
 
 
 PC_to_LA = fread('postcode_to_LA.csv')
+PC_to_LA[, .N, lad11nm]
+PC_to_LA[grepl("Northumberland", lad11nm)]
 
-postcodes = merge(PC_to_LA, PC_to_OSGB)
+postcodes = merge(PC_to_LA, PC_to_OSGB, on = 'pcd7')
+PC_to_LA[grepl('alnwick', lad11nm)]
 
 
 postcodes[, easting_agg := substr(easting, 1, 3)]
