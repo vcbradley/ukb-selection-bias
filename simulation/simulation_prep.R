@@ -27,12 +27,12 @@ source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.
 n_equations = 5000
 n_samples = 1
 
-use_health_vars = F
+use_health_vars = T
 
 
 ## Get JobID and create new simulation directory
 #JobId = as.numeric(Sys.getenv("JOB_ID"))
-sim_id = paste0('sim_', n_equations, '_', n_samples, '_v3')
+sim_id = paste0('sim_', n_equations, '_', n_samples, '_v100')
 if(!dir.exists(sim_id)){
 	dir.create(sim_id)
 }

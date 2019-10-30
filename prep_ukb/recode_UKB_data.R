@@ -71,6 +71,9 @@ apoe = data.table(read.table(apoe_file, header = T))
 setnames(apoe, old = names(apoe), new = c('e3', 'e4', 'eid'))
 
 
+# Read in geocode data
+geocodes = fread(geocodes_file)
+
 
 #### BASELINE ####
 
@@ -96,10 +99,16 @@ data_base %>% mutate(age_same = (age(dob_imputed, assessment_date) - age)) %>% g
 
 
 
-
-
-#do recodes
+### DO RECODES
 data_base_recoded <- doRecode(data_base)
+
+
+# add in geocodes
+data_base_recoded <- merge(data_base_recoded, geocodes, by.x = c('addr_east_recent', 'addr_north_recent'), by.y = c('easting_num', 'northing_num'))
+
+
+
+
 #rm(data_base)
 data_base_recoded %>% str(.)
 
