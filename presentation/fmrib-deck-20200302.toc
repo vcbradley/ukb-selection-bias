@@ -1,0 +1,6 @@
+\beamer@sectionintoc {1}{Unrepresentativeness in the UK Biobank}{3}{0}{1}
+\beamer@sectionintoc {2}{Why is unrepresentativeness a problem?}{7}{0}{2}
+\beamer@sectionintoc {3}{Can we recover from selection bias?}{12}{0}{3}
+\beamer@sectionintoc {4}{Methods for recovering from selection bias}{16}{0}{4}
+\beamer@sectionintoc {5}{Application to the UK Biobank}{21}{0}{5}
+\beamer@sectionintoc {6}{Appendix}{30}{0}{6}
