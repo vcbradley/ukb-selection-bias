@@ -13,30 +13,34 @@ library(stringr)
 library(knitr)
 library(randomForest)
 library(BayesTree)
+library(glmnet)
 
 # hard set working directory
 setwd('/well/nichols/users/bwj567/simulation')
 
 source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
 
+plot_dir = '/well/nichols/users/bwj567/mini-project-1/simulation/results/'
 
 ## different probs for different types of vars - want to make sure we have a nonlinear var in there
 # might want to think about controlling the level of noise
 
 ####### SET simulation parameters
-n_equations = 5000
-n_samples = 1
+n_equations = 1
+n_samples = 5000
 
-use_health_vars = T
+use_health_vars = F
 
 
 ## Get JobID and create new simulation directory
 #JobId = as.numeric(Sys.getenv("JOB_ID"))
-sim_id = paste0('sim_', n_equations, '_', n_samples, '_v100')
+sim_id = paste0('sim_', n_equations, '_', n_samples, '_new_v1')
 if(!dir.exists(sim_id)){
 	dir.create(sim_id)
 }
-
+if(!dir.exists(paste0(plot_dir, sim_id))){
+    dir.create(paste0(plot_dir, sim_id))
+}
 
 
 
@@ -57,6 +61,9 @@ ukbdata[is.na(bmi), bmi := mean(ukbdata$bmi, na.rm = T)]
 # make missing vals DNK
 ukbdata[is.na(demo_hh_size), demo_hh_size := '99-DNK/Refused']
 
+# set missing APOE levels to 0
+ukbdata[is.na(health_apoe_level), health_apoe_level := 0]
+
 ukbdata[, age_sq := age^2]
 ukbdata[, bmi_sq := bmi^2]
 ukbdata[, health_alc_weekly_total_sq := health_alc_weekly_total^2]
@@ -67,10 +74,12 @@ nas[nas > 0]
 
 
 
-
 #### GENERATE Probability of missingness
 
 vars_to_consider = names(ukbdata)[-grep('^MRI|eid|has|assessment|demo_ethnicity_4way|demo_white|demo_educ_highest$', names(ukbdata))]
+if(!use_health_vars){
+    vars_to_consider = vars_to_consider[-grep('health|bmi', vars_to_consider)]
+}
 formula = paste("~-1+(", paste0(vars_to_consider, collapse = " + "), ") ^ 2")
 ukbdata_modmat = modmat_all_levs(as.formula(formula), data = ukbdata)
 
@@ -95,12 +104,40 @@ apply(ukbdata_modmat[, which(missingness_covars$data_type == 'int')], 2, sd)
 nans = apply(ukbdata_modmat, 2, function(x) sum(is.nan(x)))
 nans[nans > 0]
 
-ukbdata_modmat = ukbdata_modmat[, -which(nans > 0)]
-missingness_covars = missingness_covars[-which(nans > 0),]
+if(sum(nans > 0) > 0){
+    ukbdata_modmat = ukbdata_modmat[, -which(nans > 0)]
+    missingness_covars = missingness_covars[-which(nans > 0),]
+}
 
 nas = apply(ukbdata_modmat, 2, function(x) sum(is.na(x)))
 nas[nas > 0]
 
+
+
+##### GET BRAIN VOL MODEL
+samp = sample.int(n = nrow(ukbdata), size = 5000)
+mod_brain_vol = cv.glmnet(x = ukbdata_modmat[samp,], y = ukbdata$MRI_brain_vol[samp])
+mod_brain_vol_coef = data.table(names = rownames(coef(mod_brain_vol, s = 'lambda.min'))
+    , coef = as.numeric(coef(mod_brain_vol, s = 'lambda.min')))
+mod_brain_vol_coef = mod_brain_vol_coef[coef != 0 & !grepl('Intercept', names),]
+mod_brain_vol_coef[, coef_scaled := scale(mod_brain_vol_coef$coef)]
+
+
+ukbdata_modmat_subset = ukbdata_modmat[, which(colnames(ukbdata_modmat) %in% mod_brain_vol_coef$names)]
+dim(ukbdata_modmat_subset)
+
+# check colnames in the right order
+colnames(ukbdata_modmat_subset) == mod_brain_vol_coef$names
+
+coef_mat = matrix(mod_brain_vol_coef$coef_scaled)
+
+lp = ukbdata_modmat_subset %*% coef_mat
+prob = exp(lp)/(1+exp(lp))
+summary(prob)
+
+png(paste0(plot_dir, sim_id, '/prob_hist.png'))
+hist(prob)
+dev.off()
 
 ##### GENERATE MISSINGNESS MODEL COEFS
 coeff_samples = rbindlist(lapply(1:nrow(missingness_covars), function(t, n_equations){
