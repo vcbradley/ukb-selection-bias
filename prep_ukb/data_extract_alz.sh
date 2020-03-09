@@ -40,5 +40,6 @@ echo $FILE_IN
 
 
 
-ukbparse -nb --log_file /well/nichols/users/bwj567/log.txt -v mini-project-1/prep_ukb/vars_alz.csv $FILE_OUT $FILE_IN 
+#ukbparse -nb --log_file /well/nichols/users/bwj567/log.txt -v mini-project-1/prep_ukb/vars_alz.csv $FILE_OUT $FILE_IN 
+ukbparse -nb --log_file /well/nichols/users/bwj567/log.txt -v 41271 $FILE_OUT $FILE_IN 
 
