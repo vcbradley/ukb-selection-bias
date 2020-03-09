@@ -12,7 +12,7 @@ cd /well/nichols/users/bwj567/
 INSTANCE='baseline'    #'baseline' or 'imaging'
 FILE_IN='/well/nichols/projects/UKB/SMS/ukb40280/ukb40280.csv'
 #FILE_IN='/well/nichols/users/bwj567/data/ukb25120_sample5k.csv' ##TESTING
-FILE_OUT='/well/nichols/users/bwj567/data/ukb25120_raw_dementia'
+FILE_OUT='/well/nichols/users/bwj567/data/ukb40280_raw_dementia'
 if [ "$INSTANCE" != "baseline" ]
 then 
     FILE_OUT=$FILE_OUT'_imaging.tsv'
