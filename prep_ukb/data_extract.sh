@@ -55,5 +55,5 @@ cat data/vars.csv
 # select only sec
 
 
-ukbparse -nb --log_file /well/nichols/users/bwj567/log.txt -v data/vars.csv -vi $VISIT $FILE_OUT $FILE_IN 
+ukbparse -nb --log_file /well/nichols/users/bwj567/log.txt -v data/vars.csv $FILE_OUT $FILE_IN 
 
