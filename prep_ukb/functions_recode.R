@@ -460,6 +460,18 @@ doRecode <- function(data){
         data %>% count(e3, e4, health_apoe_phenotype)
     }
 
+    if(exists('has_alzheimers', data)){
+        data <- data %>% mutate(
+            health_has_alzheimers = case_when(
+                (has_alzheimers == 1) ~ '01-Yes'
+                , (has_dementia == 1) ~ '01-Yes'
+                , TRUE ~ '02-No'
+                )
+            )
+
+        data %>% count(e3, e4, health_apoe_phenotype)
+    }
+
 
     
     return(data)
