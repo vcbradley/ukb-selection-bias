@@ -38,5 +38,5 @@ echo $FILE_IN
 # select only sec
 
 
-ukbparse -nb --log_file /well/nichols/users/bwj567/log.txt -v 130836 -v 41270 -vi $VISIT $FILE_OUT $FILE_IN 
+ukbparse -nb --log_file /well/nichols/users/bwj567/log.txt -v 130836 -v 41270 $FILE_OUT $FILE_IN 
 
