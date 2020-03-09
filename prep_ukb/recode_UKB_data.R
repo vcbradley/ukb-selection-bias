@@ -17,6 +17,7 @@ full_imaging_file = 'ukb25120_raw_imaging.tsv'
 all_UKB_vars_file = 'ukb25120_allvars.csv'
 apoe_file = 'ApoE.dat'
 geocodes_file = 'geocodes.csv'
+dementia_file = 'ukb40280_raw_dementia_baseline.tsv'
 var_codings_file = '/well/nichols/users/bwj567/mini-project-1/variable_codings.csv'
 new_file_prefix = 'ukb25120_weighting'
 
@@ -26,7 +27,7 @@ new_file_prefix = 'ukb25120_weighting'
 
 # read in data header to get all names
 ## ONLY DO ONCE
-#all_UKB_vars = names(fread('/well/nichols/projects/UKB/SMS/ukb25120.csv', nrows = 0))
+#all_UKB_vars = names(fread('/well/nichols/projects/UKB/SMS/ukb25120/ukb25120.csv', nrows = 0))
 #write.csv(all_UKB_vars, file = all_UKB_vars_file, row.names=F)
 
 all_UKB_vars = as.vector(fread(all_UKB_vars_file)$x)
@@ -35,6 +36,7 @@ all_UKB_vars = as.vector(fread(all_UKB_vars_file)$x)
 variables_raw = fread(var_codings_file)
 variables_raw = unique(variables_raw[, .(cat, var, `biobank code`)])
 setnames(variables_raw, old = 'biobank code', new = 'biobank_code')
+variables_raw = variables_raw[!grepl('dementia', var)]
 
 
 # grab list of actual variable names in the data (at baseline)
@@ -58,7 +60,8 @@ variables_imaging = data.table(var = names(variables_imaging), code = variables_
 variables_all = merge(variables_baseline, variables_imaging, all = T, by = 'var')
 setnames(variables_all, c('var','baseline', 'imaging'))
 
-variables_all[is.na(imaging),var]
+variables_all[is.na(baseline),var]
+variables_all[!is.na(baseline),var]
 
 
 
@@ -75,6 +78,17 @@ setnames(apoe, old = names(apoe), new = c('e3', 'e4', 'eid'))
 geocodes = fread(geocodes_file)
 
 
+# Read in dementia data
+dementia = fread(dementia_file)
+dementia_code = 'F00'
+alzheimers_code = 'G30'
+dementia$has_dementia = apply(dementia, 1, function(x) as.numeric(sum(grepl(dementia_code, x)) > 0))
+dementia$has_alzheimers = apply(dementia, 1, function(x) as.numeric(sum(grepl(alzheimers_code, x)) > 0))
+
+dementia[, .N, .(has_alzheimers, has_dementia)]
+dementia[, mean(has_alzheimers)]
+
+
 #### BASELINE ####
 
 # read in ALL the imaging data
@@ -87,6 +101,9 @@ data_base = fread(full_baseline_file
 
 # merge in ApoE data
 data_base = merge(data_base, apoe, by = 'eid', all.x = T)
+
+# merge in alzheimers data
+data_base = merge(data_base, dementia[,.(eid, has_alzheimers, has_dementia)], by = 'eid', all.x = T)
 
 data_base <- as_tibble(data_base)
 
