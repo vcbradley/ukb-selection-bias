@@ -203,6 +203,10 @@ data_imaging_recoded <- data_imaging_recoded %>% rename_at(vars(-contains('eid')
 data_base_recoded <- merge(data_base_recoded, dplyr::select(data_imaging_recoded,c('eid', 'img_MRI_completed', 'img_MRI_method', 'img_MRI_safe', 'img_has_t1_MRI')), by = 'eid', all.x = T)
 data_base_recoded <- data_base_recoded %>% mutate(img_has_t1_MRI = ifelse(is.na(img_has_t1_MRI), 0, img_has_t1_MRI))
 
+# merge dementia indicator onto imaging data
+data_imaging_recoded <- merge(data_imaging_recoded, dplyr::select(data_base_recoded,c('eid', 'base_health_has_alzheimers')), by = 'eid', all.x = T)
+
+
 length(unique(data_base_recoded$eid))
 length((data_base_recoded$eid))
 
