@@ -12,7 +12,7 @@ cd /well/nichols/users/bwj567/
 INSTANCE='baseline'    #'baseline' or 'imaging'
 FILE_IN='/well/nichols/projects/UKB/SMS/ukb40280/ukb40280.csv'
 #FILE_IN='/well/nichols/users/bwj567/data/ukb25120_sample5k.csv' ##TESTING
-FILE_OUT='/well/nichols/users/bwj567/data/ukb40280_raw_dementia'
+FILE_OUT='/well/nichols/users/bwj567/data/ukb40280_raw_dementia2'
 if [ "$INSTANCE" != "baseline" ]
 then 
     FILE_OUT=$FILE_OUT'_imaging.tsv'
@@ -41,5 +41,6 @@ echo $FILE_IN
 
 
 #ukbparse -nb --log_file /well/nichols/users/bwj567/log.txt -v mini-project-1/prep_ukb/vars_alz.csv $FILE_OUT $FILE_IN 
-ukbparse -nb --log_file /well/nichols/users/bwj567/log.txt -v 41271 -v 41271 $FILE_OUT $FILE_IN 
+#ukbparse -nb --log_file /well/nichols/users/bwj567/log.txt -v 41271 $FILE_OUT $FILE_IN 
 
+ukbparse -nb --log_file /well/nichols/users/bwj567/log2.txt -v 41271 $FILE_OUT $FILE_IN 
