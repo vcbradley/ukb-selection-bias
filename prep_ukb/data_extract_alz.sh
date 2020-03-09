@@ -10,7 +10,7 @@ cd /well/nichols/users/bwj567/
 
 # SET PARAMS
 INSTANCE='baseline'    #'baseline' or 'imaging'
-FILE_IN='/well/nichols/projects/UKB/SMS/ukb25120.csv'
+FILE_IN='/well/nichols/projects/UKB/SMS/ukb25120/ukb25120.csv'
 #FILE_IN='/well/nichols/users/bwj567/data/ukb25120_sample5k.csv' ##TESTING
 FILE_OUT='/well/nichols/users/bwj567/data/ukb25120_raw_dementia'
 if [ "$INSTANCE" != "baseline" ]
@@ -25,23 +25,6 @@ echo $FILE_OUT
 echo $FILE_IN
 
 
-
-
-
-# CREATE VARIABLE LIST
-
-# grab list of variables and cat to new file
-head mini-project-1/variable_codings.csv
-cat mini-project-1/variable_codings.csv | cut -d ',' -f3 > data/vars.csv
-
-# remove header
-sed -i '1d' data/vars.csv
-sed -i '1d' data/vars.csv
-
-# remove blank rows
-sed -i '/^$/d' data/vars.csv
-
-cat data/vars.csv
 
 
 ##### USING UKBparse
