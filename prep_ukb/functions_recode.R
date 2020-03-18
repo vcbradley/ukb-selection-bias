@@ -8,7 +8,7 @@ getLast = function(r) {
 
 
 # function to do all UKB recodes
-doRecode <- function(data){
+doRecode <- function(data, cogfn_breaks = NULL){
 
     #### GENDER
     if(exists('sex', data)){
@@ -467,6 +467,14 @@ doRecode <- function(data){
                 , (has_dementia == 1) ~ '01-Yes'
                 , TRUE ~ '02-No'
                 )
+            )
+
+    if(exists('cogfn', data)){
+        if(is.null(cogfn_breaks)){
+            cogfn_breaks = data_base %>% pull(cogfn) %>% quantile(probs = seq(0,1,0.2), na.rm = T)
+        }
+        data <- data %>% mutate(
+            health_cogfn_bucket = cut(cogfn, breaks = cogfn_breaks, labels = 1:5)
             )
 
         data %>% count(e3, e4, health_apoe_phenotype)
