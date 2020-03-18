@@ -476,11 +476,9 @@ doRecode <- function(data, cogfn_breaks = NULL){
         data <- data %>% mutate(
             health_cogfn_bucket = cut(cogfn, breaks = cogfn_breaks, labels = 1:5)
             )
-
-        data %>% count(e3, e4, health_apoe_phenotype)
     }
 
-
+    data %>% count(e3, e4, health_apoe_phenotype)
     
     return(data)
 }
