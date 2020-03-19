@@ -468,6 +468,7 @@ doRecode <- function(data, cogfn_breaks = NULL){
                 , TRUE ~ '02-No'
                 )
             )
+    }
 
     if(exists('cogfn', data)){
         if(is.null(cogfn_breaks)){
