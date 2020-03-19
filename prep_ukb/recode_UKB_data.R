@@ -18,6 +18,7 @@ all_UKB_vars_file = 'ukb25120_allvars.csv'
 apoe_file = 'ApoE.dat'
 geocodes_file = 'geocodes.csv'
 dementia_file = 'ukb40280_raw_dementia_baseline.tsv'
+cogdecline_file = 'ukb40280_raw_cogdecline_baseline.tsv'
 var_codings_file = '/well/nichols/users/bwj567/mini-project-1/variable_codings.csv'
 new_file_prefix = 'ukb25120_weighting'
 
@@ -89,6 +90,11 @@ dementia[, .N, .(has_alzheimers, has_dementia)]
 dementia[, mean(has_alzheimers)]
 
 
+# read in cognitive decline data
+cogdecline = fread(cogdecline_file)
+
+
+
 #### BASELINE ####
 
 # read in ALL the imaging data
@@ -105,6 +111,13 @@ data_base = merge(data_base, apoe, by = 'eid', all.x = T)
 # merge in alzheimers data
 data_base = merge(data_base, dementia[,.(eid, has_alzheimers, has_dementia)], by = 'eid', all.x = T)
 
+# merge in cogdecline data
+data_base = merge(data_base, cogdecline[,.(eid, cogfn = `20023-0.0`)], by = 'eid', all.x = T)
+
+cogfn_breaks = data_base[, quantile(cogfn
+        , probs = seq(0,1,0.2)
+        , na.rm = T)]
+
 data_base <- as_tibble(data_base)
 
 ### IMPUTE DOB
@@ -117,7 +130,7 @@ data_base %>% mutate(age_same = (age(dob_imputed, assessment_date) - age)) %>% g
 
 
 ### DO RECODES
-data_base_recoded <- doRecode(data_base)
+data_base_recoded <- doRecode(data_base, cogfn_breaks = cogfn_breaks)
 
 
 # add in geocodes
@@ -150,6 +163,10 @@ data_imaging = fread(full_imaging_file
 # merge in ApoE data
 data_imaging = merge(data_imaging, apoe, by = 'eid', all.x = T)  # LEFT JOIN BECASE NOT ALL IN APOE DATA!!
 
+# merge in cogdecline data
+data_imaging = merge(data_imaging, cogdecline[,.(eid, cogfn = `20023-2.0`)], by = 'eid', all.x = T)
+
+
 data_imaging <- as_tibble(data_imaging)
 
 # limit to only imaging subjects
@@ -157,7 +174,7 @@ data_imaging %>% filter(., !is.na(MRI_t1_struct)) %>% count()
 data_imaging <- data_imaging %>% filter(., !is.na(MRI_t1_struct))
 
 # join in impt columns from the baseliine data
-data_imaging <- left_join(data_imaging, data_base %>% dplyr::select(eid, dob_imputed, sex, base_age = age, base_assessment_date = assessment_date, base_ethnicity = ethnicity))
+data_imaging <- left_join(data_imaging, data_base %>% dplyr::select(eid, dob_imputed, sex, has_alzheimers, has_dementia, base_age = age, base_assessment_date = assessment_date, base_ethnicity = ethnicity))
 
 # calculate age at imaging
 data_imaging <- data_imaging %>% mutate(age = age(dob_imputed, assessment_date))
@@ -173,7 +190,7 @@ data_imaging %>% group_by(ethnicity) %>% tally() %>% data.table
 
 
 ## do recodes
-data_imaging_recoded <- doRecode(data_imaging)
+data_imaging_recoded <- doRecode(data_imaging, cogfn_breaks = cogfn_breaks)
 #rm(data_imaging)
 
 # select the vars we need
@@ -186,6 +203,7 @@ data_imaging_recoded %>% group_by(is.na(MRI_t1_struct), has_t1_MRI) %>% tally()
 
 data_imaging_recoded %>% group_by(health_apoe_phenotype, health_apoe_level) %>% tally()
 
+data_imaging_recoded %>% group_by(health_cogfn_bucket) %>% tally()
 
 
 #############################
@@ -203,16 +221,15 @@ data_imaging_recoded <- data_imaging_recoded %>% rename_at(vars(-contains('eid')
 data_base_recoded <- merge(data_base_recoded, dplyr::select(data_imaging_recoded,c('eid', 'img_MRI_completed', 'img_MRI_method', 'img_MRI_safe', 'img_has_t1_MRI')), by = 'eid', all.x = T)
 data_base_recoded <- data_base_recoded %>% mutate(img_has_t1_MRI = ifelse(is.na(img_has_t1_MRI), 0, img_has_t1_MRI))
 
-# merge dementia indicator onto imaging data
-data_imaging_recoded <- merge(data_imaging_recoded, dplyr::select(data_base_recoded,c('eid', 'base_health_has_alzheimers')), by = 'eid', all.x = T)
-
 
 length(unique(data_base_recoded$eid))
 length((data_base_recoded$eid))
 
-data_base_recoded %>% group_by(img_has_t1_MRI) %>% tally()
+data_base_recoded %>% group_by(base_health_has_alzheimers) %>% tally()
+data_imaging_recoded %>% group_by(base_health_has_alzheimers) %>% tally()
 data_imaging_recoded %>% group_by(img_has_t1_MRI) %>% tally()
 data_imaging_recoded %>% group_by(img_MRI_completed,img_has_t1_MRI, is.na(img_MRI_t1_struct)) %>% tally()
+data_base_recoded %>% group_by(img_has_t1_MRI) %>% tally()
 
 #####################
 # WRITE OUT TO FILE #
