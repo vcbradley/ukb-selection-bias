@@ -1,6 +1,6 @@
 #!/apps/well/R/3.4.3/bin/Rscript    
 #$ -N sample_gen    
-#$ -t 1:8
+#$ -t 1:10
 #$ -cwd
 #$ -o ./logs                                                                                                                                                                               
 #$ -e ./logs   
@@ -31,45 +31,20 @@ n_equations = as.numeric(str_split(sim_name, '_')[[1]][2])
 #prop_sampled_options = c(0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 0.75)
 #prop_sampled_options = c(0.04, 0.075)
 #prop_sampled_options = c(0.01, 0.02, 0.04, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75)
-prop_sampled_options = c(0.01, 0.02, 0.04, 0.05, 0.075, 0.1, 0.25, 0.5)
+
+prop_sampled_options = round(exp(seq(log(0.01), log(0.5), length.out = 10)), 3)
+#prop_sampled_options = c(0.01, 0.02, 0.04, 0.05, 0.075, 0.1, 0.25, 0.5)
 
 # Set specific param for this task
 TaskId = as.numeric(Sys.getenv("SGE_TASK_ID"))
 #TaskId = 1
 prop_sampled = prop_sampled_options[TaskId]
 
-load('data_modmat.rda')
-coeff_samples = fread('coefs.csv')
+# read in probabilities
+sim_summary = fread('sim_summary.csv')
 
-### hard set age
-#coeff_samples[which(colnames(ukbdata_modmat) == 'age'), X1 := -5]
-#ukbdata_modmat[, which(colnames(ukbdata_modmat) == 'age')]
-
-nas = apply(ukbdata_modmat, 2, function(p) sum(is.na(p)))
-nas[nas > 0]
-
-
-####### USE COEFS TO GENERATE SAMPLES
-lps = ukbdata_modmat %*% as.matrix(coeff_samples)
-
-#cap at -10 and 10 so we don't break R, but don't center so we maintain skew of prob dist (if exists)
-lps <- scale(lps, center = F, scale = T) * 10
-lps[lps > 10] <- 10
-lps[lps < -10] <- -10
-
-# calculate probs
-probs = exp(lps)/(1+exp(lps))
-
-#check that none are NA
-nas = apply(probs, 2, function(p) sum(is.na(p)))
-nas[nas > 0]
-
-#check 
-#cat('Dist of probs\n')
-#summary(probs)
-
-
-prob_mat = matrix(apply(probs, 2, rep, n_samples), ncol = ncol(probs)*n_samples)
+####### USE PROBS TO GENERATE SAMPLES
+prob_mat = matrix(rep(sim_summary$prob, n_samples), ncol = n_samples)
 
 apply(prob_mat, 2, function(p) sum(is.na(p)))
 
@@ -85,11 +60,11 @@ dim(samples)
 head(samples)
 
 #check that the missingness worked
-mean(probs[samples[,1] == 1])
-mean(probs[samples[,1] == 0])
+mean(sim_summary$prob[samples[,1] == 1])
+mean(sim_summary$prob[samples[,1] == 0])
 
 #check that we sampled the right number
-apply(samples, 2, sum)
+summary(apply(samples, 2, sum))
 
 #how'd we do on sampling different peeps?
 summary(apply(samples, 1, sum))
