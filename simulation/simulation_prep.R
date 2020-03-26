@@ -291,8 +291,8 @@ mean(beta_hat$diff)
 #write.csv(coeff_samples, file = paste0(sim_id, "/coefs.csv"), row.names = F)
 #write.csv(missingness_covars, file = paste0(sim_id, "/missingness_covars.csv"), row.names = F)
 
-write.csv(sim_summary, file = paste0(sim_id, "/sim_summary.csv", row.names = F))
-write.csv(mod_brain_vol_coef, file = paste0(sim_id, "/mod_brain_vol_coef.csv", row.names = F))
+write.csv(sim_summary, file = paste0(sim_id, "/sim_summary.csv"), row.names = F)
+write.csv(mod_brain_vol_coef, file = paste0(sim_id, "/mod_brain_vol_coef.csv"), row.names = F)
 
 save(ukbdata, file = paste0(sim_id, '/data.rda'))
 save(ukbdata_modmat, file = paste0(sim_id, '/data_modmat.rda'))
