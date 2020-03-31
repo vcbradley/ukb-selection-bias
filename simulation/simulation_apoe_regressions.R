@@ -12,16 +12,18 @@
 # Brain Vol and ApoE #
 ######################
 
+library(data.table)
+
+wd = getwd()
+sim_name = gsub('/gpfs2/well/nichols/users/bwj567/simulation/', '', wd)
+
 
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
 #JobId = 3
-prop_sampled_options = c(0.01, 0.02, 0.04, 0.05, 0.075, 0.1, 0.25, 0.5)
+
+prop_sampled_options = as.numeric(gsub('prop_','', list.files(pattern = 'prop')))
 prop = prop_sampled_options[JobId]
 
-library(data.table)
-
-sim_name = 'sim_1_5000_old_v3'
-setwd(paste0('/well/nichols/users/bwj567/simulation/', sim_name))
 
 # set results directory
 results_dir = paste0('/well/nichols/users/bwj567/mini-project-1/simulation/results/', sim_name)
