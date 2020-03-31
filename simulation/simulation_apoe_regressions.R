@@ -21,7 +21,7 @@ sim_name = gsub('/gpfs2/well/nichols/users/bwj567/simulation/', '', wd)
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
 #JobId = 3
 
-prop_sampled_options = as.numeric(gsub('prop_','', list.files(pattern = 'prop')))
+prop_sampled_options = as.numeric(gsub('prop_','', list.files('results/',pattern = 'prop')))
 prop = prop_sampled_options[JobId]
 
 
@@ -73,9 +73,9 @@ for(p in sort(unique(all_weights_demos[, prop_sampled]))){
 				weights = all_weights_demos[prop_sampled == p & sim_num == i,get(paste0(m,'_weight'))]
 			}
 			
-			fit = glm(MRI_brain_vol ~
+			fit = glm(MRI_brain_vol_scaled ~
 				#demo_sex * health_apoe_phenotype +
-				age
+				age + age_sq
 				, data = all_weights_demos[prop_sampled == p & sim_num == i,]
 				, weights = weights
 			)
@@ -101,7 +101,7 @@ coefs_full
 p_vals_full[, V1 := NULL]
 
 ## pop
-pop_fit = glm(MRI_brain_vol ~ age
+pop_fit = glm(MRI_brain_vol_scaled ~ age + age_sq
 		, data = ukbdata
 	)
 pop_coefs = data.table(prop_sampled = p, sim_num = i, method = m, t(coef(pop_fit)))
@@ -120,6 +120,7 @@ pop_p_vals = data.table(prop_sampled = p, sim_num = i, method = m, t(summary(pop
 
 #### calculate error
 coefs_full[, 'Error age' := age - pop_coefs$age]
+coefs_full[, 'Error age squared' := age_sq - pop_coefs$age_sq]
 coefs_full[, 'Error Intercept' := `(Intercept)` - pop_coefs[["(Intercept)"]]]
 
 # coef_error = lapply(coef_names, function(c){
