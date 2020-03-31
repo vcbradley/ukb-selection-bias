@@ -5,10 +5,10 @@ library(ggplot2)
 library(gridExtra)
 library(knitr)
 
-setwd('~/github/mini-project-1/simulation/')
-list.files('results/sim_1_5000_old_v3')
 
-which_sim = 'sim_1_5000_old_v3'
+wd = getwd()
+which_sim = gsub('/gpfs2/well/nichols/users/bwj567/simulation/', '', wd)
+
 
 ### BRAIN VOL DATA
 # load brain vol data
