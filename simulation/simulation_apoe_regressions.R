@@ -19,7 +19,7 @@ sim_name = gsub('/gpfs2/well/nichols/users/bwj567/simulation/', '', wd)
 
 
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-#JobId = 3
+#JobId = 6
 
 prop_sampled_options = as.numeric(gsub('prop_','', list.files('results/',pattern = 'prop')))
 prop = prop_sampled_options[JobId]
