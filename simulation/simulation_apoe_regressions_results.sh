@@ -1,5 +1,6 @@
 
-cd /well/nichols/users/bwj567/mini-project-1/simulation/results/sim_1_5000_old_v3
+## IN SIMULATION GIT DIRECTORY
+##cd /well/nichols/users/bwj567/mini-project-1/simulation/results/sim_1_5000_new_v1
 
 ls apoe_reg_coef_prop_* -l
 
