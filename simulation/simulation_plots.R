@@ -7,23 +7,24 @@ library(knitr)
 
 
 wd = getwd()
-which_sim = gsub('/gpfs2/well/nichols/users/bwj567/simulation/', '', wd)
+which_sim = gsub('nichols/users/bwj567/mini-project-1/simulation/results', '', wd)
 
 
 ### BRAIN VOL DATA
 # load brain vol data
-load(paste0('results/', which_sim, '/results_summary.rda'))
+load('results_summary.rda')
 
 ### APOE DATA
 # pop_coefs, pop_p_vals
-load(paste0('results/', which_sim, '/apoe_reg_popvals.rda'))
+load('apoe_reg_popvals.rda')
 
 # load apoe coef data
-apoe_coef = fread(paste0('results/', which_sim, '/apoe_reg_coef_all.csv'))[, -1, with = F]
-#apoe_pval = fread(paste0('results/', which_sim, '/apoe_reg_pval_all.csv'))[, -1, with = F]
+
+apoe_coef = fread('apoe_reg_coef_all.csv')[, -1, with = F]
+apoe_pval = fread(paste0('results/', which_sim, '/apoe_reg_pval_all.csv'))[, -1, with = F]
 
 #set directory for plots
-plot_dir = paste0('results/', which_sim, '/plots')
+plot_dir = 'plots'
 if(!dir.exists(plot_dir)){
   dir.create(plot_dir)
 }
