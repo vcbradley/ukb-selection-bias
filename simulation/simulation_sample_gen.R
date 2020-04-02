@@ -22,8 +22,7 @@ sim_name = getwd()
 sim_name = str_split(sim_name, '/')[[1]]
 sim_name = sim_name[length(sim_name)]
 
-n_samples = as.numeric(str_split(sim_name, '_')[[1]][3])
-n_equations = as.numeric(str_split(sim_name, '_')[[1]][2])
+n_samples = 1000
 
 
 
