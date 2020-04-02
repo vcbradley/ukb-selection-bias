@@ -171,33 +171,8 @@ mod_brain_vol = cv.glmnet(x = ukbdata_modmat[samp,], y = ukbdata$MRI_brain_vol_s
 mod_brain_vol_coef = data.table(names = rownames(coef(mod_brain_vol, s = 'lambda.min'))
     , coef = as.numeric(coef(mod_brain_vol, s = 'lambda.min')))
 mod_brain_vol_coef = mod_brain_vol_coef[coef != 0 & !grepl('Intercept', names),]
-#mod_brain_vol_coef[, coef_scaled := scale(mod_brain_vol_coef$coef)]
 mod_brain_vol_coef
 
-# ukbdata_modmat_dt = data.table(cbind(ukbdata_modmat, "MRI_brain_vol_scaled" = ukbdata$MRI_brain_vol_scaled))
-
-# mod = lm(MRI_brain_vol_scaled ~ 1
-# + `age_sq`
-# + `age:demo_sexMale`
-# + `demo_sexFemale:demo_ethnicity_full01-White`
-# + `demo_sexFemale:demo_empl_employed`
-# + `demo_sexFemale:demo_year_immigrated00-Born in UK`
-# + `demo_sexMale:age_sq`
-# + `demo_sexMale:demo_hh_size1`
-# + `demo_sexFemale:demo_educ_cses`
-# + `demo_empl_disabled:demo_educ_highest_full06-Other professional`
-# + `demo_empl_disabled:demo_hh_accom_type01-House`
-# + demo_educ_collegeplus
-# #+ demo_educ_alevels
-# # + demo_educ_olevels
-# # + demo_educ_profesh
-# + `demo_income_bucket05-Over 100k`
-# #+ demo_empl_student
-# + `demo_hh_ownrent01-Own outright`
-#     , ukbdata_modmat_dt)
-# summary(mod)
-
-# lp = predict(mod)
 
 # subset matrix to significant coefs
 ukbdata_modmat_subset = ukbdata_modmat[, which(colnames(ukbdata_modmat) %in% mod_brain_vol_coef$names)]
@@ -207,9 +182,6 @@ dim(ukbdata_modmat_subset)
 temp = data.table(cbind(ukbdata_modmat_subset, MRI_brain_vol_scaled = ukbdata$MRI_brain_vol_scaled))
 summary(lm(MRI_brain_vol_scaled~., data = temp))
 
-
-# # check colnames in the right order
-# colnames(ukbdata_modmat_subset) == mod_brain_vol_coef$names
 
 # calculate linear predictor
 coef_mat = matrix(mod_brain_vol_coef$coef)
@@ -237,7 +209,12 @@ hist(prob)
 dev.off()
 
 
-sim_summary = data.table(eid = ukbdata$eid, ses_index = ukbdata$SES_index, lp = lp[,1], prob = prob[,1])
+sim_summary = data.table(eid = ukbdata$eid
+    , lp_ses = lp[,1]
+    , age_sq_scaled = (ukbdata$age_sq / max(ukbdata$age_sq))
+    , lp_full = lp_comb[,1]
+    , prob = prob[,1]
+    )
 
 ### CHECK FOR SES
 # # check that we're substantively modifying SES and volume relationship
@@ -288,63 +265,6 @@ mean(dnorm(abs(beta_hat$b2 - beta2)/beta_hat$se2) < 0.05)
 
 
 
-
-
-# ##### GENERATE MISSINGNESS MODEL COEFS
-# coeff_samples = rbindlist(lapply(1:nrow(missingness_covars), function(t, n_equations){
-# 	data_type = missingness_covars[t,2]
-# 	type = missingness_covars[t,3]
-    
-#     # always include age
-#     if(type == 'age'){
-#         spike = rep(1, n_equations)
-#         slab_sd = 2
-#     }else{
-
-#     	# set prob of coef being non-zero based on type and data type
-#     	if(type == 'interaction'){
-#     		spike_prob = 0.003
-#     	} else if (type == 'health_interaction'){
-# 			spike_prob = 0
-#     	} else if(data_type == 'int'){
-#     		spike_prob = 0.75
-#     	} else{
-#     		spike_prob = 0.25
-#     	}
-
-#     	if(!use_health_vars & type == 'health'){
-#     		spike_prob = 0
-#     	}
-
-
-#         spike = rbinom(n = n_equations, size = 1, prob = spike_prob)
-#         slab_sd = 1.5
-#     }  
-    
-#     slab = rnorm(n = n_equations, 0, slab_sd)
-
-#     data.frame(coef = t(spike * slab))
-#     }, n_equations))
-
-# #rename coeff_samples columns
-# setnames(coeff_samples, old = names(coeff_samples), new = paste0('X', 1:ncol(coeff_samples)))
-
-
-# # check that things are behaving well
-# cbind(missingness_covars, coeff_samples)[X1 != 0]
-# cbind(missingness_covars, coeff_samples)[type == 'interaction' & as.vector(coeff_samples$X1) != 0,]
-# cbind(missingness_covars, coeff_samples)[type == 'age' & as.vector(coeff_samples$X1) != 0,]
-# cbind(missingness_covars, coeff_samples)[data_type == 'int' & as.vector(coeff_samples$X1) != 0,]
-
-# # check how many are non-zero
-# apply(coeff_samples, 2, function(x) sum(x > 0))
-
-
-#coeff_samples
-
-#save other files
-#write.csv(coeff_samples, file = paste0(sim_id, "/coefs.csv"), row.names = F)
-#write.csv(missingness_covars, file = paste0(sim_id, "/missingness_covars.csv"), row.names = F)
 
 write.csv(sim_summary, file = paste0(sim_id, "/sim_summary.csv"), row.names = F)
 write.csv(mod_brain_vol_coef, file = paste0(sim_id, "/mod_brain_vol_coef.csv"), row.names = F)
