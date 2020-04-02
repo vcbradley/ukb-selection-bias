@@ -62,6 +62,7 @@ ukbdata[is.na(demo_hh_size), demo_hh_size := '99-DNK/Refused']
 ukbdata[is.na(health_apoe_level), health_apoe_level := 0]
 
 ukbdata[, age_sq := age^2]
+ukbdata[, age_cb := age^3]
 ukbdata[, bmi_sq := bmi^2]
 ukbdata[, health_alc_weekly_total_sq := health_alc_weekly_total^2]
 
@@ -72,7 +73,7 @@ nas[nas > 0]
 
 #### GENERATE Probability of missingness
 
-vars_to_consider = names(ukbdata)[-grep('^MRI|eid|has|assessment|demo_ethnicity_4way|demo_white|demo_educ_highest$', names(ukbdata))]
+vars_to_consider = names(ukbdata)[-grep('^MRI|eid|has|assessment|demo_ethnicity_4way|demo_white|demo_educ_highest$|health|bmi|age', names(ukbdata))]
 formula = paste("~-1+(", paste0(vars_to_consider, collapse = " + "), ") ^ 2")
 ukbdata_modmat = modmat_all_levs(as.formula(formula), data = ukbdata)
 
@@ -113,183 +114,157 @@ ukbdata$MRI_brain_vol_scaled = scale(ukbdata$MRI_brain_vol)
 
 
 
-####### make SES index
-ukbdata[demo_income_bucket == '01-Under 18k', income_int := 10]
-ukbdata[demo_income_bucket == '02-18k to 31k', income_int := 24.5]
-ukbdata[demo_income_bucket == '03-31k to 52k', income_int := 41.5]
-ukbdata[demo_income_bucket == '04-52k to 100k', income_int := 76]
-ukbdata[demo_income_bucket == '05-Over 100k', income_int := 150]
-ukbdata[is.na(income_int), income_int := mean(ukbdata$income_int, na.rm = T)]
-ukbdata[, income_pctile := min_rank(income_int)/nrow(ukbdata)]
+# ####### make SES index
+# ukbdata[demo_income_bucket == '01-Under 18k', income_int := 10]
+# ukbdata[demo_income_bucket == '02-18k to 31k', income_int := 24.5]
+# ukbdata[demo_income_bucket == '03-31k to 52k', income_int := 41.5]
+# ukbdata[demo_income_bucket == '04-52k to 100k', income_int := 76]
+# ukbdata[demo_income_bucket == '05-Over 100k', income_int := 150]
+# ukbdata[is.na(income_int), income_int := mean(ukbdata$income_int, na.rm = T)]
+# ukbdata[, income_pctile := min_rank(income_int)/nrow(ukbdata)]
 
 
-ukbdata[demo_hh_ownrent == '01-Own outright', hh_own_int := 3]
-ukbdata[demo_hh_ownrent == '02-Own with mortgage', hh_own_int := 2]
-ukbdata[is.na(hh_own_int), hh_own_int := 1]
-ukbdata[, hh_own_pctile := min_rank(hh_own_int)/nrow(ukbdata)]
+# ukbdata[demo_hh_ownrent == '01-Own outright', hh_own_int := 3]
+# ukbdata[demo_hh_ownrent == '02-Own with mortgage', hh_own_int := 2]
+# ukbdata[is.na(hh_own_int), hh_own_int := 1]
+# ukbdata[, hh_own_pctile := min_rank(hh_own_int)/nrow(ukbdata)]
 
-ukbdata[, educ_int := 8-as.numeric(factor(ukbdata$demo_educ_highest_full))]
-ukbdata[, educ_pctile := min_rank(educ_int)/nrow(ukbdata)]
+# ukbdata[, educ_int := 8-as.numeric(factor(ukbdata$demo_educ_highest_full))]
+# ukbdata[, educ_pctile := min_rank(educ_int)/nrow(ukbdata)]
 
-ukbdata[, SES_index := (income_pctile + hh_own_pctile + educ_pctile)]
-ukbdata[, SES_index := SES_index/max(ukbdata$SES_index)]
+# ukbdata[, SES_index := (income_pctile + hh_own_pctile + educ_pctile)]
+# ukbdata[, SES_index := SES_index/max(ukbdata$SES_index)]
 
 
-ukbdata[,summary(SES_index)]
+# ukbdata[,summary(SES_index)]
 
-# use indicators for education instead of highest achieved
-mod_brain_vol_SES = summary(lm(MRI_brain_vol_scaled ~ 
-    demo_income_bucket + 
-    demo_educ_collegeplus + 
-    demo_educ_alevels + 
-    demo_educ_olevels + 
-    demo_educ_cses + 
-    demo_educ_vocational + 
-    demo_educ_profesh
-    , data = ukbdata))
+# # # use indicators for education instead of highest achieved
+# mod_brain_vol_SES = lm(MRI_brain_vol_scaled ~ demo_sex +
+#     demo_income_bucket + 
+#     demo_educ_collegeplus + 
+#     demo_educ_alevels + 
+#     demo_educ_olevels + 
+#     demo_educ_cses + 
+#     demo_educ_vocational + 
+#     demo_educ_profesh +
+#     demo_hh_size +
+#     as.numeric(demo_hh_ownrent == '01-Own outright')+ 
+#     as.numeric(demo_hh_ownrent == '02-Own with mortgage')+ 
+#     as.numeric(demo_year_immigrated == '01-Before 1941') +
+#     as.numeric(demo_year_immigrated == '02-1941 to 1950')
+#     , data = ukbdata)
+# summary(mod_brain_vol_SES)
+
+# lp = predict(mod_brain_vol_SES)
 
 
 ##### GET BRAIN VOL MODEL
 
 # sample data to speed up model fitting
-samp = sample.int(n = nrow(ukbdata), size = 5000)
+samp = sample.int(n = nrow(ukbdata), size = 10000)
 
 # fit model
+set.seed(1234)
 mod_brain_vol = cv.glmnet(x = ukbdata_modmat[samp,], y = ukbdata$MRI_brain_vol_scaled[samp])
 
 # pull and scale coefs
-mod_brain_vol_coef = data.table(names = rownames(coef(mod_brain_vol, s = 'lambda.1se'))
-    , coef = as.numeric(coef(mod_brain_vol, s = 'lambda.1se')))
+mod_brain_vol_coef = data.table(names = rownames(coef(mod_brain_vol, s = 'lambda.min'))
+    , coef = as.numeric(coef(mod_brain_vol, s = 'lambda.min')))
 mod_brain_vol_coef = mod_brain_vol_coef[coef != 0 & !grepl('Intercept', names),]
-mod_brain_vol_coef[, coef_scaled := scale(mod_brain_vol_coef$coef)]
+mod_brain_vol_coef
+
 
 # subset matrix to significant coefs
 ukbdata_modmat_subset = ukbdata_modmat[, which(colnames(ukbdata_modmat) %in% mod_brain_vol_coef$names)]
 dim(ukbdata_modmat_subset)
 
-# check colnames in the right order
-colnames(ukbdata_modmat_subset) == mod_brain_vol_coef$names
+
+temp = data.table(cbind(ukbdata_modmat_subset, MRI_brain_vol_scaled = ukbdata$MRI_brain_vol_scaled))
+summary(lm(MRI_brain_vol_scaled~., data = temp))
+
 
 # calculate linear predictor
 coef_mat = matrix(mod_brain_vol_coef$coef)
 lp = ukbdata_modmat_subset %*% coef_mat
 summary(lp)
-lp = scale(lp, center = FALSE, scale = sd(lp)/3)
 
 png(paste0(plot_dir, sim_id, '/hist_lp.png'))
 hist(lp)
 dev.off()
 
 
+summary(lm(lp ~ ukbdata$age_sq))
+
+
 ## calculatte probability of selection as combination of brain volume and SES index
-prob = exp(lp)/(1+exp(lp)) * ukbdata$SES_index 
+lp_comb = (scale(lp) - (ukbdata$age_sq / max(ukbdata$age_sq)))
+prob = exp(lp_comb)/(1+exp(lp_comb))
 summary(prob)
+
+summary(lm(ukbdata$MRI_brain_vol_scaled ~ prob + ukbdata$age_sq))
+
 
 png(paste0(plot_dir, sim_id, '/prob_hist.png'))
 hist(prob)
 dev.off()
 
 
-sim_summary = data.table(eid = ukbdata$eid, ses_index = ukbdata$SES_index, lp = lp[,1], prob = prob[,1])
+sim_summary = data.table(eid = ukbdata$eid
+    , lp_ses = lp[,1]
+    , age_sq_scaled = (ukbdata$age_sq / max(ukbdata$age_sq))
+    , lp_full = lp_comb[,1]
+    , prob = prob[,1]
+    )
 
 ### CHECK FOR SES
-# check that we're substantively modifying SES and volume relationship
-beta = coef(lm(MRI_brain_vol_scaled~ukbdata$SES_index, data = ukbdata))[2]
+# # check that we're substantively modifying SES and volume relationship
+# beta = coef(lm(MRI_brain_vol_scaled~ukbdata$SES_index, data = ukbdata))[2]
 
-beta_hat = rbindlist(lapply(1:1000, function(x){
-    sample = sample.int(nrow(ukbdata), size = 5000, prob = prob)
-    mod = summary(lm(MRI_brain_vol_scaled~SES_index, data = ukbdata[sample]))
-    b = mod$coef[2, 1]
-    se = mod$coef[2, 2]
-    data.table(b,se)
-    }))
-beta_hat$lb = beta_hat$b - 2*beta_hat$se
-beta_hat$ub = beta_hat$b + 2*beta_hat$se
+# beta_hat = rbindlist(lapply(1:1000, function(x){
+#     sample = sample.int(nrow(ukbdata), size = 300, prob = prob)
+#     mod = summary(lm(MRI_brain_vol_scaled~SES_index, data = ukbdata[sample]))
+#     b = mod$coef[2, 1]
+#     se = mod$coef[2, 2]
+#     data.table(b,se)
+#     }))
+# beta_hat$lb = beta_hat$b - 2*beta_hat$se
+# beta_hat$ub = beta_hat$b + 2*beta_hat$se
 
-beta_hat$diff = (beta < beta_hat$lb | beta > beta_hat$ub)
+# beta_hat$diff = (beta < beta_hat$lb | beta > beta_hat$ub)
 
-# prop sig different from actual relationship
-mean(beta_hat$diff)
+# # prop sig different from actual relationship
+# mean(beta_hat$diff)
 
 
 ### AND FOR AGE
 # check that we're substantively modifying SES and volume relationship
-beta = coef(lm(MRI_brain_vol_scaled~ukbdata$age, data = ukbdata))[2]
+mod_pop = summary(lm(MRI_brain_vol_scaled~age + age_cb
+    , data = ukbdata))
+beta = mod_pop$coef[2,1]
+beta2 = mod_pop$coef[3,1]
 
 beta_hat = rbindlist(lapply(1:1000, function(x){
-    sample = sample.int(nrow(ukbdata), size = 5000, prob = prob)
-    mod = summary(lm(MRI_brain_vol_scaled~age, data = ukbdata[sample]))
+    sample = sample.int(nrow(ukbdata), size = 1000, prob = prob)
+    mod = summary(lm(MRI_brain_vol_scaled~age + age_sq
+        , data = ukbdata[sample]))
     b = mod$coef[2, 1]
     se = mod$coef[2, 2]
-    data.table(b,se)
+    if(nrow(mod$coef)> 2){
+        b2 = mod$coef[3, 1]
+        se2 = mod$coef[3, 2]
+        r = data.table(b,se, b2, se2)
+    }else{
+        data.table(b,se)
+    }
+
+    
     }))
-beta_hat$lb = beta_hat$b - 2*beta_hat$se
-beta_hat$ub = beta_hat$b + 2*beta_hat$se
 
-beta_hat$diff = (beta < beta_hat$lb | beta > beta_hat$ub)
-
-# prop sig different from actual relationship
-mean(beta_hat$diff)
+mean(dnorm(abs(beta_hat$b - beta)/beta_hat$se) < 0.05)
+mean(dnorm(abs(beta_hat$b2 - beta2)/beta_hat$se2) < 0.05)
 
 
 
-
-
-# ##### GENERATE MISSINGNESS MODEL COEFS
-# coeff_samples = rbindlist(lapply(1:nrow(missingness_covars), function(t, n_equations){
-# 	data_type = missingness_covars[t,2]
-# 	type = missingness_covars[t,3]
-    
-#     # always include age
-#     if(type == 'age'){
-#         spike = rep(1, n_equations)
-#         slab_sd = 2
-#     }else{
-
-#     	# set prob of coef being non-zero based on type and data type
-#     	if(type == 'interaction'){
-#     		spike_prob = 0.003
-#     	} else if (type == 'health_interaction'){
-# 			spike_prob = 0
-#     	} else if(data_type == 'int'){
-#     		spike_prob = 0.75
-#     	} else{
-#     		spike_prob = 0.25
-#     	}
-
-#     	if(!use_health_vars & type == 'health'){
-#     		spike_prob = 0
-#     	}
-
-
-#         spike = rbinom(n = n_equations, size = 1, prob = spike_prob)
-#         slab_sd = 1.5
-#     }  
-    
-#     slab = rnorm(n = n_equations, 0, slab_sd)
-
-#     data.frame(coef = t(spike * slab))
-#     }, n_equations))
-
-# #rename coeff_samples columns
-# setnames(coeff_samples, old = names(coeff_samples), new = paste0('X', 1:ncol(coeff_samples)))
-
-
-# # check that things are behaving well
-# cbind(missingness_covars, coeff_samples)[X1 != 0]
-# cbind(missingness_covars, coeff_samples)[type == 'interaction' & as.vector(coeff_samples$X1) != 0,]
-# cbind(missingness_covars, coeff_samples)[type == 'age' & as.vector(coeff_samples$X1) != 0,]
-# cbind(missingness_covars, coeff_samples)[data_type == 'int' & as.vector(coeff_samples$X1) != 0,]
-
-# # check how many are non-zero
-# apply(coeff_samples, 2, function(x) sum(x > 0))
-
-
-#coeff_samples
-
-#save other files
-#write.csv(coeff_samples, file = paste0(sim_id, "/coefs.csv"), row.names = F)
-#write.csv(missingness_covars, file = paste0(sim_id, "/missingness_covars.csv"), row.names = F)
 
 write.csv(sim_summary, file = paste0(sim_id, "/sim_summary.csv"), row.names = F)
 write.csv(mod_brain_vol_coef, file = paste0(sim_id, "/mod_brain_vol_coef.csv"), row.names = F)
