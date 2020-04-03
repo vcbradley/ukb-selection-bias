@@ -75,7 +75,7 @@ for(p in sort(unique(all_weights_demos[, prop_sampled]))){
 			
 			fit = glm(MRI_brain_vol_scaled ~
 				#demo_sex * health_apoe_phenotype +
-				age #+ age_sq
+				age + age_sq
 				, data = all_weights_demos[prop_sampled == p & sim_num == i,]
 				, weights = weights
 			)
@@ -101,7 +101,7 @@ coefs_full
 p_vals_full[, V1 := NULL]
 
 ## pop
-pop_fit = glm(MRI_brain_vol_scaled ~ age #+ age_sq
+pop_fit = glm(MRI_brain_vol_scaled ~ age + age_sq
 		, data = ukbdata
 	)
 pop_coefs = data.table(prop_sampled = p, sim_num = i, method = m, t(coef(pop_fit)))
@@ -120,7 +120,7 @@ pop_p_vals = data.table(prop_sampled = p, sim_num = i, method = m, t(summary(pop
 
 #### calculate error
 coefs_full[, 'Error age' := age - pop_coefs$age]
-#coefs_full[, 'Error age squared' := age_sq - pop_coefs$age_sq]
+coefs_full[, 'Error age squared' := age_sq - pop_coefs$age_sq]
 coefs_full[, 'Error Intercept' := `(Intercept)` - pop_coefs[["(Intercept)"]]]
 
 # coef_error = lapply(coef_names, function(c){
