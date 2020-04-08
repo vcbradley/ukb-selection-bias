@@ -19,7 +19,7 @@ sim_name = gsub('/gpfs2/well/nichols/users/bwj567/simulation/', '', wd)
 
 
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-#JobId = 1
+#JobId = 2
 
 prop_sampled_options = as.numeric(gsub('prop_','', list.files('results/',pattern = 'prop')))
 prop = prop_sampled_options[JobId]
@@ -62,7 +62,7 @@ p_vals_full = NULL
 for(p in sort(unique(all_weights_demos[, prop_sampled]))){
 	cat(paste('Running prop ', p, '\n'))
 
-	for(i in 1:max(all_weights_demos[prop_sampled == p, sim_num])){
+	for(i in sort(unique(all_weights_demos[prop_sampled == p, sim_num]))){
 		if(i/100 == 0){
 			cat(paste('\tRunning iter ', i, '\n'))
 		}
