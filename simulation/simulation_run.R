@@ -38,6 +38,10 @@ load(file = paste0(sim_dir,'/data.rda'))
 data = ukbdata#limit for now
 rm(ukbdata)
 
+load(file = paste0(sim_dir,'/data_modmat.rda'))
+modmat = ukbdata_modmat
+rm(ukbdata_modmat_scaled)
+
 
 # run simulation draft
 print(paste0(Sys.time(), '\t Weighting starting...'))
@@ -63,13 +67,28 @@ vars = c('demo_sex'
 , 'demo_year_immigrated'
 , 'demo_hh_size'
 , 'demo_hh_ownrent'
-, 'demo_hh_accom_type')
+, 'demo_hh_accom_type'
+, 'health_smoking_status'
+, 'health_alc_freq'
+, 'health_bp_cat'
+, 'health_bp_high_ever'
+, 'health_bp_meds_current'
+, 'health_diabetes'
+, 'health_apoe_phenotype')
+
+# apply(data[,which(names(data) %in% vars_to_consider[grepl('health', vars_to_consider)]), with = F], 2, )
+
+# lapply(vars_to_consider[grepl('health', vars_to_consider)], function(x){
+#         print(x)
+#         cbind(x, data[, .(prop = .N/nrow(data)), by = get(x)])
+#         })
+
 #exclude vars from raking and calibration (pop % < 1)
 vars_rake = vars[-which(vars %in% c('demo_ethnicity_full','demo_year_immigrated', 'demo_empl_unemployed', 'demo_empl_student', 'demo_empl_disabled'))]
 # and add in rolled-up ethnicity
 vars_rake = c(vars_rake, 'demo_white')
 
-vars_add = c('age', 'age_sq')
+vars_add = c('age', 'age_sq', 'bmi', 'bmi_sq', 'health_alc_weekly_total', 'health_alc_weekly_total_sq')
 pop_weight_col = NULL
 
 epsilon = nrow(data) * 0.0003
@@ -91,6 +110,7 @@ all_weights = tryCatch(runSim(data = data
         , verbose = FALSE
         , ntree = 25
         , epsilon = epsilon
+        , modmat = modmat
         )
 , error = function(e) print(e))
 
