@@ -19,7 +19,7 @@ sim_name = gsub('/gpfs2/well/nichols/users/bwj567/simulation/', '', wd)
 
 
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-#JobId = 6
+#JobId = 1
 
 prop_sampled_options = as.numeric(gsub('prop_','', list.files('results/',pattern = 'prop')))
 prop = prop_sampled_options[JobId]
@@ -121,7 +121,9 @@ pop_p_vals = data.table(prop_sampled = p, sim_num = i, method = m, t(summary(pop
 
 
 #### calculate error
-coefs_full[, 'Error age' := age - pop_coefs$age]
+if('age' %in% names(pop_coefs)){
+	coefs_full[, 'Error age' := age - pop_coefs$age]
+}
 coefs_full[, 'Error age squared' := age_sq - pop_coefs$age_sq]
 coefs_full[, 'Error Intercept' := `(Intercept)` - pop_coefs[["(Intercept)"]]]
 
