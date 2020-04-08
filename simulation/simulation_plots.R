@@ -7,7 +7,7 @@ library(knitr)
 
 
 wd = getwd()
-which_sim = gsub('nichols/users/bwj567/mini-project-1/simulation/results', '', wd)
+which_sim = gsub('/gpfs2/well/nichols/users/bwj567/mini-project-1/simulation/results/', '', wd)
 
 
 ### BRAIN VOL DATA
@@ -21,7 +21,8 @@ load('apoe_reg_popvals.rda')
 # load apoe coef data
 
 apoe_coef = fread('apoe_reg_coef_all.csv')[, -1, with = F]
-apoe_pval = fread(paste0('results/', which_sim, '/apoe_reg_pval_all.csv'))[, -1, with = F]
+apoe_pval = fread('apoe_reg_pval_all.csv')[, -1, with = F]
+#apoe_pval = fread(paste0('results/', which_sim, '/apoe_reg_pval_all.csv'))[, -1, with = F]
 
 #set directory for plots
 plot_dir = 'plots'
@@ -251,6 +252,9 @@ ggsave(filename = paste0(plot_dir, '/distribution_error.png'), plot = plot_dist_
 apoe_coef[apoe_coef[method == 'none',], samp_age := i.age, on = c('prop_sampled', 'sim_num')]
 apoe_coef[, pop_age := pop_coefs$age]
 
+apoe_coef[method == 'none', summary( `Error age`), prop_sampled]
+apoe_coef[method == 'none', summary( `Error age squared`), prop_sampled]
+
 ###### Bias exists in association
 plot_bias_age = ggplot(data = apoe_coef[method == 'none'], aes(x = (age - pop_age))) + 
   geom_histogram() + 
@@ -262,7 +266,23 @@ plot_bias_age = ggplot(data = apoe_coef[method == 'none'], aes(x = (age - pop_ag
   scale_x_continuous(labels = function(x) format(x, scientific = TRUE)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggsave(filename = paste0(plot_dir, '/selection_bias_assoc.png'), plot = plot_bias_age, device = 'png', width = 8, height = 2)
+ggsave(filename = paste0(plot_dir, '/selection_bias_age.png'), plot = plot_bias_age, device = 'png', width = 8, height = 2)
+
+
+###### Bias exists in association
+plot_bias_age_sq = ggplot(data = apoe_coef[method == 'none'], aes(x = `Error age squared`)) + 
+  geom_histogram() + 
+  facet_grid(.~prop_sampled) +
+  geom_vline(xintercept = 0, color = 'blue', lty = 2) + 
+  ggtitle('Selection bias in age coefficient') +
+  xlab('Bias in age coefficient') +
+  theme_light() +
+  scale_x_continuous(labels = function(x) format(x, scientific = TRUE)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave(filename = paste0(plot_dir, '/selection_bias_age_sq.png'), plot = plot_bias_age_sq, device = 'png', width = 8, height = 2)
+
+
 
 ####### WE generally correct it
 # plot_bias_age_brain_vol = ggplot(apoe_coef[method != 'none'], aes(x = (samp_Age - pop_Age), y = `Error Age`)) + 
@@ -296,8 +316,7 @@ plot_bias_age_brainvol = ggplot(apoe_coef[method != 'none'], aes(x = factor(roun
   ggtitle("Adjusted bias in total brain vol and age association") +
   xlab("Sample size") +
   ylab("Bias in age coefficient") +
-  labs(color = "N") +
-  ylim(c(-15000, 15000))
+  labs(color = "N") #+ ylim(c(-15000, 15000))
 
 ggsave(filename = paste0(plot_dir, '/bias_age_brainvol.png'), plot = plot_bias_age_brainvol, device = 'png', width = 10, height = 4)
 

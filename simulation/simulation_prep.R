@@ -25,13 +25,10 @@ plot_dir = '/well/nichols/users/bwj567/mini-project-1/simulation/results/'
 ## different probs for different types of vars - want to make sure we have a nonlinear var in there
 # might want to think about controlling the level of noise
 
-####### SET simulation parameters
-n_samples = 5000
-n_equations = 1
 
 ## Get JobID and create new simulation directory
 #JobId = as.numeric(Sys.getenv("JOB_ID"))
-sim_id = paste0('sim_', n_equations, '_', n_samples, '_new_v1')
+sim_id = paste0('sim_new_v2')
 if(!dir.exists(sim_id)){
 	dir.create(sim_id)
 }
@@ -52,8 +49,26 @@ setnames(ukbdata
     , new = gsub('^img_','',names(ukbdata)[grepl('^img', names(ukbdata))])
     )
 
-#mean impute missing BMIs
-ukbdata[is.na(bmi), bmi := mean(ukbdata$bmi, na.rm = T)]
+#mean impute missing BMIs and alc consumption by age and gender
+ukbdata[, bmi_orig := bmi]
+bmi_imp = ukbdata[, .( 
+    bmi_imp = mean(bmi, na.rm = T)
+    ), .(demo_sex, demo_age_bucket)][order(demo_sex, demo_age_bucket)]
+
+ukbdata[bmi_imp, on = c('demo_sex', 'demo_age_bucket'), bmi := ifelse(is.na(bmi_orig), i.bmi_imp, bmi_orig)]
+
+summary(ukbdata[, .(bmi_orig, bmi)])
+
+
+ukbdata[, health_alc_weekly_total_orig := health_alc_weekly_total]
+alc_imp = ukbdata[health_alc_weekly_total > 0 & !is.na(health_alc_weekly_total), .( 
+    health_alc_weekly_total_imp = mean(health_alc_weekly_total, na.rm = T)
+    ), .(demo_sex, demo_age_bucket)][order(demo_sex, demo_age_bucket)]
+
+ukbdata[alc_imp, on = c('demo_sex', 'demo_age_bucket'), health_alc_weekly_total := ifelse(is.na(health_alc_weekly_total_orig) | health_alc_weekly_total_orig < 0, i.health_alc_weekly_total_imp, health_alc_weekly_total_orig)]
+
+summary(ukbdata[, .(health_alc_weekly_total_orig, health_alc_weekly_total)])
+
 
 # make missing vals DNK
 ukbdata[is.na(demo_hh_size), demo_hh_size := '99-DNK/Refused']
@@ -62,6 +77,7 @@ ukbdata[is.na(demo_hh_size), demo_hh_size := '99-DNK/Refused']
 ukbdata[is.na(health_apoe_level), health_apoe_level := 0]
 
 ukbdata[, age_sq := age^2]
+ukbdata[, age_sq_scaled := age_sq / max(ukbdata$age_sq)]
 ukbdata[, age_cb := age^3]
 ukbdata[, bmi_sq := bmi^2]
 ukbdata[, health_alc_weekly_total_sq := health_alc_weekly_total^2]
@@ -73,7 +89,7 @@ nas[nas > 0]
 
 #### GENERATE Probability of missingness
 
-vars_to_consider = names(ukbdata)[-grep('^MRI|eid|has|assessment|demo_ethnicity_4way|demo_white|demo_educ_highest$|health|bmi|age', names(ukbdata))]
+vars_to_consider = names(ukbdata)[-grep('^MRI|eid|has|assessment|demo_ethnicity_4way|demo_white|demo_educ_highest$|age|health_cogfn_bucket|apoe_level|orig$', names(ukbdata))]
 formula = paste("~-1+(", paste0(vars_to_consider, collapse = " + "), ") ^ 2")
 ukbdata_modmat = modmat_all_levs(as.formula(formula), data = ukbdata)
 
@@ -159,13 +175,15 @@ ukbdata$MRI_brain_vol_scaled = scale(ukbdata$MRI_brain_vol)
 
 
 ##### GET BRAIN VOL MODEL
+set.seed(1234)
 
 # sample data to speed up model fitting
 samp = sample.int(n = nrow(ukbdata), size = 10000)
+#samp = 1:nrow(ukbdata_modmat)
 
 # fit model
-set.seed(1234)
 mod_brain_vol = cv.glmnet(x = ukbdata_modmat[samp,], y = ukbdata$MRI_brain_vol_scaled[samp])
+
 
 # pull and scale coefs
 mod_brain_vol_coef = data.table(names = rownames(coef(mod_brain_vol, s = 'lambda.min'))
@@ -195,19 +213,51 @@ dev.off()
 
 summary(lm(lp ~ ukbdata$age_sq))
 
+summary(lm(lp ~ ukbdata$MRI_brain_vol_scaled))
 
-## calculatte probability of selection as combination of brain volume and SES index
-lp_comb = (scale(lp) - (ukbdata$age_sq / max(ukbdata$age_sq)))
+
+## calculate probability of selection as combination of brain volume and SES index
+lp_comb = (scale(lp) - 2*(ukbdata$age_sq_scaled))
 prob = exp(lp_comb)/(1+exp(lp_comb))
 summary(prob)
 
-summary(lm(ukbdata$MRI_brain_vol_scaled ~ prob + ukbdata$age_sq))
+# summary(lm(ukbdata$MRI_brain_vol_scaled ~ lp))
+
+# summary(lm(ukbdata$MRI_brain_vol_scaled ~ ukbdata$age_sq))
+
+# summary(lm(ukbdata$MRI_brain_vol_scaled ~ prob))
 
 
 png(paste0(plot_dir, sim_id, '/prob_hist.png'))
 hist(prob)
 dev.off()
 
+
+age_beta = summary(lm(ukbdata$MRI_brain_vol_scaled ~ ukbdata$age_sq_scaled))$coef[2,1]
+
+props = seq(0,1,0.01)
+age_hat = rbindlist(lapply(props, function(p){
+    lp_comb = 10 * ((1 - p) * scale(lp) - p *(ukbdata$age_sq_scaled))
+    prob = exp(lp_comb)/(1+exp(lp_comb))
+
+    samp = sample.int(nrow(ukbdata), size = 1000, prob = prob)
+    
+    mod = summary(lm(ukbdata$MRI_brain_vol_scaled[samp] ~ ukbdata$age_sq_scaled[samp] + prob[samp]))
+    age_beta_hat = mod$coef[2,1]
+    age_se_hat = mod$coef[2,2]
+
+    data.frame(cbind(age_beta_hat, age_se_hat))
+    }))
+(age_hat$age_beta_hat - age_beta)/ age_hat$age_se_hat
+
+p_final = props[which.max((age_hat$age_beta_hat - age_beta)/ age_hat$age_se_hat)]
+p_final = 0.6
+
+
+lp_comb = 10 *(((1 - p_final) * scale(lp) - p_final *(ukbdata$age_sq_scaled)))
+summary(lp_comb)
+prob = exp(lp_comb)/(1+exp(lp_comb))
+summary(prob)
 
 sim_summary = data.table(eid = ukbdata$eid
     , lp_ses = lp[,1]
@@ -238,14 +288,14 @@ sim_summary = data.table(eid = ukbdata$eid
 
 ### AND FOR AGE
 # check that we're substantively modifying SES and volume relationship
-mod_pop = summary(lm(MRI_brain_vol_scaled~age + age_cb
+mod_pop = summary(lm(MRI_brain_vol_scaled~age_sq_scaled
     , data = ukbdata))
 beta = mod_pop$coef[2,1]
 beta2 = mod_pop$coef[3,1]
 
 beta_hat = rbindlist(lapply(1:1000, function(x){
-    sample = sample.int(nrow(ukbdata), size = 1000, prob = prob)
-    mod = summary(lm(MRI_brain_vol_scaled~age + age_sq
+    sample = sample.int(nrow(ukbdata), size = 500, prob = prob)
+    mod = summary(lm(MRI_brain_vol_scaled~age_sq_scaled
         , data = ukbdata[sample]))
     b = mod$coef[2, 1]
     se = mod$coef[2, 2]
@@ -263,6 +313,8 @@ beta_hat = rbindlist(lapply(1:1000, function(x){
 mean(dnorm(abs(beta_hat$b - beta)/beta_hat$se) < 0.05)
 mean(dnorm(abs(beta_hat$b2 - beta2)/beta_hat$se2) < 0.05)
 
+min(1 - mean(beta < beta_hat$b), mean(beta < beta_hat$b))
+min(1 - mean(beta2 < beta_hat$b2), mean(beta2 < beta_hat$b2))
 
 
 
