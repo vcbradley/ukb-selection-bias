@@ -555,18 +555,18 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
 
     ### DROP more levels that are too small
     small_pop_strata = pop_totals/sum(popdata$pop_weight)
-    small_pop_strata = small_pop_strata[(small_pop_strata < 0.02 | small_pop_strata > 0.98 & small_pop_strata < 1) & pop_levels <= 2]
+    small_pop_strata = small_pop_strata[(small_pop_strata < 0.025 | small_pop_strata > 0.98 & small_pop_strata < 1) & pop_levels <= 2]
     small_pop_strata = data.table(var_code = names(small_pop_strata), pop_prop = small_pop_strata)
 
     small_samp_strata = samp_totals/nrow(samp_modmat)
-    small_samp_strata = small_samp_strata[(small_samp_strata < 0.02 | small_samp_strata > 0.98 & small_samp_strata < 1) & pop_levels <= 2]
+    small_samp_strata = small_samp_strata[(small_samp_strata < 0.025 | small_samp_strata > 0.98 & small_samp_strata < 1) & pop_levels <= 2]
     small_samp_strata = data.table(var_code = names(small_samp_strata), samp_prop = small_samp_strata)
 
     small_strata = merge(merge(cal_vars, small_pop_strata, all = T), small_samp_strata, all = T)
     small_strata = small_strata[!is.na(pop_prop) | !is.na(samp_prop)]
 
     if(nrow(small_strata) > 0){
-        print('WARNING dropping strata because <1% of pop or sample')
+        print('WARNING dropping strata because <2.5% of pop or sample')
         print(small_strata)
         pop_modmat = pop_modmat[, -which(colnames(pop_modmat) %in% small_strata$var_code)]
     	samp_modmat = samp_modmat[, -which(colnames(samp_modmat) %in% small_strata$var_code)]
@@ -623,13 +623,6 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
 doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_col = NULL){
 
     data_scaled = copy(data)
-
-    if('age' %in% vars){
-        data_scaled[, age := scale(age)]
-    }
-    if('age_sq' %in% vars){
-        data_scaled[, age_sq := scale(age_sq)]
-    }
 
     # set pop weight col if it's null
     if(is.null(pop_weight_col)){
@@ -824,7 +817,8 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, pop_weight_col
     cat(paste0(Sys.time(), "\t\t Getting var importance....\n"))
     
     # new modmat with categorical vars
-    vars = vars[!grepl('^age$|age_sq', vars)]
+    var_levels = apply(data_scaled[, vars, with = F], 2, function(x) length(unique(x)))
+    vars = names(var_levels[var_levels < 15])
     imp_modmat = data[, vars, with = F]
     imp_modmat[,(vars):=lapply(.SD, as.factor), .SDcols=vars]
 
@@ -910,7 +904,7 @@ runSim = function(data
     calibrated_data = tryCatch({
         doCalibration(svydata = sample
             , popdata = data
-            , vars = c(vars_rake, 'age')
+            , vars = c(vars_rake, vars_add)
             , epsilon = epsilon
             , calfun = calfun)
         }, error = function(e) print(e))
