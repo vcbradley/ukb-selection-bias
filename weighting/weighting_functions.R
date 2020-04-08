@@ -620,30 +620,33 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
 
 # Function for weighting with logit weights
 # would be easy to compare to linear here
-doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_col = NULL){
+doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_col = NULL, modmat = NULL){
 
-    data_scaled = copy(data)
+    data_logit = copy(data)
 
     # set pop weight col if it's null
     if(is.null(pop_weight_col)){
-        data_scaled[, pop_weight := 1]
+        data_logit[, pop_weight := 1]
     }else{
-        data_scaled[, pop_weight := get(pop_weight_col)]
+        data_logit[, pop_weight := get(pop_weight_col)]
     }
     
+    if(is.null(modmat)){
+        cat(paste0(Sys.time(), "\t\t Creating mod matricies....\n"))
+        # create modmat for modeling
+        formula_logit = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^', n_interactions))
+        logit_modmat = modmat_all_levs(formula = formula_logit, data = data_logit, sparse = T)
 
-    cat(paste0(Sys.time(), "\t\t Creating mod matricies....\n"))
-    # create modmat for modeling
-    formula_logit = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')^', n_interactions))
-    logit_modmat = modmat_all_levs(formula = formula_logit, data = data_scaled, sparse = T)
-
-    print(formula_logit)
+        print(formula_logit)
+    }else{
+        logit_modmat = modmat
+    }
 
     #############
 
     # get var totals
-    pop = apply(logit_modmat, 2, function(x, pop_weight) sum(x*pop_weight), pop_weight = data_scaled$pop_weight)
-    samp = apply(logit_modmat[data_scaled[, get(selected_ind)] == 1,], 2, sum)
+    pop = apply(logit_modmat, 2, function(x, pop_weight) sum(x*pop_weight), pop_weight = data_logit$pop_weight)
+    samp = apply(logit_modmat[data_logit[, get(selected_ind)] == 1,], 2, sum)
 
     # get number of levels
     pop_levels = apply(logit_modmat, 2, function(x) length(unique(x)))
@@ -678,7 +681,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
     # calc distributions
     lasso_vars[, dist_pop := n_pop/nrow(logit_modmat)]
-    lasso_vars[, dist_samp := n_samp/sum(data_scaled[, get(selected_ind)])]
+    lasso_vars[, dist_samp := n_samp/sum(data_logit[, get(selected_ind)])]
 
     # figure out which lasso_vars to drop
     drop_samp = which((lasso_vars$dist_samp < 0.01 | lasso_vars$dist_samp > 0.99) & lasso_vars$discrete == 1)
@@ -700,14 +703,14 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
     # define lambda values based on largest coef
     #https://stats.stackexchange.com/questions/174897/choosing-the-range-and-grid-density-for-regularization-parameter-in-lasso
-    # y_mat = matrix(as.numeric(data_scaled[, get(selected_ind)]), ncol = 1)
+    # y_mat = matrix(as.numeric(data_logit[, get(selected_ind)]), ncol = 1)
     # lambda_max = max(t(y_mat) %*% logit_modmat)/nrow(logit_modmat)
     # lambda <- exp(seq(log(lambda_max * 0.001), log(lambda_max), length.out=20)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
     
     # RUN LASSO
-    fit_logit = cv.glmnet(y = as.numeric(data_scaled[, get(selected_ind)])
+    fit_logit = cv.glmnet(y = as.numeric(data_logit[, get(selected_ind)])
             , x = logit_modmat
-            , weights = as.numeric(data_scaled[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
+            , weights = as.numeric(data_logit[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
             , family = 'binomial'
             , nfolds = 5
             #, lambda=lambda
@@ -728,31 +731,31 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
         logit_vars = 'all'
 
         fit_logit = glm(as.formula(paste0(selected_ind, "~", paste(vars, collapse = '+')))
-            , data = data_scaled
-            , weights = as.numeric(data_scaled[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
+            , data = data_logit
+            , weights = as.numeric(data_logit[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
             , family = 'binomial'
             )
-        probs = fit_logit$fitted.values[data_scaled[,get(selected_ind)] == 1]
+        probs = fit_logit$fitted.values[data_logit[,get(selected_ind)] == 1]
 
     }else{
         logit_vars = coef_logit$V1[-1]
 
         re_fit_logit = glm.fit(x = logit_modmat[, which(colnames(logit_modmat) %in% logit_vars)]
-            , y = as.numeric(data_scaled[, get(selected_ind)])
-            , weights = as.numeric(data_scaled[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
+            , y = as.numeric(data_logit[, get(selected_ind)])
+            , weights = as.numeric(data_logit[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
             , family = binomial()
             )
         probs = re_fit_logit$fitted.values
 
-        # re_fit_logit = glmnet(y = as.numeric(data_scaled[, get(selected_ind)])
+        # re_fit_logit = glmnet(y = as.numeric(data_logit[, get(selected_ind)])
         #     , x = logit_modmat[, which(colnames(logit_modmat) %in% logit_vars)]
-        #     , weights = as.numeric(data_scaled[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
+        #     , weights = as.numeric(data_logit[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
         #     , family = 'binomial'
         #     , lambda=0 # re-fit with no penalty, like normal logit
         #     )
 
         # calculate weights
-        # lp = predict(re_fit_logit, newx = logit_modmat[data_scaled$selected == 1, which(colnames(logit_modmat) %in% logit_vars)])
+        # lp = predict(re_fit_logit, newx = logit_modmat[data_logit$selected == 1, which(colnames(logit_modmat) %in% logit_vars)])
         # probs = exp(lp)/(1+exp(lp))        
     }
 
@@ -882,7 +885,8 @@ runSim = function(data
     , pop_weight_col = NULL
     , n_interactions = 2
     , verbose = FALSE
-    , ntree = 100){
+    , ntree = 100
+    , modmat = modmat){
 
     selected_ind = 'selected'
     #data[, selected := NULL]
@@ -930,7 +934,8 @@ runSim = function(data
         doLogitWeight(data = data
         , vars = c(vars, vars_add)
         , n_interactions = n_interactions
-        , selected_ind = selected_ind)
+        , selected_ind = selected_ind
+        , modmat = modmat)
         }, error = function(e) print(e))
 
     if('list' %in% class(logit_weighted)){
