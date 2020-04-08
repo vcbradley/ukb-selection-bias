@@ -820,7 +820,7 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, pop_weight_col
     cat(paste0(Sys.time(), "\t\t Getting var importance....\n"))
     
     # new modmat with categorical vars
-    var_levels = apply(data_scaled[, vars, with = F], 2, function(x) length(unique(x)))
+    var_levels = apply(data[, vars, with = F], 2, function(x) length(unique(x)))
     vars = names(var_levels[var_levels < 15])
     imp_modmat = data[, vars, with = F]
     imp_modmat[,(vars):=lapply(.SD, as.factor), .SDcols=vars]
