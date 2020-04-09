@@ -9,6 +9,8 @@ library(lazyeval)
 library(randomForest)
 library(stringr)
 library(BayesTree)
+library(biglasso)
+library(bigmemory)
 
 # according to BART documentation, set this before loading bartMachine to avoid mem limit errors
 #options(java.parameters = "-Xmx5g" ) 
@@ -684,8 +686,8 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     lasso_vars[, dist_samp := n_samp/sum(data_logit[, get(selected_ind)])]
 
     # figure out which lasso_vars to drop
-    drop_samp = which((lasso_vars$dist_samp < 0.01 | lasso_vars$dist_samp > 0.99) & lasso_vars$discrete == 1)
-    drop_pop = which((lasso_vars$dist_pop < 0.01 | lasso_vars$dist_pop > 0.99) & lasso_vars$discrete == 1)
+    drop_samp = which((lasso_vars$dist_samp < 0.025 | lasso_vars$dist_samp > 0.975) & lasso_vars$discrete == 1)
+    drop_pop = which((lasso_vars$dist_pop < 0.025 | lasso_vars$dist_pop > 0.975) & lasso_vars$discrete == 1)
 
     # drop variables from lasso_vars and data
     lasso_vars = lasso_vars[-unique(drop_pop, drop_samp),]
@@ -706,28 +708,61 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
     # y_mat = matrix(as.numeric(data_logit[, get(selected_ind)]), ncol = 1)
     # lambda_max = max(t(y_mat) %*% logit_modmat)/nrow(logit_modmat)
     # lambda <- exp(seq(log(lambda_max * 0.001), log(lambda_max), length.out=20)) #https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
+
+    # for testing
+    #samp = 1:3000
+    samp = 1:nrow(data_logit)
+    y = as.numeric(data_logit[samp, get(selected_ind)])
+    X = as.big.matrix(logit_modmat[samp,])
+
+    timing = list()
+
+    timing$biglasso_start <- Sys.time()
+    fit_biglasso = cv.biglasso(
+        y = y
+        , X = X
+        , nfolds = 5
+        , family = 'binomial'
+        , nlambda = 20
+        )
+    timing$biglasso_end <- Sys.time()
+    timing$biglasso_tot = timing$biglasso_end - timing$biglasso_start
+
+    print(summary(fit_biglasso))
+
+    coef_biglasso = data.table(rownames(coef(fit_biglasso, s = 'lambda.min')), coef = as.numeric(coef(fit_logit, s = 'lambda.min')))
+    coef_biglasso = coef_biglasso[coef != 0,]
+
+    # # RUN LASSO
+    # timing$glmnet_start <- Sys.time()
+    # fit_logit = cv.glmnet(y = y
+    #         , x = logit_modmat[samp,]
+    #         #, weights = as.numeric(data_logit[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
+    #         , family = 'binomial'
+    #         , nfolds = 5
+    #         #, lambda=lambda
+    #         , nlambda = 20
+    #         )
+    # timing$glmnet_end <- Sys.time()
+
+    # print(summary(fit_logit))
+
     
-    # RUN LASSO
-    fit_logit = cv.glmnet(y = as.numeric(data_logit[, get(selected_ind)])
-            , x = logit_modmat
-            , weights = as.numeric(data_logit[, ifelse(pop_weight == 0, 1, pop_weight)])  #because the population data is weighted, include this
-            , family = 'binomial'
-            , nfolds = 5
-            #, lambda=lambda
-            , nlambda = 20
-            )
+    # timing$glmnet_tot = timing$glmnet_end - timing$glmnet_start
 
-    print(summary(fit_logit))
+    # timing
 
-    coef_logit = data.table(rownames(coef(fit_logit, s = 'lambda.min')), coef = as.numeric(coef(fit_logit, s = 'lambda.min')))
-    coef_logit = coef_logit[coef != 0,]
+    # coef_logit = data.table(rownames(coef(fit_logit, s = 'lambda.min')), coef = as.numeric(coef(fit_logit, s = 'lambda.min')))
+    # coef_logit = coef_logit[coef != 0,]
 
-    print(coef_logit)
+    coef_final = coef_biglasso
+
+    print(coef_final)
 
     cat(paste0(Sys.time(), "\t\t Calculate weights....\n"))
 
     # if the lasso didn't select any vars then just fit a logit with all vars
-    if(nrow(coef_logit) == 1){
+    if(nrow(coef_final) == 1){
         logit_vars = 'all'
 
         fit_logit = glm(as.formula(paste0(selected_ind, "~", paste(vars, collapse = '+')))
@@ -738,7 +773,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
         probs = fit_logit$fitted.values[data_logit[,get(selected_ind)] == 1]
 
     }else{
-        logit_vars = coef_logit$V1[-1]
+        logit_vars = coef_final$V1[-1]
 
         re_fit_logit = glm.fit(x = logit_modmat[, which(colnames(logit_modmat) %in% logit_vars)]
             , y = as.numeric(data_logit[, get(selected_ind)])
@@ -946,11 +981,12 @@ runSim = function(data
         logit_weighted = copy(sample)
         logit_weighted = list(logit_weighted[, weight := 1], vars = 'none')
     }
-    
 
     print(gc())
     timing$logit_end <- Sys.time()
     timing$logit_time <-  timing$logit_end - timing$logit_start
+
+
 
     ####### POST STRAT WITH variable selection
     timing$poststrat_start <- Sys.time()
