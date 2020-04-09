@@ -730,7 +730,7 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
     print(summary(fit_biglasso))
 
-    coef_biglasso = data.table(rownames(coef(fit_biglasso, s = 'lambda.min')), coef = as.numeric(coef(fit_logit, s = 'lambda.min')))
+    coef_biglasso = data.table(rownames(coef(fit_biglasso, s = 'lambda.min')), coef = as.numeric(coef(fit_biglasso, s = 'lambda.min')))
     coef_biglasso = coef_biglasso[coef != 0,]
 
     # # RUN LASSO
