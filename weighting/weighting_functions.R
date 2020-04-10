@@ -159,6 +159,77 @@ doRaking = function(svydata
         svydata_rake[, prior_weight := get(prior_weight_col)]
     }
 
+    # make model matricies
+    formula = as.formula(paste0("~-1+", paste(vars, collapse = '+')))
+    pop_modmat_rake = modmat_all_levs(formula = formula, popdata_rake)
+    samp_modmat_rake = modmat_all_levs(formula = formula, svydata_rake)
+
+    # get counts and dists
+    pop_count = apply(pop_modmat_rake, 2, sum)
+    samp_count = apply(samp_modmat_rake, 2, sum)
+
+
+    dists = data.table(var = names(pop_count), pop_count = pop_count, pop_dist = pop_count / nrow(pop_modmat_rake))
+    dists = merge(dists, data.table(var = names(samp_count), samp_count), all.x = T)
+    dists[, samp_dist := samp_count / nrow(samp_modmat_rake)]
+    dists[is.na(dists)] <- 0
+    dists[, ps_weight := pop_dist / samp_dist]
+    dists$var_code <- paste0('v', 1:nrow(dists))
+
+    # drop levels that are too small
+    dists[, drop_samp := as.numeric(samp_dist < 0.01 | samp_dist > 0.99 | samp_count < 5 | (samp_count > nrow(samp_modmat_rake) - 5))]
+    dists[, drop_pop := as.numeric(pop_dist < 0.01 | pop_dist > 0.99| pop_count < 5 | (pop_count > nrow(pop_modmat_rake) - 5))]
+
+    if(sum(dists$drop_samp) > 0){
+        print("WARNING DROPPING strata because null in sample")
+        print(dists[drop_samp == 1])
+    }
+
+    if(sum(dists$drop_pop) > 0){
+        print("WARNING DROPPING strata because null in population")
+        print(dists[drop_pop == 1])
+    }
+
+    # rename cols in modmats
+    var_order_pop = match(colnames(pop_modmat_rake), dists$var)
+    colnames(pop_modmat_rake) = dists$var_code[var_order_pop]
+    var_order_samp = match(colnames(samp_modmat_rake), dists$var)
+    colnames(samp_modmat_rake) = dists$var_code[var_order_samp]
+
+    pop_modmat_rake = data.table(cbind(pop_modmat_rake, pop_weight = popdata_rake$pop_weight))
+    samp_modmat_rake = data.table(cbind(samp_modmat_rake, prior_weight = svydata_rake$prior_weight))
+
+
+    ### get list of raking variables
+    # order by group size
+    vars_to_use = dists[drop_samp == 0 & drop_pop == 0, ][order(-abs(pop_dist - 0.5))]$var_code
+
+    popmargins = lapply(vars_to_use, getPopframe, data = pop_modmat_rake, weight_col = 'pop_weight')
+    strata = lapply(vars_to_use, function(x) as.formula(paste("~", x)))
+
+    prior_weight = as.formula(ifelse(!is.null(prior_weight_col), paste0('~', prior_weight_col), '~1'))
+    svydata_rake_design = svydesign(id = ~1, weights = prior_weight, data = samp_modmat_rake)
+
+
+    # iterate through variables
+    it_size = 25
+    nit = ceiling(length(vars_to_use) / it_size)
+
+    for(i in 1:nit){
+        cat(i)
+        v_start = (it_size * (i - 1) + 1)
+        v_stop = min((i * it_size), length(vars_to_use))
+        temp  = rake(svydata_rake_design
+            , sample.margins = strata[v_start:v_stop]
+            , population.margins = popmargins[v_start:v_stop]
+            , control = control
+            )
+        svydata_rake_design = svydesign(id = ~1, probs = temp$prob, data = samp_modmat_rake)
+    }
+    summary(temp$prob)
+    summary((1/temp$prob)/mean(1/temp$prob))
+
+
     drop_pop = 1
     drop_samp = 1
     while(length(drop_samp)>0 | length(drop_pop)>0){
@@ -210,16 +281,33 @@ doRaking = function(svydata
 
     cat(vars)
 
+    # prep for weighting
     popmargins = lapply(vars, getPopframe, data = popdata_rake, weight_col = 'pop_weight')
-   
     strata = lapply(vars, function(x) as.formula(paste("~", x)))
 
     prior_weight = as.formula(ifelse(!is.null(prior_weight_col), paste0('~', prior_weight_col), '~1'))
-    svydata_rake = svydesign(id = ~1, weights = prior_weight, data = svydata_rake)
+    svydata_rake_design = svydesign(id = ~1, weights = prior_weight, data = svydata_rake)
 
 
-    # do weighting
-    weighted = rake(svydata_rake, sample.margins = strata, population.margins = popmargins, control = control)
+    #### do weighting
+
+    # try to weight with all vars at once
+    weighted = tryCatch({
+        rake(svydata_rake_design, sample.margins = strata, population.margins = popmargins, control = control)
+        }, error = function(e) print(e))
+    # check if that worked
+
+    if('error' %in% class(weighted)){
+
+        
+        n_vars = length(strata) 
+        strata[1:10]
+
+        temp  = rake(svydata_rake, sample.margins = strata[1:10], population.margins = popmargins[1:10], control = control)
+
+
+    }
+
     weighted = cbind(weighted$variables, weight = (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T))
 
     svydata[weighted, on = 'eid', weight := i.weight]
