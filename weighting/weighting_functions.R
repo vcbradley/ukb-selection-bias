@@ -229,15 +229,21 @@ doRaking = function(svydata
         parent_var = dists[var_code == v, var_name]
         drop = dists[var_name == parent_var & drop_samp == 1]$var
 
-        if(length(drop) > 0){
-            t = pop_modmat_rake[!(popdata_rake[, get(parent_var)] %in% drop), .(Freq = sum(get('pop_weight'))), .(v = get(v))]
-        }else{
-            t = pop_modmat_rake[, .(Freq = sum(get('pop_weight'))), .(v = get(v))]
+        #if(length(drop) > 0){
+        if(FALSE){
+            t = pop_modmat_rake[!(popdata_rake[, get(parent_var)] %in% drop)
+            , .(Freq = sum(get('pop_weight')))
+            , .(v = get(v))]
+        } else {
+            t = pop_modmat_rake[
+            , .(Freq = sum(get('pop_weight')))
+            , .(v = get(v))]
         }
 
         setnames(t, old = 'v', new  = v)
         t$Freq = t$Freq / sum(t$Freq)
-        t
+        
+        return(t)
         })
 
     #popmargins = lapply(vars_to_use, getPopframe, data = pop_modmat_rake, weight_col = 'pop_weight')
@@ -397,7 +403,7 @@ doRaking = function(svydata
 
     # check age dist
     # svydata[,.(sum(weight)/214), demo_age_bucket][order(demo_age_bucket)]
-    # dists[var_name == 'demo_age_bucket', .(var, pop_dist)]
+    # dists[var_name == 'demo_age_bucket', .(var, pop_dist, samp_dist)]
 
     return(svydata)
 }
@@ -685,7 +691,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
     drop_samp_levels = which(!colnames(samp_modmat) %in% colnames(pop_modmat))
 
     if(length(drop_samp_levels) > 0){
-        print("WARNING dropping population levels because not in sample\n")
+        print("WARNING dropping population levels because not in population\n")
         if(length(drop_samp_levels) == 1){
             print(paste(colnames(samp_modmat)[drop_samp_levels],mean(samp_modmat[,drop_samp_levels])))
         }else{
@@ -695,7 +701,6 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
         samp_modmat = samp_modmat[, -drop_samp_levels]
     }
     
-
     ### rename variables so calibrate doesn't hate us
     cal_vars = data.table(var_name = colnames(pop_modmat), var_code = paste0('v', str_pad(1:ncol(pop_modmat), width = 3, side = 'left', pad='0')))
 
@@ -731,11 +736,11 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
 
     ### DROP more levels that are too small
     small_pop_strata = pop_totals/sum(popdata$pop_weight)
-    small_pop_strata = small_pop_strata[(small_pop_strata < 0.025 | small_pop_strata > 0.98 & small_pop_strata < 1) & pop_levels <= 2]
+    small_pop_strata = small_pop_strata[(small_pop_strata < 0.02 | small_pop_strata > 0.98 & small_pop_strata < 1) & pop_levels <= 2]
     small_pop_strata = data.table(var_code = names(small_pop_strata), pop_prop = small_pop_strata)
 
     small_samp_strata = samp_totals/nrow(samp_modmat)
-    small_samp_strata = small_samp_strata[(small_samp_strata < 0.025 | small_samp_strata > 0.98 & small_samp_strata < 1) & pop_levels <= 2]
+    small_samp_strata = small_samp_strata[(small_samp_strata < 0.02 | small_samp_strata > 0.98 & small_samp_strata < 1) & pop_levels <= 2]
     small_samp_strata = data.table(var_code = names(small_samp_strata), samp_prop = small_samp_strata)
 
     small_strata = merge(merge(cal_vars, small_pop_strata, all = T), small_samp_strata, all = T)
