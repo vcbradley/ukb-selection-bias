@@ -19,7 +19,7 @@ library(knitr)
 
 
 JobId = as.numeric(Sys.getenv("SGE_TASK_ID"))
-#JobId = 1
+#JobId = 10
 
 dir = getwd()
 cat(dir)
@@ -78,15 +78,34 @@ vars = c('demo_sex'
 
 # apply(data[,which(names(data) %in% vars_to_consider[grepl('health', vars_to_consider)]), with = F], 2, )
 
-# lapply(vars_to_consider[grepl('health', vars_to_consider)], function(x){
+# lapply(vars[grepl('health', vars_to_consider)], function(x){
 #         print(x)
 #         cbind(x, data[, .(prop = .N/nrow(data)), by = get(x)])
 #         })
 
+lapply(c(vars, 'demo_white'), function(v){
+        cbind(v, data[,.N/nrow(data), get(v)][order(get)])
+        })
+# get rid of really small levels
+data[, demo_white_rollup := ifelse(demo_white == '99-DNK/Refused', '02-Non-white', demo_white)]
+data[, demo_hh_accom_type_rollup := ifelse(demo_hh_accom_type == '99-DNK/Refused', '02-Flat, apartment or temp', demo_hh_accom_type)]
+data[, demo_hh_size_rollup := ifelse(demo_hh_size == '99-DNK/Refused', '2', demo_hh_size)]
+data[, demo_occupation_rollup := ifelse(unlist(lapply(data$demo_occupation, function(x) as.numeric(unlist(strsplit(x, '-'))[1]))) %in% c(1,2,3,4,10), demo_occupation, '11-Other/Refused')]
+data[, demo_hh_ownrent_rollup := ifelse(unlist(lapply(data$demo_hh_ownrent, function(x) as.numeric(unlist(strsplit(x, '-'))[1]))) %in% c(1,2), demo_hh_ownrent, '11-Other/Refused')]
+
+data[, health_smoking_status_rollup := ifelse(health_smoking_status == '99-DNK/Refused', '03-Never', health_smoking_status)]
+data[, health_alc_freq_rollup := ifelse(health_alc_freq == '99-DNK/Refused', '06-Never', health_alc_freq)]
+data[, health_bp_high_ever_rollup := ifelse(health_bp_high_ever == '99-DNK/Refused', '02-No', health_bp_high_ever)]
+data[, health_bp_meds_current_rollup := ifelse(health_bp_meds_current == '99-DNK/Refused', '02-No', health_bp_meds_current)]
+
 #exclude vars from raking and calibration (pop % < 1)
 vars_rake = vars[-which(vars %in% c('demo_ethnicity_full','demo_year_immigrated', 'demo_empl_unemployed', 'demo_empl_student', 'demo_empl_disabled'))]
+vars_rollup = names(data)[grep('rollup', names(data))]
+vars_rake = vars_rake[-which(vars_rake %in% gsub('_rollup','',vars_rollup))]
+vars_rake =c(vars_rake, vars_rollup)
+
 # and add in rolled-up ethnicity
-vars_rake = c(vars_rake, 'demo_white')
+#vars_rake = c(vars_rake, 'demo_white')
 
 vars_add = c('age', 'age_sq', 'bmi', 'bmi_sq', 'health_alc_weekly_total', 'health_alc_weekly_total_sq')
 pop_weight_col = NULL
@@ -94,7 +113,6 @@ pop_weight_col = NULL
 epsilon = nrow(data) * 0.0003
 calfun = 'raking'
 outcome = 'MRI_brain_vol'
-
 
 #lapply(vars_rake, getPopframe, data = data)
 
@@ -105,7 +123,7 @@ all_weights = tryCatch(runSim(data = data
         , vars = vars
         , vars_add = vars_add
         , vars_rake = vars_rake
-        , outcome = 'MRI_brain_vol'
+        , outcome = outcome
         , pop_weight_col = pop_weight_col
         , verbose = FALSE
         , ntree = 25
