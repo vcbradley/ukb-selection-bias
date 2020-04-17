@@ -249,12 +249,12 @@ doRaking = function(svydata
     #popmargins = lapply(vars_to_use, getPopframe, data = pop_modmat_rake, weight_col = 'pop_weight')
     strata = lapply(vars_to_use, function(x) as.formula(paste("~", x)))
 
-    prior_weight = as.formula(ifelse(!is.null(prior_weight_col), paste0('~', prior_weight_col), '~1'))
+    prior_weight = as.formula(ifelse(!is.null(prior_weight_col), paste0('~prior_weight'), '~1'))
     weighted = svydesign(id = ~1, weights = prior_weight, data = samp_modmat_rake)
 
 
     # iterate through variables
-    it_size = 25
+    it_size = ifelse(length(vars_to_use) <= 31, length(vars_to_use), 25)
     nit = ceiling(length(vars_to_use) / it_size)
 
     for(i in 1:nit){
