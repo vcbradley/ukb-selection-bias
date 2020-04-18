@@ -983,10 +983,14 @@ doLogitWeight = function(data, vars, selected_ind, n_interactions, pop_weight_co
 
 
 
-doBARTweight = function(data, vars, popdata = NULL, selected_ind, pop_weight_col = NULL, ntree = 20, verbose = FALSE){
+doBARTweight = function(data, vars_bart, vars_rake = NULL, popdata = NULL, selected_ind, pop_weight_col = NULL, ntree = 20, verbose = FALSE){
+
+    if(is.null(vars_rake)){
+        vars_rake = vars_bart
+    }
 
     cat(paste0(Sys.time(), "\t\t Creating model matricies....\n"))
-    formula_bart = as.formula(paste0('~ -1 + (', paste(vars, collapse = ' + '), ')'))
+    formula_bart = as.formula(paste0('~ -1 + (', paste(vars_bart, collapse = ' + '), ')'))
     bart_modmat = modmat_all_levs(formula = formula_bart, data = data, sparse= T)
 
     cat(paste0(Sys.time(), "\t\t Fitting model....\n"))
@@ -1034,13 +1038,17 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, pop_weight_col
     cat(paste0(Sys.time(), "\t\t Getting var importance....\n"))
     
     # new modmat with categorical vars
-    var_levels = apply(data[, vars, with = F], 2, function(x) length(unique(x)))
-    vars = names(var_levels[var_levels < 15])
-    imp_modmat = data[, vars, with = F]
-    imp_modmat[,(vars):=lapply(.SD, as.factor), .SDcols=vars]
+    var_levels = apply(data[, vars_rake, with = F], 2, function(x) length(unique(x)))
+    vars_rake = names(var_levels[var_levels < 15])
+    imp_modmat = data[, vars_rake, with = F]
+    imp_modmat[,(vars_rake):=lapply(.SD, as.factor), .SDcols=vars_rake]
 
     imp_fit = randomForest(y = as.factor(data[, get(selected_ind)]), x = imp_modmat, importance = T, ntree = 50)
-    imp_vars = names(sort(imp_fit$importance[, 1], decreasing = T)[1:5])
+    imp_vars = names(sort(imp_fit$importance[, 1], decreasing = T))
+    imp_vars = var_levels[match(imp_vars, names(var_levels))]
+    
+    # limit vars to a total of 32 levels
+    n_vars = max(which(cumsum(imp_vars - 1) <= 32))
 
 
     rm(imp_fit)
@@ -1057,11 +1065,10 @@ doBARTweight = function(data, vars, popdata = NULL, selected_ind, pop_weight_col
             popdata[, pop_weight := get(pop_weight_col)]
         }
 
-
         cat(paste0(Sys.time(), "\t\t Raking....\n"))
         temp = tryCatch({doRaking(svydata = weighted
                         , popdata = popdata
-                        , vars = imp_vars
+                        , vars = names(imp_vars[1:7])
                         , prior_weight_col = 'bart_weight'
                         , pop_weight_col = pop_weight_col
                         )}, error = function(e) print(e))
@@ -1228,7 +1235,8 @@ runSim = function(data
     cat(paste0(timing$bart_start, '\t', "Running BART...\n\n\n"))
     bart_weighted = tryCatch({
         doBARTweight(data = data
-        , vars = c(vars, vars_add)
+        , vars_bart = c(vars, vars_add)
+        , vars_rake = vars_rake
         , selected_ind = selected_ind
         , verbose = TRUE 
         , ntree = ntree)
