@@ -1048,8 +1048,8 @@ doBARTweight = function(data, vars_bart, vars_rake = NULL, popdata = NULL, selec
     imp_vars = var_levels[match(imp_vars, names(var_levels))]
     
     # limit vars to a total of 32 levels
-    n_vars = max(which(cumsum(imp_vars - 1) <= 32))
-
+    n_vars = max(which(cumsum(imp_vars) <= 32))
+    cat(names(imp_vars[1:n_vars]), sep = '\n')
 
     rm(imp_fit)
     rm(bartFit)
