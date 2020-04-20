@@ -47,6 +47,14 @@ rm(ukbdata_modmat_scaled)
 print(paste0(Sys.time(), '\t Weighting starting...'))
 
 source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_functions.R')  #also loads lots of packages
+source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_poststrat.R')
+source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_calibration.R')
+source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_raking.R')
+source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_lassorake.R')
+source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_logit.R')
+source('/well/nichols/users/bwj567/mini-project-1/weighting/weighting_bart.R')
+source('/well/nichols/users/bwj567/mini-project-1/weighting/run_sim_function.R')
+
 
 
 
