@@ -126,7 +126,7 @@ all_weights = tryCatch(runSim(data = data
         , outcome = outcome
         , pop_weight_col = pop_weight_col
         , verbose = FALSE
-        , ntree = 25
+        , ntree = 50
         , epsilon = epsilon
         , modmat = modmat
         )
