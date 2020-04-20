@@ -1,15 +1,25 @@
 
 
-doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking', pop_weight_col = NULL){
+doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking', pop_weight_col = NULL, prior_weight_col = NULL){
+
+    popdata_cal <- copy(popdata)
+    svydata_cal <- copy(svydata)
 
     if(is.null(pop_weight_col)){
-        popdata[, pop_weight := 1]
+        popdata_cal[, pop_weight := 1]
     }else{
-        popdata[, pop_weight := get(pop_weight_col)]
+        popdata_cal[, pop_weight := get(pop_weight_col)]
     }
 
+        if(is.null(prior_weight_col)){
+        svydata_cal[, prior_weight := 1]
+    }else{
+        svydata_cal[, prior_weight := get(prior_weight_col)]
+    }
+
+
     # check levels and get rid of those vars with only 1 so model matrix works
-    samp_levels = apply(svydata[, vars, with = F], 2, function(x) length(unique(x)))
+    samp_levels = apply(svydata_cal[, vars, with = F], 2, function(x) length(unique(x)))
     vars_subset = vars[!vars %in% names(samp_levels)[samp_levels < 2]]
 
     # make model matricies
@@ -18,8 +28,8 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
     formula_modmat = as.formula(paste0('~ ', paste(vars_subset, collapse = '+')))
 
     # use model matrix that drops a level for each categorical var so that result is not singular
-    pop_modmat = model.matrix(formula_modmat, popdata, sparse = T)
-    samp_modmat = model.matrix(formula_modmat, svydata, sparse = T)
+    pop_modmat = model.matrix(formula_modmat, popdata_cal, sparse = T)
+    samp_modmat = model.matrix(formula_modmat, svydata_cal, sparse = T)
 
     cat(paste0(Sys.time(), "\t\t Dropping levels....\n"))
     ### DROP strata that are entirely missing
@@ -56,19 +66,19 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
     colnames(samp_modmat) = cal_vars$var_code[which(cal_vars$var_name %in% colnames(samp_modmat))]
 
     ## calculate sample and population totals
-    pop_totals = apply(pop_modmat, 2, function(x, pop_weight) {sum(x * pop_weight, na.rm = T)}, pop_weight = popdata$pop_weight)
+    pop_totals = apply(pop_modmat, 2, function(x, pop_weight) {sum(x * pop_weight, na.rm = T)}, pop_weight = popdata_cal$pop_weight)
     samp_totals = apply(samp_modmat, 2, sum)
     pop_levels = apply(pop_modmat, 2, function(x) length(unique(x)))
 
     # re-scale continuous vars
-    cols = which(pop_totals > sum(popdata$pop_weight))
+    cols = which(pop_totals > sum(popdata_cal$pop_weight))
     if(length(cols) > 0){
         if(length(cols) == 1){
-            pop_modmat[,cols] <- pop_modmat[,cols] / sum(pop_modmat[,cols]) * sum(popdata$pop_weight)
-            samp_modmat[,cols] <- samp_modmat[,cols] / sum(samp_modmat[,cols]) * nrow(svydata)
+            pop_modmat[,cols] <- pop_modmat[,cols] / sum(pop_modmat[,cols]) * sum(popdata_cal$pop_weight)
+            samp_modmat[,cols] <- samp_modmat[,cols] / sum(samp_modmat[,cols]) * nrow(svydata_cal)
         }else{
-            pop_modmat[,cols] <- apply(pop_modmat[,cols], 2, function(x) x / sum(x) * sum(popdata$pop_weight))
-            samp_modmat[,cols] <- apply(samp_modmat[,cols], 2, function(x) x / sum(x) * nrow(svydata))
+            pop_modmat[,cols] <- apply(pop_modmat[,cols], 2, function(x) x / sum(x) * sum(popdata_cal$pop_weight))
+            samp_modmat[,cols] <- apply(samp_modmat[,cols], 2, function(x) x / sum(x) * nrow(svydata_cal))
         }
 
         # drop sample totals since they're implicit in the continuous vars now
@@ -78,12 +88,12 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
 
 
     # recalc totals
-    pop_totals = apply(pop_modmat, 2, function(x, pop_weight) {sum(x * pop_weight, na.rm = T)}, pop_weight = popdata$pop_weight)
+    pop_totals = apply(pop_modmat, 2, function(x, pop_weight) {sum(x * pop_weight, na.rm = T)}, pop_weight = popdata_cal$pop_weight)
     samp_totals = apply(samp_modmat, 2, sum)
     pop_levels = apply(pop_modmat, 2, function(x) length(unique(x)))
 
     ### DROP more levels that are too small
-    small_pop_strata = pop_totals/sum(popdata$pop_weight)
+    small_pop_strata = pop_totals/sum(popdata_cal$pop_weight)
     small_pop_strata = small_pop_strata[(small_pop_strata < 0.02 | small_pop_strata > 0.98 & small_pop_strata < 1) & pop_levels <= 2]
     small_pop_strata = data.table(var_code = names(small_pop_strata), pop_prop = small_pop_strata)
 
@@ -95,7 +105,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
     small_strata = small_strata[!is.na(pop_prop) | !is.na(samp_prop)]
 
     if(nrow(small_strata) > 0){
-        print('WARNING dropping strata because <2.5% of pop or sample')
+        print('WARNING dropping strata because <2% of pop or sample')
         print(small_strata)
         pop_modmat = pop_modmat[, -which(colnames(pop_modmat) %in% small_strata$var_code)]
         samp_modmat = samp_modmat[, -which(colnames(samp_modmat) %in% small_strata$var_code)]
@@ -103,7 +113,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
 
     
     ## re-calc pop totals
-    pop_totals = apply(pop_modmat, 2, function(x, pop_weight) {sum(x * pop_weight, na.rm = T)}, pop_weight = popdata$pop_weight)
+    pop_totals = apply(pop_modmat, 2, function(x, pop_weight) {sum(x * pop_weight, na.rm = T)}, pop_weight = popdata_cal$pop_weight)
     print(pop_totals)
 
     apply(samp_modmat, 2, function(x) length(unique(x)))
@@ -116,7 +126,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
     
     # split into subgroups for calibration so it doesn't die
     n_vars = length(pop_totals)
-    n_loop = ceiling(n_vars/20)
+    n_loop = ifelse(n_vars < 30, 1, ceiling(n_vars/20))
 
     for(i in 1:n_loop){
         cat(paste0(Sys.time(), "\t\t\t Iteration ",i ,"\n"))
@@ -142,7 +152,7 @@ doCalibration = function(svydata, popdata, vars, epsilon = 1, calfun = 'raking',
     }
 
 
-    weighted = data.table(cbind(svydata, weight = (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T)))
+    weighted = data.table(cbind(svydata_cal, weight = (1/(weighted$prob + 0.00000001))/mean(1/(weighted$prob + 0.00000001), na.rm = T)))
 
     return(weighted)
 }

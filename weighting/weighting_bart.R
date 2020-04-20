@@ -83,9 +83,15 @@ doBARTweight = function(data, vars_bart, vars_rake = NULL, popdata = NULL, selec
         }
 
         cat(paste0(Sys.time(), "\t\t Raking....\n"))
-        temp = tryCatch({doRaking(svydata = weighted
+        # temp = tryCatch({doRaking(svydata = weighted
+        #                 , popdata = popdata
+        #                 , vars = names(imp_vars[1:7])
+        #                 , prior_weight_col = 'bart_weight'
+        #                 , pop_weight_col = pop_weight_col
+        #                 )}, error = function(e) print(e))
+        temp = tryCatch({doCalibration(svydata = weighted
                         , popdata = popdata
-                        , vars = names(imp_vars[1:7])
+                        , vars = names(imp_vars[1:n_vars])
                         , prior_weight_col = 'bart_weight'
                         , pop_weight_col = pop_weight_col
                         )}, error = function(e) print(e))
