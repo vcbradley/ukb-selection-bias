@@ -94,6 +94,7 @@ doBARTweight = function(data, vars_bart, vars_rake = NULL, popdata = NULL, selec
                         , vars = names(imp_vars[1:n_vars])
                         , prior_weight_col = 'bart_weight'
                         , pop_weight_col = pop_weight_col
+                        , epsilon = epsilon
                         )}, error = function(e) print(e))
 
         # if raking fails, just use BART weights
