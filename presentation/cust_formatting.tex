@@ -1,0 +1,48 @@
+%\setbeamertemplate{navigation symbols}{}
+%ß\setbeamertemplate{footline}[frame number]{}
+
+\usepackage{tikz}
+\usepackage{colortbl}
+\usepackage[]{algorithm2e}
+\usepackage{pifont}
+\usepackage{amssymb}
+
+\usetikzlibrary{shapes,decorations,arrows,calc,arrows.meta,fit,positioning}
+\tikzset{
+	-Latex,auto,node distance =1 cm and 1 cm,semithick,
+	state/.style ={ellipse, draw, minimum width = 3 cm},
+	point/.style = {circle, draw, inner sep=0.04cm,fill,node contents={}},
+	bidirected/.style={Latex-Latex,dashed},
+	el/.style = {inner sep=2pt, align=left, sloped}
+}
+
+\newcommand\ci{\perp\!\!\!\perp}
+
+%\title[Methods for Selection Bias in the UK Biobank]{Methods for Selection Bias in UKB}
+\institute[University of Oxford]{University of Oxford, Department of Statistics}
+
+\titlegraphic{
+	\vspace{1cm}
+	\includegraphics[width=3cm]{/Users/valeriebradley/Documents/Oxford/logos/ox_small_cmyk_pos_rect.png}
+}
+
+%\definecolor{oxfordblue}{rgb}{0.267, 0.412, 0.49}
+\definecolor{oxfordblue}{rgb}{0, 0.129, 0.278}
+\definecolor{oxfordlightblue}{RGB}{25, 56, 87}
+\definecolor{oxfordred}{RGB}{186, 12, 47}
+\definecolor{oxfordgreen}{RGB}{15,115,97}
+\usecolortheme[named=oxfordblue]{structure}
+
+
+\defbeamertemplate{section page}{mine}[1][]{%
+	\begin{centering}
+		{\usebeamerfont{section name}\usebeamercolor[fg]{section name}#1}
+		\vskip1em\par
+		\begin{beamercolorbox}[sep=12pt,center]{part title}
+			\usebeamerfont{section title}\insertsection\par
+		\end{beamercolorbox}
+	\end{centering}
+}
+
+
+\setbeamertemplate{section page}[mine]

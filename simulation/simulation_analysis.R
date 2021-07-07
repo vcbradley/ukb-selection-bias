@@ -36,7 +36,7 @@ result_list = list.files('results/', pattern = 'prop')
 # 	write.csv(data_rev, file = r, row.names = F)
 # }
 
-
+######## CAT TOGETHER RESULTS ########
 ##### create all results files
 for(r_ind in 1:length(result_list)){
 	r = result_list[r_ind]
@@ -78,7 +78,7 @@ for(r_ind in 1:length(result_list)){
 
 
 
-#### Load in summary data
+######### LOAD WEIGHTS #########
 all_weights = fread(file = 'results/all_weights.csv')
 
 
@@ -112,6 +112,10 @@ vars = c('demo_sex'
         , 'demo_hh_size'
         , 'demo_hh_ownrent'
         , 'demo_hh_accom_type'
+        , 'health_smoking_status'
+        , 'health_apoe_phenotype'
+        , 'health_BMI_bucket'
+        , 'health_bp_high_ever'
         )
 
 all_weights_demos[all_weights_demos[, .(n_samp = .N/max(sim_num)), by = prop_sampled], on = 'prop_sampled', n_samp := i.n_samp]
@@ -159,20 +163,25 @@ weight_summary = rbindlist(lapply(c('has_t1_MRI', vars), function(v){
         ), by = c('prop_sampled','sim_num', v)]
 
     cbind(var = v, merge(pop, samp, by = v, all = T))
-    }))
+
+}))
 
 setnames(weight_summary, old = 'has_t1_MRI', new = 'level')
 weight_summary
 
+# check NAs
+weight_summary[var == 'has_t1_MRI', lapply(.SD, function(x) sum(x == 0 | is.na(x))), .SDcols = names(weight_summary)[grepl('var', names(weight_summary))]]
 
-### check 
+# check where algs didn't converge
 weight_summary[var == 'has_t1_MRI', lapply(.SD, function(x) mean(x == 0)), .SDcols = names(weight_summary)[grepl('var_', names(weight_summary))], by = prop_sampled][order(prop_sampled)]
 
+# check weights count by prop_sampled
 weight_summary[var == 'has_t1_MRI', .N, prop_sampled]
 
+# check toplines
 weight_summary[var == 'has_t1_MRI' & prop_sampled == 0.01,][order(sim_num)]
 
-# calc error
+# calc brainvol error
 weight_summary[, samp_error := samp_brainvol - pop_brainvol]
 weight_summary[, paste0(methods, '_error') := lapply(.SD, function(col) col - pop_brainvol), .SDcols = paste0(methods, '_brainvol')]
 
@@ -207,8 +216,23 @@ list.files(results_path)
 save(weight_summary, mse, file = paste0(results_path, '/results_summary.rda'))
 
 
-# to move to local comp
-#paste0('scp biobank:/well/nichols/users/bwj567/simulation/',sim_name, '~/Documents/')
+# library(data.table)
+# sim_name = 'sim_1_5000_v3'
+# setwd(paste0('/well/nichols/users/bwj567/simulation/', sim_name))
+
+# covars = fread('missingness_covars.csv')
+# coefs = fread('coefs.csv')
+
+# sim_coefs = cbind(covars, coefs)[X1 != 0]
+
+
+# #### missingness mech
+# coefs = fread('coefs.csv')
+# covars = fread('missingness_covars.csv')
+# coef_table = cbind(covars, coefs)[X1 != 0]
+
+# kable(coef_table[, .(Z = var_name, B_z = X1)], format = 'latex', booktabs = T)
+
 
 
 
